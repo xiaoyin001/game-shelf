@@ -4,7 +4,7 @@
 
 ## 当前能力
 
-当前有 AI 规范、Go TCP/protobuf 基础、公共配置/日志/发现/数据库与会话封装；真实 etcd、Redis、MongoDB 烟测可运行。还没有业务服务器或游戏。后续每个真实实现阶段都会独立验证和提交；最新事实见 [成长记录](docs/progress.md)。
+当前有四个可运行的 Go 服务：HTTP 开发登录、TCP 网关认证、大厅列表与统一账号存储。真实账号保存、TCP 心跳/大厅和依赖烟测已通过。还没有浏览器或可玩世界。后续每个真实实现阶段都会独立验证和提交；最新事实见 [成长记录](docs/progress.md)。
 
 ## 本阶段验证
 
@@ -15,6 +15,10 @@ npm run check
 ```
 
 真实基础设施烟测：`npm run test:infra`。需要 Docker Compose；Windows 可以使用 WSL 内 Docker，运行器只回收自己的保活管道，不清数据库或卷。
+
+启动当前服务：`npm run dev`；登录接口为 `POST http://127.0.0.1:11000/login`。当前根路径没有游戏页面。
+
+组合验证：`npm run test:services`；运行器安全验证：`npm run test:runner`。停止时只回收自建服务，日志在 `.local/logs/`。
 
 ## 开发入口
 

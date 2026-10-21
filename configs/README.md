@@ -4,7 +4,8 @@
 
 ## 目录
 
-- `configs/local/development.json`：当前基础设施烟测使用的独立身份与依赖连接配置；尚无业务进程配置。
+- `configs/local/development.json`：基础设施烟测使用的独立身份与依赖连接配置。
+- `configs/local/login.json`、`gate.json`、`lobby.json`、`db.json`：当前四个本地进程的实际配置，监听均为本机回环地址。
 - 地址、监听与数据库连接使用本机参数；依赖默认仅开放回环端口。
 
 ## service

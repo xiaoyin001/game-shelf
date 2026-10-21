@@ -10,6 +10,9 @@
   "scripts": {
     "check": "node scripts/check.mjs",
     "check:workflow": "node --test tests/workflow/*.test.mjs",
-    "test:infra": "node scripts/test-infra.mjs"
+    "test:infra": "node scripts/test-infra.mjs",
+    "dev": "node scripts/local-stack.mjs",
+    "test:services": "node scripts/test-services.mjs",
+    "test:runner": "node --test tests/runner/*.test.mjs"
   }
 }

@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-有规则、通信库及经真实依赖验证的基础设施封装，尚无业务服务器、客户端或可玩能力。
+四个业务服务已经可运行，HTTP 登录保存账号、TCP 认证/心跳/大厅链路通过。尚无浏览器与可玩世界。
 
 ## 阶段记录
 
@@ -29,4 +29,12 @@
 - 实际验证：`make check` 通过；`npm run test:infra` 在真实 etcd、MongoDB、Redis 上通过注册发现、驱动连接、消费/过期/重放拒绝和旧会话清理保护。
 - Windows WSL 保活直接复用已知经验，本阶段没有重演旧故障或沿用旧运行结果；没有清库、删卷或接管其他任务服务。
 - 当前仍未加入 HTTP 登录、网关或游戏界面。
-- 决策：[ADR-0003](decisions/0003-local-infrastructure.md)。
+- 决策：[ADR-0003](decisions/0003-local-infrastructure.md)，提交 `230c42d`。
+
+### 04 · 登录、网关、大厅与账号保存
+
+- 已实现：四服务启动、真实 ready 依赖状态、HTTP 开发登录、MongoDB 账号保存、单次 token、TCP 认证/心跳/大厅列表。
+- 当前大厅只提供开发列表，不使用永久 Redis 集合假装在线人数；世界在线状态尚未实现。
+- 实际验证：`make check`、`npm run test:services` 与 `npm run test:runner` 均通过；真实账号保存唯一且重复登录身份稳定；占用端口时原监听不被接管或杀死。
+- 运行器每次构建当前代码，测试后回收自建进程与锁。不把 HTTP/TCP 通过写成浏览器可玩。
+- 决策：[ADR-0004](decisions/0004-service-login.md)。
