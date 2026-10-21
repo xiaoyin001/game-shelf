@@ -41,6 +41,7 @@ type WorldState struct {
 	Height  float64        `protobuf:"fixed64,3,opt,name=height,proto3" json:"height"`
 	Players []*WorldPlayer `protobuf:"bytes,4,rep,name=players,proto3" json:"players"`
 	Chats   []*WorldChat   `protobuf:"bytes,6,rep,name=chats,proto3" json:"chats"`
+	Nodes   []*WorldNode   `protobuf:"bytes,5,rep,name=nodes,proto3" json:"nodes"`
 }
 
 func (m *WorldState) Reset()         { *m = WorldState{} }
@@ -49,15 +50,28 @@ func (*WorldState) ProtoMessage()    {}
 
 // WorldPlayer 仅包含对其他玩家可见的当前属性。
 type WorldPlayer struct {
-	ID   string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
-	Name string  `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
-	X    float64 `protobuf:"fixed64,3,opt,name=x,proto3" json:"x"`
-	Y    float64 `protobuf:"fixed64,4,opt,name=y,proto3" json:"y"`
+	ID    string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
+	Name  string  `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
+	X     float64 `protobuf:"fixed64,3,opt,name=x,proto3" json:"x"`
+	Y     float64 `protobuf:"fixed64,4,opt,name=y,proto3" json:"y"`
+	Score int32   `protobuf:"varint,5,opt,name=score,proto3" json:"score"`
 }
 
 func (m *WorldPlayer) Reset()         { *m = WorldPlayer{} }
 func (m *WorldPlayer) String() string { return proto.CompactTextString(m) }
 func (*WorldPlayer) ProtoMessage()    {}
+
+// WorldNode 的 ReadyAtMS 表示可再次采集的服务器时间。
+type WorldNode struct {
+	ID        string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
+	X         float64 `protobuf:"fixed64,2,opt,name=x,proto3" json:"x"`
+	Y         float64 `protobuf:"fixed64,3,opt,name=y,proto3" json:"y"`
+	ReadyAtMS int64   `protobuf:"varint,4,opt,name=ready_at_ms,json=readyAtMs,proto3" json:"ready_at_ms"`
+}
+
+func (m *WorldNode) Reset()         { *m = WorldNode{} }
+func (m *WorldNode) String() string { return proto.CompactTextString(m) }
+func (*WorldNode) ProtoMessage()    {}
 
 // WorldChat 使用递增编号供客户端去重。
 type WorldChat struct {

@@ -28,6 +28,7 @@ function disconnected(text) {
   clearTimeout(joinTimer);
   $("entry-panel").hidden = false;
   $("leave-button").hidden = true;
+  $("game-hint").hidden = true;
   $("chat-input").disabled = true;
   $("chat-send").disabled = true;
   $("join-button").disabled = false;
@@ -79,7 +80,11 @@ $("login-form").addEventListener("submit", async (event) => {
         return;
       }
       if (event.type === "error") {
-        notice("请求未完成：" + event.error);
+        notice(
+          event.error === "no_resource_in_range"
+            ? "附近没有可采集晶簇，资源可能仍在冷却。"
+            : "请求未完成：" + event.error,
+        );
         return;
       }
       if (event.type === "ready") {
@@ -89,6 +94,7 @@ $("login-form").addEventListener("submit", async (event) => {
         clearTimeout(joinTimer);
         $("entry-panel").hidden = true;
         $("leave-button").hidden = false;
+        $("game-hint").hidden = false;
         $("chat-input").disabled = false;
         $("chat-send").disabled = false;
         chatID = 0;
@@ -154,6 +160,10 @@ const movementKeys = new Set([
 document.addEventListener("keydown", (event) => {
   if (!connected || /INPUT|TEXTAREA/.test(event.target.tagName)) return;
   const key = event.key.toLowerCase();
+  if (key === "e" && !event.repeat) {
+    event.preventDefault();
+    send("gather");
+  }
   if (key === "enter") {
     event.preventDefault();
     keys.clear();
@@ -185,13 +195,16 @@ function updateUI() {
   $("players").replaceChildren(
     ...players.map((player) => {
       const li = document.createElement("li");
-      li.textContent = player.name + (player.id === selfID ? " · 你" : "");
+      li.textContent = player.name + (player.id === selfID ? " · 你" : "") + " · ✦ " + player.score;
       li.dataset.x = player.x;
       li.dataset.y = player.y;
       return li;
     }),
   );
   if (me) {
+    const before = Number($("score").textContent);
+    $("score").textContent = me.score;
+    if (me.score > before) notice("收集到一枚微光晶簇 ✦ 共享资源 10 秒后重生。");
     $("player-name").textContent = me.name;
     $("coordinates").textContent = "坐标 " + Math.round(me.x) + " / " + Math.round(me.y);
     $("coordinates").dataset.x = me.x;
@@ -207,6 +220,23 @@ function render() {
     ctx.moveTo(x, 0);
     ctx.lineTo(x, 800);
     ctx.stroke();
+  }
+  for (const node of state?.nodes || []) {
+    const ready = node.ready_at_ms <= state.time_ms;
+    ctx.fillStyle = ready ? "#b2efc8" : "#3c6552";
+    ctx.beginPath();
+    ctx.moveTo(node.x, node.y - 22);
+    ctx.lineTo(node.x + 13, node.y);
+    ctx.lineTo(node.x, node.y + 18);
+    ctx.lineTo(node.x - 13, node.y);
+    ctx.closePath();
+    ctx.fill();
+    if (!ready) {
+      ctx.fillStyle = "#8da591";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(Math.ceil((node.ready_at_ms - state.time_ms) / 1000) + "s", node.x, node.y - 32);
+    }
   }
   for (const player of state?.players || []) {
     ctx.fillStyle = player.id === selfID ? "#b2efc8" : "#a4b8e5";

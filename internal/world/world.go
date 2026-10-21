@@ -32,10 +32,15 @@ type World struct {
 	players map[string]*player
 	chats   []contracts.WorldChat
 	chatID  int64
+	nodes   []contracts.WorldNode
 }
 
 // New 创建没有在线玩家的世界。
-func New() *World { return &World{players: make(map[string]*player)} }
+func New() *World {
+	return &World{players: make(map[string]*player), nodes: []contracts.WorldNode{
+		{ID: "crystal-1", X: 620, Y: 400}, {ID: "crystal-2", X: 300, Y: 260}, {ID: "crystal-3", X: 900, Y: 260}, {ID: "crystal-4", X: 350, Y: 600}, {ID: "crystal-5", X: 850, Y: 600},
+	}}
+}
 
 // Apply 使用服务器时间校验会话并复制当前快照。
 func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldResp {
@@ -75,6 +80,10 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if err := w.move(p, req.DX, req.DY, now); err != "" {
 			return failure(err)
 		}
+	case "gather":
+		if err := w.gather(p, now); err != "" {
+			return failure(err)
+		}
 	case "chat":
 		if err := w.chat(p, req.Text, now); err != "" {
 			return failure(err)
@@ -106,6 +115,18 @@ func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	return ""
 }
 
+func (w *World) gather(p *player, now time.Time) string {
+	for i := range w.nodes {
+		n := &w.nodes[i]
+		if math.Hypot(p.state.X-n.X, p.state.Y-n.Y) <= 72 && now.UnixMilli() >= n.ReadyAtMS {
+			n.ReadyAtMS = now.Add(10 * time.Second).UnixMilli()
+			p.state.Score++
+			return ""
+		}
+	}
+	return "no_resource_in_range"
+}
+
 func (w *World) chat(p *player, raw string, now time.Time) string {
 	value := strings.TrimSpace(raw)
 	if value == "" || !utf8.ValidString(value) || utf8.RuneCountInString(value) > 140 {
@@ -124,10 +145,14 @@ func (w *World) chat(p *player, raw string, now time.Time) string {
 }
 
 func (w *World) snapshot(now time.Time) *contracts.WorldState {
-	state := &contracts.WorldState{TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players)), Chats: make([]*contracts.WorldChat, 0, len(w.chats))}
+	state := &contracts.WorldState{TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players)), Chats: make([]*contracts.WorldChat, 0, len(w.chats)), Nodes: make([]*contracts.WorldNode, 0, len(w.nodes))}
 	for _, p := range w.players {
 		copy := p.state
 		state.Players = append(state.Players, &copy)
+	}
+	for _, n := range w.nodes {
+		copy := n
+		state.Nodes = append(state.Nodes, &copy)
 	}
 	for _, c := range w.chats {
 		copy := c

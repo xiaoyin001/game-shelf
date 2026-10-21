@@ -1,4 +1,4 @@
-// 文件说明：校验当前在线状态 protobuf 契约能够完整往返。
+// 文件说明：验证嵌套世界快照通过现有 protobuf 编解码后保持完整。
 package contracts
 
 import (
@@ -6,14 +6,21 @@ import (
 	"testing"
 )
 
-func TestPresenceProtobufRoundTrip(t *testing.T) {
-	source := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800, Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560, Y: 400}}}}
-	data, err := proto.Marshal(source)
+func TestWorldProtobufRoundTrip(t *testing.T) {
+	input := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800,
+		Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 400, Score: 2}},
+		Nodes:   []*WorldNode{{ID: "n", X: 620, ReadyAtMS: 100}},
+		Chats:   []*WorldChat{{ID: 1, Name: "旅人", Text: "你好"}},
+	}}
+	data, err := proto.Marshal(input)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var target WorldResp
-	if err := proto.Unmarshal(data, &target); err != nil || !proto.Equal(source, &target) {
-		t.Fatal("world round trip failed", err)
+	var output WorldResp
+	if err := proto.Unmarshal(data, &output); err != nil {
+		t.Fatal(err)
+	}
+	if !proto.Equal(input, &output) {
+		t.Fatalf("round trip mismatch: %v", &output)
 	}
 }

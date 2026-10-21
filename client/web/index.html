@@ -39,6 +39,7 @@
             </div>
           </div>
           <div class="map-footer">
+            <span id="game-hint" hidden>靠近发光晶簇按 E 采集</span>
             <span id="coordinates">坐标 —</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
@@ -46,6 +47,8 @@
         <aside>
           <section class="card">
             <h2 id="player-name">尚未出发</h2>
+            <div class="score-value">本轮微光：<strong id="score">0</strong></div>
+            <p>临时沙盒：离开或重启会重置分数。</p>
             <p>WASD / 方向键移动，Enter 聚焦聊天。</p>
           </section>
           <section class="card">

@@ -16,4 +16,6 @@
 
 - [ADR-0007：世界文字聊天](0007-world-chat.md)
 
+- [ADR-0008：共享资源采集](0008-shared-gathering.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。
