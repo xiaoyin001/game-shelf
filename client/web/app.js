@@ -1,8 +1,9 @@
-// 文件说明：当前仅通过认证连接与权威快照显示共享在线，不预置后续玩法。
+// 文件说明：发送真实键盘方向，依据服务器权威快照显示世界。
 "use strict";
 const $ = (id) => document.getElementById(id),
   canvas = $("world"),
   ctx = canvas.getContext("2d");
+const keys = new Set();
 let socket = null,
   state = null,
   selfID = "",
@@ -21,6 +22,7 @@ function send(type, data = {}) {
 }
 function disconnected(text) {
   connected = false;
+  keys.clear();
   joining = false;
   clearTimeout(joinTimer);
   $("entry-panel").hidden = false;
@@ -87,7 +89,7 @@ $("login-form").addEventListener("submit", async (event) => {
         $("join-button").disabled = false;
         $("account").blur();
         status("已连接 · 原野 01");
-        notice("已进入共享原野。当前支持在线观察、退出和重新进入。");
+        notice("已进入共享原野。使用 WASD 或方向键移动，其他旅人会看到你。");
       }
       if (event.state) {
         state = event.state;
@@ -106,8 +108,36 @@ $("login-form").addEventListener("submit", async (event) => {
   }
 });
 $("leave-button").addEventListener("click", () => socket?.close());
+const movementKeys = new Set([
+  "w",
+  "a",
+  "s",
+  "d",
+  "arrowup",
+  "arrowdown",
+  "arrowleft",
+  "arrowright",
+]);
+document.addEventListener("keydown", (event) => {
+  if (!connected || /INPUT|TEXTAREA/.test(event.target.tagName)) return;
+  const key = event.key.toLowerCase();
+  if (movementKeys.has(key)) {
+    event.preventDefault();
+    keys.add(key);
+  }
+});
+document.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+window.addEventListener("blur", () => keys.clear());
+document.addEventListener("focusin", () => keys.clear());
+document.addEventListener("visibilitychange", () => keys.clear());
 setInterval(() => {
-  if (connected) send("ping");
+  if (!connected) return;
+  const dx =
+    Number(keys.has("d") || keys.has("arrowright")) -
+    Number(keys.has("a") || keys.has("arrowleft"));
+  const dy =
+    Number(keys.has("s") || keys.has("arrowdown")) - Number(keys.has("w") || keys.has("arrowup"));
+  send("input", { dx, dy });
 }, 100);
 function updateUI() {
   const players = state.players || [],

@@ -12,4 +12,6 @@
 
 - [ADR-0005：浏览器与共享世界在线切片](0005-browser-presence.md)
 
+- [ADR-0006：权威移动输入](0006-authoritative-movement.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

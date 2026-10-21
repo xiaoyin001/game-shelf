@@ -1,4 +1,4 @@
-// 文件说明：定义当前世界进入、轮询与离开的内部 protobuf 契约。
+// 文件说明：定义世界在线与移动输入的内部 protobuf 契约。
 package contracts
 
 import "github.com/golang/protobuf/proto"
@@ -11,10 +11,12 @@ const (
 
 // WorldReq 的身份由 gate 填充，不能从浏览器请求透传。
 type WorldReq struct {
-	UserID    string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id"`
-	SessionID string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id"`
-	Action    string `protobuf:"bytes,3,opt,name=action,proto3" json:"action"`
-	Name      string `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
+	UserID    string  `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id"`
+	SessionID string  `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id"`
+	Action    string  `protobuf:"bytes,3,opt,name=action,proto3" json:"action"`
+	Name      string  `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
+	DX        float64 `protobuf:"fixed64,5,opt,name=dx,proto3" json:"dx"`
+	DY        float64 `protobuf:"fixed64,6,opt,name=dy,proto3" json:"dy"`
 }
 
 func (m *WorldReq) Reset()         { *m = WorldReq{} }

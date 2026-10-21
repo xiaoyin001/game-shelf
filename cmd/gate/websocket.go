@@ -20,9 +20,11 @@ import (
 )
 
 type browserCommand struct {
-	Version int    `json:"version"`
-	Type    string `json:"type"`
-	Token   string `json:"token,omitempty"`
+	Version int     `json:"version"`
+	Type    string  `json:"type"`
+	Token   string  `json:"token,omitempty"`
+	DX      float64 `json:"dx,omitempty"`
+	DY      float64 `json:"dy,omitempty"`
 }
 type browserEvent struct {
 	Version int                   `json:"version"`
@@ -127,8 +129,19 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "rate_limited"})
 				return
 			}
-			if cmd.Type != "ping" {
+			if cmd.Type == "ping" {
+				continue
+			}
+			if cmd.Type != "input" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
+				continue
+			}
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY})
+			if err != nil {
+				return
+			}
+			if reply.Error != "" && !s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error}) {
+				return
 			}
 
 		case <-ticker.C:

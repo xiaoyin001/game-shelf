@@ -1,8 +1,9 @@
-// 文件说明：维护单世界的在线角色、会话替换和退出租约，不提前模拟玩法。
+// 文件说明：维护单世界在线状态与服务器时间约束的权威移动。
 package world
 
 import (
 	"game-shelf/pkg/contracts"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 const (
 	width     = 1200.0
 	height    = 800.0
+	speed     = 180.0
 	playerTTL = 5 * time.Second
 )
 
@@ -20,6 +22,7 @@ type player struct {
 	state    contracts.WorldPlayer
 	session  string
 	lastSeen time.Time
+	lastMove time.Time
 }
 
 // World 统一持有在线角色，快照与修改在同一锁中完成。
@@ -55,7 +58,7 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if w.players[req.UserID] == nil && len(w.players) >= 100 {
 			return failure("world_full")
 		}
-		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: 560, Y: 400}, session: req.SessionID, lastSeen: now}
+		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: 560, Y: 400}, session: req.SessionID, lastSeen: now, lastMove: now}
 		return &contracts.WorldResp{State: w.snapshot(now)}
 	}
 	p := w.players[req.UserID]
@@ -65,6 +68,10 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	p.lastSeen = now
 	switch req.Action {
 	case "poll":
+	case "input":
+		if err := w.move(p, req.DX, req.DY, now); err != "" {
+			return failure(err)
+		}
 	case "leave":
 		delete(w.players, req.UserID)
 	default:
@@ -72,6 +79,26 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	}
 	return &contracts.WorldResp{State: w.snapshot(now)}
 }
+func (w *World) move(p *player, dx, dy float64, now time.Time) string {
+	if math.IsNaN(dx) || math.IsNaN(dy) || math.IsInf(dx, 0) || math.IsInf(dy, 0) {
+		return "invalid_direction"
+	}
+	length := math.Hypot(dx, dy)
+	if math.IsInf(length, 0) {
+		return "invalid_direction"
+	}
+	if length > 1 {
+		dx /= length
+		dy /= length
+	}
+	// 每次最多承认 150ms 的位移，空闲与网络堵塞不能积攒移动额度。
+	dt := math.Max(0, math.Min(now.Sub(p.lastMove).Seconds(), 0.15))
+	p.lastMove = now
+	p.state.X = math.Max(20, math.Min(width-20, p.state.X+dx*speed*dt))
+	p.state.Y = math.Max(20, math.Min(height-20, p.state.Y+dy*speed*dt))
+	return ""
+}
+
 func (w *World) snapshot(now time.Time) *contracts.WorldState {
 	state := &contracts.WorldState{TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players))}
 	for _, p := range w.players {

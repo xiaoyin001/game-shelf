@@ -1,12 +1,6 @@
 // 文件说明：当前阶段仅验收真实双浏览器在线、离开重进与同名顶替。
 import { test, expect } from "@playwright/test";
-export const unique = (label) => "test-" + label + "-" + Date.now().toString(36);
-export async function join(page, name) {
-  await page.goto("/");
-  await page.getByLabel("旅人名字").fill(name);
-  await page.getByRole("button", { name: /进入原野/ }).click();
-  await expect(page.locator("#status")).toContainText("已连接");
-}
+import { unique, join } from "./helpers.mjs";
 test("双浏览器同世界，退出移除并可重新进入", async ({ browser }) => {
   const a = await browser.newContext(),
     b = await browser.newContext();
