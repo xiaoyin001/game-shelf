@@ -22,4 +22,6 @@
 
 - [ADR-0010：成长历史核对与交付](0010-delivery-verification.md)
 
+- [ADR-0011：真实协议就绪与失败现场](0011-semantic-dependency-readiness.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

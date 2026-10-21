@@ -1,10 +1,13 @@
 // 文件说明：管理真实本地依赖与自己的 WSL 保活管道，不接管外部服务或删除卷。
 import { spawn, spawnSync } from "node:child_process";
 import { createConnection } from "node:net";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+let diagnosticCommand = null;
+const compose = ["compose", "-p", "game-shelf", "-f", "deploy/docker-compose.yml"];
 // listening 只探测本机 TCP，后续真实协议测试仍负责验证服务种类。
 export function listening(port) {
   return new Promise((done) => {
@@ -29,6 +32,39 @@ export function run(file, args, env = {}) {
   });
   if (r.error || r.status !== 0) throw r.error || new Error(file + " exited " + r.status);
 }
+// captureInfraDiagnostics 只读取本项目的容器现场，不能遮盖原始错误。
+export function captureInfraDiagnostics() {
+  try {
+    mkdirSync(join(root, ".local/logs"), { recursive: true });
+    let output = new Date().toISOString() + "\n";
+    if (!diagnosticCommand) output += "未检测到本项目可用的 Docker Compose 命令。\n";
+    else
+      for (const args of [["ps", "--all"], ["images"], ["logs", "--no-color", "--tail", "100"]]) {
+        const result = spawnSync(
+          diagnosticCommand.file,
+          [...diagnosticCommand.prefix, ...compose, ...args],
+          {
+            cwd: root,
+            encoding: "utf8",
+            windowsHide: true,
+            timeout: 15000,
+            maxBuffer: 4 * 1024 * 1024,
+          },
+        );
+        output +=
+          "\n### " +
+          args.join(" ") +
+          "\n" +
+          (result.stdout || "") +
+          (result.stderr || "") +
+          (result.error ? String(result.error) : "");
+      }
+    writeFileSync(join(root, ".local/logs/infra.log"), output, "utf8");
+    console.error("依赖现场已保存到 .local/logs/infra.log");
+  } catch (error) {
+    console.error("保存依赖现场失败：" + error.message);
+  }
+}
 // startInfra 返回只回收自有保活进程的函数，已有依赖不主动停止。
 export async function startInfra() {
   const ports = [2379, 6379, 27017];
@@ -45,6 +81,7 @@ export async function startInfra() {
       windowsHide: true,
     });
     let wsl = false;
+    if (!docker.error && docker.status === 0) diagnosticCommand = { file: "docker", prefix: [] };
     if ((docker.error || docker.status !== 0) && process.platform === "win32") {
       const probe = spawnSync("wsl", ["--", "docker", "compose", "version"], {
         stdio: "ignore",
@@ -52,6 +89,7 @@ export async function startInfra() {
       });
       if (!probe.error && probe.status === 0) {
         wsl = true;
+        diagnosticCommand = { file: "wsl", prefix: ["--", "docker"] };
         keeper = spawn("wsl", ["--exec", "cat"], {
           cwd: root,
           stdio: ["pipe", "ignore", "ignore"],
@@ -76,8 +114,18 @@ export async function startInfra() {
         await delay(300);
       }
     }
+    // Docker 代理接通不代表数据库可用，必须让主机侧同款驱动实际响应。
+    mkdirSync(join(root, ".local/bin"), { recursive: true });
+    const checker = join(
+      root,
+      ".local/bin",
+      "infra-check" + (process.platform === "win32" ? ".exe" : ""),
+    );
+    run("go", ["build", "-o", checker, "./cmd/infra-check"]);
+    run(checker, ["-config", "configs/local/development.json"]);
     return stop;
   } catch (error) {
+    captureInfraDiagnostics();
     await stop();
     throw error;
   }

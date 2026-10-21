@@ -66,6 +66,20 @@
 - 本报告生成时未 Push、未创建 PR、未触发 GitHub CI。CI 工作流只完成本地定义，不写成已通过。
 - 本轮运行结束后已检查自建 Go 进程残留为 0，运行器锁不存在。体验用 npm run dev，再打开 http://127.0.0.1:11000。
 
+## 首次推送后的实际 CI 与本地配套
+
+10 个阶段提交已推送到 GitHub master，最终提交 4986865c4ab1466f3dd99ea61f861aa382dddab4；默认分支为 master，未强推、未创建 PR。
+[首次 CI 39572389734](https://github.com/xiaoyin001/game-shelf/actions/runs/39572389734) 已执行：source 成功（规则/历史/源码与 race），playable 起服失败，DB 连接 MongoDB 持续被拒绝，没有进入浏览器用例。此前“尚未 Push/CI”描述是报告最初生成时的事实，不代表当前远端状态。
+
+本地在独立 fix/ci-dependency-readiness 准备 [ADR-0011](decisions/0011-semantic-dependency-readiness.md) 配套：
+- 启动四服务前执行真实协议就绪检查，TCP 接通不再等于依赖可用；失败保留本项目容器现场。
+- make check 与 check:client 通过；新测试覆盖可接通但不回应 MongoDB 的假服务、恢复重试、超时和取消。
+- test:all 的真实依赖/协议与 6/6 浏览器用例通过；独立 test:infra 和 test:services 通过。
+- Linux infra-check 的 race 测试与真实依赖检查通过；同一台本机上当前新 MongoDB 镜像的主机协议检查也通过，但这不能解释 GitHub 故障，不能据此排除远端特定原因。
+- 已验证诊断输出可保存本项目 ps/images/logs；临时新镜像探测容器已回收，没有替换原 MongoDB 镜像标签或卷。
+
+此次 CI 没有保存容器失败原因，MongoDB 不可达的最终根因仍不能确认。以上仅证明本地已修正假就绪判定并准备好诊断，不能写成远端 CI 已修好。追加提交未获得新的推送授权，不会自动重跑远端流水线。
+
 ## 未覆盖与限制
 
 无大规模容量、长期压测、跨机公网、TLS/生产安全、触屏移动、AOI 或跨服证据。开发登录无密码，不可直接开放互联网。坐标、分数、资源冷却和聊天是临时沙盒，退出/重启重置；只有基础账号经 db 长期保存。

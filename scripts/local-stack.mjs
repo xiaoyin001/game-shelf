@@ -5,7 +5,7 @@ import { createWriteStream } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { root, startInfra, listening, run } from "./infra.mjs";
+import { root, startInfra, listening, run, captureInfraDiagnostics } from "./infra.mjs";
 const ports = [11000, 11020, 12000, 12001, 12010, 12020, 13010, 13020, 14010, 14020];
 const children = [],
   logs = [];
@@ -65,6 +65,7 @@ export async function startStack() {
     }
     throw new Error("四服务未在 45 秒内就绪。");
   } catch (error) {
+    if (stopInfra) captureInfraDiagnostics();
     await stopStack();
     throw error;
   }

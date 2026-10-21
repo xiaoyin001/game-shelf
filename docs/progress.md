@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-从空仓库逐段完成目标玩法与界面；最终规则/历史/源码/真实链路/6 个浏览器与 Linux Go race/构建均通过。最后一阶段提交后可将 master 快进到完整成果；远端 Push 尚待明确授权。
+10 个阶段已推送 GitHub master。首次 CI 的 source 成功、playable 因 MongoDB 不可达起服失败；当前在独立修复分支补强真实协议就绪与失败现场，本地验证通过，远端复验仍待新授权。
 
 ## 阶段记录
 
@@ -83,3 +83,12 @@
 - 正常回收核对：自建 Go 进程为 0、锁不存在；未清库或删卷。GitHub 当次只读核对为空仓库，推送 master 无需强推，但仍等待最终明确授权。
 - 新代码一直在功能分支实现与提交；本阶段提交后由 master 快进接收，不在 master 开发或制造大合并提交。
 - 详细结果：[最终验收](verification.md)；决策：[ADR-0010](decisions/0010-delivery-verification.md)。
+
+### 11 · 首次 CI 失败后的依赖就绪配套（本地准备）
+
+- 实际远端：原 10 个提交已完整推送，master 为 `4986865`；[CI 39572389734](https://github.com/xiaoyin001/game-shelf/actions/runs/39572389734) 的 source 通过，playable 起服期间持续 MongoDB connection refused，未进入浏览器测试。
+- 已证实原就绪检查只看 TCP，不足以证明数据库可用；容器失败现场缺失，最终原因尚未确认，不猜测换镜像或盲目加超时。
+- 当前配套：主机侧同款 Go 驱动协议检查与失败前保存 Compose 状态、镜像和容器日志，保留全部既有行为和测试。
+- 实际本地验证：`make check`、`check:client`、`test:all`、独立 `test:infra`/`test:services` 通过；6/6 浏览器用例通过。新就绪检查的假 TCP 服务、重试、超时、取消，以及 Linux race/真实依赖检查通过；诊断文件已验证可保存。
+- 修复分支独立提交，不改写已推送的成长历史；远端效果未复验，额外 Push/重跑需另行授权。
+- 决策：[ADR-0011](decisions/0011-semantic-dependency-readiness.md)。

@@ -17,7 +17,7 @@ npm run dev
 - 靠近发光晶簇按 E 采集，获得本轮分数；共享资源 10 秒后重生。
 - 同名登录顶替旧连接；离开后可以重新进入。
 
-运行器构建并托管自己的四服务，必要时启动本地依赖，日志在 `.local/logs/`。Ctrl+C 只回收自建服务和保活管道；端口被占用时拒绝接管，不清库、不删卷。WSL 依赖可能随宿主空闲停止，下次运行会再启动，命名卷保留。
+运行器先用同款 Go 驱动验证 MongoDB/Redis/etcd 的真实协议就绪，再构建并托管自己的四服务，必要时启动本地依赖，日志在 `.local/logs/`。TCP 端口接通不能单独放行；依赖或起服失败会保存本项目容器状态、镜像与日志到 `.local/logs/infra.log`。Ctrl+C 只回收自建服务和保活管道；端口被占用时拒绝接管，不清库、不删卷。WSL 依赖可能随宿主空闲停止，下次运行会再启动，命名卷保留。
 
 默认公布回环地址，只验收同机联机。开发登录没有密码，**不能直接开放互联网**。本轮位置、分数、资源与聊天是临时沙盒，离开/重启重置；基础账号经 db 保存到 MongoDB。这不是成熟 MMO、大规模容量或生产账号安全承诺。
 
@@ -51,6 +51,7 @@ npm run test:all
 - `cmd/gate`：原始 TCP 与 WebSocket JSON v1，认证和转发，不模拟游戏。
 - `cmd/lobby` / `internal/world`：单世界权威在线、移动、聊天与采集。
 - `cmd/db`：统一 MongoDB 账号写入。
+- `cmd/infra-check`：一次性依赖协议就绪工具，不是第五个业务服务，不写账号或游戏数据。
 - `internal/session`：Redis key、单次凭据与会话生命周期。
 - `internal/protocol` / `transport`：内部 TCP 16 字节大端头 + protobuf。
 - etcd 注册发现；当前世界要求恰好一个 ready lobby，不支持多世界路由或 AOI。
@@ -59,7 +60,7 @@ npm run test:all
 
 ## AI 与成长历史
 
-当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查，尚未执行远端 CI，不以本地完成冒称已上线。
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。首次远端 CI 的 source 通过，playable 在 MongoDB 不可达时起服失败；当前补充真实协议就绪和失败现场，远端效果仍待复验，不把本地通过冒称 CI 通过或已上线。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 
