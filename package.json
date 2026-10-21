@@ -9,6 +9,7 @@
   },
   "scripts": {
     "check": "node scripts/check.mjs",
-    "check:workflow": "node --test tests/workflow/*.test.mjs"
+    "check:workflow": "node --test tests/workflow/*.test.mjs",
+    "test:infra": "node scripts/test-infra.mjs"
   }
 }

@@ -8,7 +8,7 @@ async function goFiles(dir){
  for(const e of entries){const path=dir+"/"+e.name;if(e.isDirectory())result.push(...await goFiles(path));else if(e.name.endsWith(".go"))result.push(path);}
  return result;
 }
-const files=(await Promise.all(["cmd","internal","pkg","client","tests/integration"].map(goFiles))).flat();
+const files=(await Promise.all(["cmd","internal","pkg","client","tests"].map(goFiles))).flat();
 if(process.argv.includes("--format")){if(files.length)run("gofmt",["-w",...files]);}
 else{
  run(process.execPath,["--test","tests/workflow/governance.test.mjs"]);

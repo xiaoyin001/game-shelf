@@ -4,7 +4,7 @@
 
 ## 当前能力
 
-当前有 AI 规范、Go TCP 帧与 protobuf 请求响应基础库，可运行本机回环测试；还没有业务服务器或游戏。后续每个真实实现阶段都会独立验证和提交；最新事实见 [成长记录](docs/progress.md)。
+当前有 AI 规范、Go TCP/protobuf 基础、公共配置/日志/发现/数据库与会话封装；真实 etcd、Redis、MongoDB 烟测可运行。还没有业务服务器或游戏。后续每个真实实现阶段都会独立验证和提交；最新事实见 [成长记录](docs/progress.md)。
 
 ## 本阶段验证
 
@@ -13,6 +13,8 @@
 ```text
 npm run check
 ```
+
+真实基础设施烟测：`npm run test:infra`。需要 Docker Compose；Windows 可以使用 WSL 内 Docker，运行器只回收自己的保活管道，不清数据库或卷。
 
 ## 开发入口
 

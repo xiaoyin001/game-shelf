@@ -1,0 +1,65 @@
+{
+  "service": {
+    "name": "infrastructure-check",
+    "instance_id": "infrastructure-check-local",
+    "env": "local",
+    "version": "v0.1.0",
+    "zone": "local",
+    "gray": false,
+    "weight": 100
+  },
+  "internal": {
+    "listen_addr": "127.0.0.1:0",
+    "advertise_addr": "127.0.0.1:0"
+  },
+  "health": {
+    "listen_addr": "127.0.0.1:0"
+  },
+  "discovery": {
+    "base_path": "/game-shelf/services",
+    "etcd": [
+      "127.0.0.1:2379"
+    ],
+    "lease_ttl_seconds": 10
+  },
+  "dependency": {
+    "check_interval_ms": 2000,
+    "startup_grace_ms": 30000,
+    "unavailable_exit_after_ms": 60000
+  },
+  "heartbeat": {
+    "client_interval_ms": 10000,
+    "client_idle_timeout_ms": 30000,
+    "internal_interval_ms": 15000,
+    "internal_idle_timeout_ms": 45000
+  },
+  "limit": {
+    "max_body_bytes": 1048576,
+    "max_conn": 5000
+  },
+  "session": {
+    "login_token_ttl_ms": 300000,
+    "online_session_ttl_ms": 90000,
+    "reconnect_ttl_ms": 300000,
+    "multi_login": false
+  },
+  "shutdown": {
+    "timeout_ms": 10000,
+    "gate_kick_message": "server_stopping"
+  },
+  "redis": {
+    "addr": "127.0.0.1:6379",
+    "db": 0
+  },
+  "mongo": {
+    "uri": "mongodb://127.0.0.1:27017",
+    "database": "game_shelf"
+  },
+  "log": {
+    "level": "info",
+    "output": "stdout"
+  },
+  "config": {
+    "watch_interval_ms": 2000
+  }
+}
