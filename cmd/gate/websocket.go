@@ -25,6 +25,7 @@ type browserCommand struct {
 	Token   string  `json:"token,omitempty"`
 	DX      float64 `json:"dx,omitempty"`
 	DY      float64 `json:"dy,omitempty"`
+	Text    string  `json:"text,omitempty"`
 }
 type browserEvent struct {
 	Version int                   `json:"version"`
@@ -132,11 +133,11 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" {
+			if cmd.Type != "input" && cmd.Type != "chat" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}
-			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY})
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text})
 			if err != nil {
 				return
 			}

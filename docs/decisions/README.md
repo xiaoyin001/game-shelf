@@ -14,4 +14,6 @@
 
 - [ADR-0006：权威移动输入](0006-authoritative-movement.md)
 
+- [ADR-0007：世界文字聊天](0007-world-chat.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

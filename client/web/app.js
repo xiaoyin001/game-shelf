@@ -9,7 +9,8 @@ let socket = null,
   selfID = "",
   connected = false,
   joining = false,
-  joinTimer = null;
+  joinTimer = null,
+  chatID = 0;
 function notice(text) {
   $("notice").textContent = text;
 }
@@ -27,6 +28,8 @@ function disconnected(text) {
   clearTimeout(joinTimer);
   $("entry-panel").hidden = false;
   $("leave-button").hidden = true;
+  $("chat-input").disabled = true;
+  $("chat-send").disabled = true;
   $("join-button").disabled = false;
   $("join-button").textContent = "重新进入原野 ↗";
   status("连接已断开");
@@ -86,6 +89,9 @@ $("login-form").addEventListener("submit", async (event) => {
         clearTimeout(joinTimer);
         $("entry-panel").hidden = true;
         $("leave-button").hidden = false;
+        $("chat-input").disabled = false;
+        $("chat-send").disabled = false;
+        chatID = 0;
         $("join-button").disabled = false;
         $("account").blur();
         status("已连接 · 原野 01");
@@ -94,6 +100,7 @@ $("login-form").addEventListener("submit", async (event) => {
       if (event.state) {
         state = event.state;
         updateUI();
+        updateChat();
         render();
       }
     });
@@ -108,6 +115,32 @@ $("login-form").addEventListener("submit", async (event) => {
   }
 });
 $("leave-button").addEventListener("click", () => socket?.close());
+$("chat-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = $("chat-input").value.trim();
+  if (!connected || !text) return;
+  send("chat", { text });
+  $("chat-input").value = "";
+  $("chat-input").blur();
+});
+function updateChat() {
+  const chats = state.chats || [],
+    latest = chats.at(-1)?.id || 0;
+  if (latest === chatID) return;
+  chatID = latest;
+  $("messages").replaceChildren(
+    ...chats.map((chat) => {
+      const li = document.createElement("li"),
+        name = document.createElement("strong"),
+        text = document.createElement("span");
+      name.textContent = chat.name;
+      text.textContent = chat.text;
+      li.append(name, text);
+      return li;
+    }),
+  );
+  $("messages").scrollTop = $("messages").scrollHeight;
+}
 const movementKeys = new Set([
   "w",
   "a",
@@ -121,6 +154,11 @@ const movementKeys = new Set([
 document.addEventListener("keydown", (event) => {
   if (!connected || /INPUT|TEXTAREA/.test(event.target.tagName)) return;
   const key = event.key.toLowerCase();
+  if (key === "enter") {
+    event.preventDefault();
+    keys.clear();
+    $("chat-input").focus();
+  }
   if (movementKeys.has(key)) {
     event.preventDefault();
     keys.add(key);

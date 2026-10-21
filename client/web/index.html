@@ -46,11 +46,27 @@
         <aside>
           <section class="card">
             <h2 id="player-name">尚未出发</h2>
-            <p>WASD / 方向键移动，坐标由服务器决定。</p>
+            <p>WASD / 方向键移动，Enter 聚焦聊天。</p>
           </section>
           <section class="card">
             <h2>附近的旅人 <span id="player-count">0</span></h2>
             <ol id="players" aria-label="在线玩家"></ol>
+          </section>
+          <section class="card chat">
+            <h2>原野频道</h2>
+            <ol id="messages" aria-label="世界聊天" aria-live="polite">
+              <li>打个招呼吧，所有在线旅人都能看到。</li>
+            </ol>
+            <form id="chat-form">
+              <label class="sr-only" for="chat-input">聊天消息</label
+              ><input
+                id="chat-input"
+                maxlength="140"
+                placeholder="对原野说点什么…"
+                autocomplete="off"
+                disabled
+              /><button id="chat-send" type="submit" aria-label="发送聊天" disabled>↑</button>
+            </form>
           </section>
         </aside>
       </div>

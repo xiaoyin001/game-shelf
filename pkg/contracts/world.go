@@ -17,6 +17,7 @@ type WorldReq struct {
 	Name      string  `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
 	DX        float64 `protobuf:"fixed64,5,opt,name=dx,proto3" json:"dx"`
 	DY        float64 `protobuf:"fixed64,6,opt,name=dy,proto3" json:"dy"`
+	Text      string  `protobuf:"bytes,7,opt,name=text,proto3" json:"text"`
 }
 
 func (m *WorldReq) Reset()         { *m = WorldReq{} }
@@ -39,6 +40,7 @@ type WorldState struct {
 	Width   float64        `protobuf:"fixed64,2,opt,name=width,proto3" json:"width"`
 	Height  float64        `protobuf:"fixed64,3,opt,name=height,proto3" json:"height"`
 	Players []*WorldPlayer `protobuf:"bytes,4,rep,name=players,proto3" json:"players"`
+	Chats   []*WorldChat   `protobuf:"bytes,6,rep,name=chats,proto3" json:"chats"`
 }
 
 func (m *WorldState) Reset()         { *m = WorldState{} }
@@ -56,3 +58,14 @@ type WorldPlayer struct {
 func (m *WorldPlayer) Reset()         { *m = WorldPlayer{} }
 func (m *WorldPlayer) String() string { return proto.CompactTextString(m) }
 func (*WorldPlayer) ProtoMessage()    {}
+
+// WorldChat 使用递增编号供客户端去重。
+type WorldChat struct {
+	ID   int64  `protobuf:"varint,1,opt,name=id,proto3" json:"id"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
+	Text string `protobuf:"bytes,3,opt,name=text,proto3" json:"text"`
+}
+
+func (m *WorldChat) Reset()         { *m = WorldChat{} }
+func (m *WorldChat) String() string { return proto.CompactTextString(m) }
+func (*WorldChat) ProtoMessage()    {}

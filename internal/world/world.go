@@ -23,12 +23,15 @@ type player struct {
 	session  string
 	lastSeen time.Time
 	lastMove time.Time
+	lastChat time.Time
 }
 
 // World 统一持有在线角色，快照与修改在同一锁中完成。
 type World struct {
 	mu      sync.Mutex
 	players map[string]*player
+	chats   []contracts.WorldChat
+	chatID  int64
 }
 
 // New 创建没有在线玩家的世界。
@@ -72,6 +75,10 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if err := w.move(p, req.DX, req.DY, now); err != "" {
 			return failure(err)
 		}
+	case "chat":
+		if err := w.chat(p, req.Text, now); err != "" {
+			return failure(err)
+		}
 	case "leave":
 		delete(w.players, req.UserID)
 	default:
@@ -99,11 +106,32 @@ func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	return ""
 }
 
+func (w *World) chat(p *player, raw string, now time.Time) string {
+	value := strings.TrimSpace(raw)
+	if value == "" || !utf8.ValidString(value) || utf8.RuneCountInString(value) > 140 {
+		return "invalid_chat"
+	}
+	if !p.lastChat.IsZero() && now.Sub(p.lastChat) < 800*time.Millisecond {
+		return "chat_too_fast"
+	}
+	p.lastChat = now
+	w.chatID++
+	w.chats = append(w.chats, contracts.WorldChat{ID: w.chatID, Name: p.state.Name, Text: value})
+	if len(w.chats) > 30 {
+		w.chats = w.chats[len(w.chats)-30:]
+	}
+	return ""
+}
+
 func (w *World) snapshot(now time.Time) *contracts.WorldState {
-	state := &contracts.WorldState{TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players))}
+	state := &contracts.WorldState{TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players)), Chats: make([]*contracts.WorldChat, 0, len(w.chats))}
 	for _, p := range w.players {
 		copy := p.state
 		state.Players = append(state.Players, &copy)
+	}
+	for _, c := range w.chats {
+		copy := c
+		state.Chats = append(state.Chats, &copy)
 	}
 	sort.Slice(state.Players, func(i, j int) bool { return state.Players[i].ID < state.Players[j].ID })
 	return state
