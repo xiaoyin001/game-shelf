@@ -4,4 +4,6 @@
 
 - [ADR-0001：从空仓库逐段形成可复跑成长历史](0001-incremental-rebuild.md)
 
+- [ADR-0002：Go 与 TCP 通信基础](0002-go-transport.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

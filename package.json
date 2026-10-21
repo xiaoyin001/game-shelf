@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "check": "node --test tests/workflow/*.test.mjs",
+    "check": "node scripts/check.mjs",
     "check:workflow": "node --test tests/workflow/*.test.mjs"
   }
 }
