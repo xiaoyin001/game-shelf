@@ -10,7 +10,7 @@
 
 产品是 MMO 方向的单世界可玩切片，不是大规模 MMO、正式账号或永久资产系统。负责人认可的旧版仅是验收对照，不作为新版测试证据。
 
-## 本次实际环境
+## 最初第 10 阶段实际环境
 
 - Windows Go 1.25.0、Node.js 24.12.0、Playwright 1.64.1 / Chromium 156。
 - 当前源码构建的 login、gate、lobby、db 四个真实进程。
@@ -80,8 +80,26 @@
 
 此次 CI 没有保存容器失败原因，MongoDB 不可达的最终根因仍不能确认。以上仅证明本地已修正假就绪判定并准备好诊断，不能写成远端 CI 已修好。追加提交未获得新的推送授权，不会自动重跑远端流水线。
 
+## 完整 CI 环境配套的本地验收（阶段 12）
+
+环境与实现见 [ADR-0012](decisions/0012-reproducible-ci.md)。使用 Ubuntu 24.04/WSL、Go 1.25.0、Node.js 22.23.3、Playwright 1.64.1 / Chromium headless shell 156；Docker 依赖使用 CI 专用覆盖配置与固定 digest。宿主仍与 GitHub 云端不同，因此必须再看最终远端运行。
+
+| 实际执行 | 结果 |
+| --- | --- |
+| 两轮独立 Go 构建缓存、新 project/空卷的 Linux 冷启动 | 规则 4/4、历史、格式、Go 测试/vet/构建；真实三依赖、四服务、HTTP/TCP/WebSocket 安全与全部 6 个浏览器用例通过 |
+| 第二轮最终 `npm run test:ci` | 上述正向回归及启动失败后的定向清理回归全部通过 |
+| `npm run test:ci-cleanup` | 在真实依赖 health 后故意让检查工具退出 23；错误保留，State/OOM、实际 digest、端口、日志可读；仅本次 project 的容器/卷/网络回收并独立查询为 0 |
+| Linux `go test -race -count=1 ./...` | 通过；此单独命令仍不代替有显式启服标记的真实协议回归 |
+| actionlint 1.7.7 | 当前 GitHub 工作流检查通过 |
+| Windows `npm run test:all` | 使用额外独立 project/新卷，不复用原开发数据；真实四服务、依赖/协议与 6/6 浏览器通过 |
+| Windows WSL 协议与诊断 | 实际编译的工具、WSL `--exec docker`、State/OOM/镜像信息读取通过 |
+
+成功与预期失败两条路径都在清理前保留容器现场，并在清理后查询本次 project 的容器、网络、卷为 0。原开发三容器保持停止，原三卷保留，未用于上述运行。浏览器下载与库准备仅使用私有工具目录，不升级共享系统库；首次下载超时后的替代路线已记录，不省略真实浏览器运行。
+
+可复跑入口：安装工作流固定版本的 Go/Node，执行 `npm ci`、`npx playwright install --with-deps --only-shell chromium`、`npm run test:ci`。预期失败证据文件与正常现场分开保存，见 README。上述是当前修复源码的本地结果；新增提交尚未 Push，未手动重跑远端，不把“本地通过”或将来“已触发”当作 GitHub 成功。
+
 ## 未覆盖与限制
 
 无大规模容量、长期压测、跨机公网、TLS/生产安全、触屏移动、AOI 或跨服证据。开发登录无密码，不可直接开放互联网。坐标、分数、资源冷却和聊天是临时沙盒，退出/重启重置；只有基础账号经 db 长期保存。
 
-Linux 仅执行 Go race/构建，不宣称完整浏览器与协议联机通过；远端 CI、Push、PR 与上线状态必须后续另行核实。
+阶段 12 已新增完整 Linux 浏览器与协议联机证据，原第 10 阶段仅构建/race 的历史事实不改写。GitHub 最终提交的 source/playable 尚未复验；Push、PR 与上线状态必须后续分别核实。

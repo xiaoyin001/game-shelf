@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-10 个阶段已推送 GitHub master。首次 CI 的 source 成功、playable 因 MongoDB 不可达起服失败；当前在独立修复分支补强真实协议就绪与失败现场，本地验证通过，远端复验仍待新授权。
+10 个阶段已推送 GitHub master。首次 CI 的 source 成功、playable 因 MongoDB 不可达起服失败；独立修复分支已完成真实就绪、固定 CI 环境、先编译后启动与定向回收。本地两轮 Linux 新卷冷启动、故障路径、源码/race 和 Windows 兼容回归通过；GitHub 最终提交的 source/playable 仍待新 Push 授权后实跑，目标尚未闭环。
 
 ## 阶段记录
 
@@ -91,4 +91,15 @@
 - 当前配套：主机侧同款 Go 驱动协议检查与失败前保存 Compose 状态、镜像和容器日志，保留全部既有行为和测试。
 - 实际本地验证：`make check`、`check:client`、`test:all`、独立 `test:infra`/`test:services` 通过；6/6 浏览器用例通过。新就绪检查的假 TCP 服务、重试、超时、取消，以及 Linux race/真实依赖检查通过；诊断文件已验证可保存。
 - 修复分支独立提交，不改写已推送的成长历史；远端效果未复验，额外 Push/重跑需另行授权。
-- 决策：[ADR-0011](decisions/0011-semantic-dependency-readiness.md)。
+- 决策：[ADR-0011](decisions/0011-semantic-dependency-readiness.md)，本地提交 `ed586de`。
+
+### 12 · 可冷启动、可取证和定向清理的 CI 环境（本地完成）
+
+- 已实现：Ubuntu 24.04、Go 1.25.0、Node.js 22.23.3、Playwright 1.64.1；CI 独立 Compose 覆盖，固定三依赖补丁及 digest，唯一 project/新卷；全部程序编译完成后才启动依赖和四服务。
+- 实际 Linux：两轮各自使用新 Go 构建缓存、project 和空数据卷的冷启动，规则/历史/格式/Go、真实依赖/协议及全部 6 个浏览器用例均通过；第二轮还通过最终 `test:ci` 入口中的失败清理回归。
+- 失败回归：真实三依赖健康后注入检查工具退出 23；保留原始错误与容器 State/OOM/实际 digest/端口/日志，清理后容器、卷、网络均为 0。未把此故障检查器当成真实依赖或正向业务验收。
+- 独立 `go test -race -count=1 ./...` 与 actionlint 1.7.7 通过；scope/清理所有权/命令注入和原端口占用保护共 4 个运行器测试通过。
+- Windows 普通入口在另建独立依赖/新卷上执行真实四服务、全部协议与 6/6 浏览器回归通过；WSL 诊断参数和内容实测通过。本轮临时资源已回收，原开发三容器仍停止，原三数据卷保留，未用于此次测试。
+- 本机下载工具曾遇到超时，改为官方校验的私有 SDK/缓存及局部解包库，未改全局系统库；具体取舍见 ADR。工具准备失败不冒充业务失败或通过。
+- 完成边界：这不是 GitHub 全绿证据，旧 CI 的最终 MongoDB 故障原因仍未知。下一步仅在展示最终提交并获准 Push 后，观察同一 SHA 的 source 和 playable；失败继续依据现场修复。
+- 决策：[ADR-0012](decisions/0012-reproducible-ci.md)。

@@ -24,4 +24,6 @@
 
 - [ADR-0011：真实协议就绪与失败现场](0011-semantic-dependency-readiness.md)
 
+- [ADR-0012：可复现的 Linux 冷启动 CI](0012-reproducible-ci.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

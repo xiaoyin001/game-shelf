@@ -17,7 +17,7 @@ npm run dev
 - 靠近发光晶簇按 E 采集，获得本轮分数；共享资源 10 秒后重生。
 - 同名登录顶替旧连接；离开后可以重新进入。
 
-运行器先用同款 Go 驱动验证 MongoDB/Redis/etcd 的真实协议就绪，再构建并托管自己的四服务，必要时启动本地依赖，日志在 `.local/logs/`。TCP 端口接通不能单独放行；依赖或起服失败会保存本项目容器状态、镜像与日志到 `.local/logs/infra.log`。Ctrl+C 只回收自建服务和保活管道；端口被占用时拒绝接管，不清库、不删卷。WSL 依赖可能随宿主空闲停止，下次运行会再启动，命名卷保留。
+运行器先编译当前工具和全部四服务，必要时启动本地依赖，再用同款 Go 驱动验证 MongoDB/Redis/etcd 的真实协议就绪，最后统一启动业务进程，日志在 `.local/logs/`。编译不占用服务启动期限，TCP 端口接通不能单独放行；依赖或起服失败会保存本项目容器状态（含退出码/OOM）、端口、实际镜像 digest 与日志到 `.local/logs/infra.log`。Ctrl+C 只回收自建服务和保活管道；端口被占用时拒绝接管，不清库、不删卷。WSL 依赖可能随宿主空闲停止，下次运行会再启动，命名卷保留。
 
 默认公布回环地址，只验收同机联机。开发登录没有密码，**不能直接开放互联网**。本轮位置、分数、资源与聊天是临时沙盒，离开/重启重置；基础账号经 db 保存到 MongoDB。这不是成熟 MMO、大规模容量或生产账号安全承诺。
 
@@ -43,6 +43,22 @@ npm run test:all
 - `npm run test:e2e`：独立启动浏览器验收，可附加 `-- --headed`。
 - 普通 `go test ./...` 会明确跳过需起服的测试，不能单独作为可玩通过证据。
 
+### 与 GitHub 相同的 Linux CI
+
+需要 Linux x64/AVX、Go **1.25.0**、Node.js **22.23.3** 和支持 `--wait` 的 Docker Compose v2：
+
+```text
+npm ci
+npx playwright install --with-deps --only-shell chromium
+npm run test:ci
+```
+
+此入口执行源码检查、真实基础设施/协议、全部 6 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
+
+容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
+
+环境与清理结果在 `.local/logs/ci-environment.json`、`ci-cleanup.json`；预期失败证据分别保存在 `ci-failure-infra.log`、`ci-failure-cleanup.json`。配置理由和回退见 [ADR-0012](docs/decisions/0012-reproducible-ci.md)。
+
 截图/trace 在 `test-results/`，HTML 报告在 `playwright-report/`，均不提交。若异常强杀留下 `.local/stack.lock`，必须先确认原运行器已退出，再移除过期锁；不要按端口杀进程。
 
 ## 代码与边界
@@ -60,7 +76,7 @@ npm run test:all
 
 ## AI 与成长历史
 
-当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。首次远端 CI 的 source 通过，playable 在 MongoDB 不可达时起服失败；当前补充真实协议就绪和失败现场，远端效果仍待复验，不把本地通过冒称 CI 通过或已上线。
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。首次远端 CI 的 source 通过，playable 在 MongoDB 不可达时起服失败；当前完整 CI 环境配套已通过两轮本地 Linux 新卷冷启动、故障清理及 Windows 兼容回归，远端效果仍待最终提交获准推送后复验，不把本地通过冒称 CI 通过或已上线。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

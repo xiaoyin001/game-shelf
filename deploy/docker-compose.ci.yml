@@ -1,0 +1,29 @@
+# 文件说明：仅供独立 CI project 使用固定镜像与协议 health；不覆盖普通开发数据卷。
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.18@sha256:d0a641d5fbcc89678c931a61b7de7b8a1cf097149f135c9c73bc81d076a1494b
+    healthcheck:
+      test:
+        ["CMD", "/usr/local/bin/etcdctl", "--endpoints=http://127.0.0.1:2379", "endpoint", "health"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+  redis:
+    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+  mongo:
+    image: mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+    command: ["mongod", "--bind_ip_all"]
+    healthcheck:
+      test:
+        ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping:1}).ok === 1 ? 0 : 1)"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s

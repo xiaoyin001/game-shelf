@@ -16,6 +16,8 @@
     "test:services": "node scripts/test-services.mjs",
     "test:runner": "node --test tests/runner/*.test.mjs",
     "test:all": "node --test tests/runner/*.test.mjs && node scripts/verify.mjs",
+    "test:ci": "node scripts/ci.mjs",
+    "test:ci-cleanup": "node scripts/test-ci-cleanup.mjs",
     "test:e2e": "node scripts/verify.mjs --browser-only",
     "check:client": "node --check client/web/app.js && prettier --check client/web scripts/*.mjs tests/browser tests/runner tests/workflow playwright.config.mjs package.json .prettierrc.json"
   },

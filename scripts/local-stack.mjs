@@ -22,10 +22,13 @@ export async function startStack() {
   lock = await open(join(root, ".local/stack.lock"), "wx");
   await lock.writeFile(String(process.pid));
   try {
-    stopInfra = await startInfra();
-    for (const name of ["db", "lobby", "gate", "login"]) {
+    const artifacts = ["db", "lobby", "gate", "login"].map((name) => {
       const binary = join(root, ".local/bin", name + (process.platform === "win32" ? ".exe" : ""));
       run("go", ["build", "-o", binary, "./cmd/" + name]);
+      return { name, binary };
+    });
+    stopInfra = await startInfra();
+    for (const { name, binary } of artifacts) {
       const output = createWriteStream(join(root, ".local/logs", name + ".log"));
       logs.push(output);
       const child = spawn(binary, ["-config", "configs/local/" + name + ".json"], {
