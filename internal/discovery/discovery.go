@@ -25,6 +25,8 @@ type Instance struct {
 	Status       string `json:"status"`
 	InternalAddr string `json:"internal_addr"`
 	PublicAddr   string `json:"public_addr"`
+	// WebSocketURL 是可选的浏览器连接地址，旧 TCP 客户端不受影响。
+	WebSocketURL string `json:"websocket_url,omitempty"`
 	MaxConn      int    `json:"max_conn"`
 	CurrentConn  int64  `json:"current_conn"`
 	StartedAt    string `json:"started_at"`
@@ -133,6 +135,7 @@ func (r *Registrar) instanceLocked() Instance {
 		Status:       r.status,
 		InternalAddr: r.cfg.Internal.AdvertiseAddr,
 		PublicAddr:   r.cfg.Public.AdvertiseAddr,
+		WebSocketURL: r.cfg.WebSocket.AdvertiseURL,
 		MaxConn:      r.cfg.Limit.MaxConn,
 		CurrentConn:  r.current,
 		StartedAt:    r.started.Format(time.RFC3339),

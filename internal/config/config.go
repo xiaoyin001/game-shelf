@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -17,6 +19,8 @@ type App struct {
 	Service Service `json:"service"`
 	// Public 描述暴露给客户端的公网监听和公布地址。
 	Public Endpoint `json:"public"`
+	// WebSocket 是 gate 的可选浏览器入口，空 ListenAddr 时禁用。
+	WebSocket WebSocket `json:"websocket"`
 	// Internal 描述服务间 TCP 通信的内网监听和公布地址。
 	Internal Endpoint `json:"internal"`
 	// Health 描述健康检查 HTTP 监听配置。
@@ -65,6 +69,16 @@ type Endpoint struct {
 	ListenAddr string `json:"listen_addr"`
 	// AdvertiseAddr 是注册给其他进程或返回给客户端的地址。
 	AdvertiseAddr string `json:"advertise_addr"`
+}
+
+// WebSocket 描述浏览器接入与允许的页面来源。
+type WebSocket struct {
+	// ListenAddr 为空时不启动 WebSocket HTTP 监听。
+	ListenAddr string `json:"listen_addr"`
+	// AdvertiseURL 是返回给浏览器的完整 ws 或 wss 地址，包含 /ws。
+	AdvertiseURL string `json:"advertise_url"`
+	// Origins 是允许的页面来源 host:port，不允许通配符。
+	Origins []string `json:"origins"`
 }
 
 type Health struct {
@@ -218,6 +232,26 @@ func (a *App) Validate() error {
 	}
 	if a.Discovery.LeaseTTLSeconds <= 0 {
 		a.Discovery.LeaseTTLSeconds = 10
+	}
+	if a.WebSocket.ListenAddr == "" {
+		a.WebSocket.AdvertiseURL = ""
+	}
+	if a.WebSocket.ListenAddr != "" {
+		if a.Service.Name != "gate" || a.WebSocket.AdvertiseURL == "" || len(a.WebSocket.Origins) == 0 {
+			return errors.New("websocket requires gate service, advertise_url and explicit origins")
+		}
+		for _, origin := range a.WebSocket.Origins {
+			if origin == "" || strings.ContainsAny(origin, "*?/") {
+				return errors.New("websocket.origins must be explicit host:port values")
+			}
+		}
+		u, err := url.Parse(a.WebSocket.AdvertiseURL)
+		if err != nil || (u.Scheme != "ws" && u.Scheme != "wss") || u.Host == "" || u.Path != "/ws" {
+			return errors.New("websocket.advertise_url must be ws(s)://host:port/ws")
+		}
+		if a.Session.MultiLogin {
+			return errors.New("browser world requires single login")
+		}
 	}
 	if a.Log.Output == "" {
 		a.Log.Output = "stdout"

@@ -13,6 +13,13 @@
     "test:infra": "node scripts/test-infra.mjs",
     "dev": "node scripts/local-stack.mjs",
     "test:services": "node scripts/test-services.mjs",
-    "test:runner": "node --test tests/runner/*.test.mjs"
+    "test:runner": "node --test tests/runner/*.test.mjs",
+    "test:all": "node --test tests/runner/*.test.mjs && node scripts/verify.mjs",
+    "test:e2e": "node scripts/verify.mjs --browser-only",
+    "check:client": "node --check client/web/app.js && prettier --check client/web scripts/*.mjs tests/browser tests/runner tests/workflow playwright.config.mjs package.json .prettierrc.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "prettier": "3.6.2"
   }
 }

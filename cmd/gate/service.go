@@ -14,6 +14,7 @@ import (
 	"game-shelf/internal/transport"
 	"game-shelf/pkg/contracts"
 
+	"github.com/coder/websocket"
 	"github.com/redis/go-redis/v9"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -24,8 +25,11 @@ type GateService struct {
 	etcd  *clientv3.Client
 	store *session.Store
 
-	mu      sync.Mutex
-	clients map[string]*transport.Conn
+	authMu     sync.Mutex
+	wsSlots    chan struct{}
+	webClients map[string]*websocket.Conn
+	mu         sync.Mutex
+	clients    map[string]*transport.Conn
 
 	internalMu   sync.Mutex
 	lobbyClients map[string]*transport.Client
@@ -39,6 +43,8 @@ func NewGateService(app config.App, log *slog.Logger, etcd *clientv3.Client, red
 		etcd:         etcd,
 		store:        session.NewStore(redis),
 		clients:      map[string]*transport.Conn{},
+		webClients:   map[string]*websocket.Conn{},
+		wsSlots:      make(chan struct{}, app.Limit.MaxConn),
 		lobbyClients: map[string]*transport.Client{},
 		gateClients:  map[string]*transport.Client{},
 	}
@@ -75,6 +81,8 @@ func (s *GateService) HandleInternal(ctx context.Context, conn *transport.Conn, 
 }
 
 func (s *GateService) authClient(ctx context.Context, conn *transport.Conn, msg protocol.Message) protocol.Message {
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
 	var req contracts.GateAuthReq
 	if err := protocol.UnmarshalBody(msg, &req); err != nil {
 		return gateAuthResp(msg.Seq, 1, "invalid_auth_req", "", "")
@@ -131,13 +139,17 @@ func (s *GateService) bindClient(userID string, conn *transport.Conn) {
 func (s *GateService) kickLocal(userID, reason string) {
 	s.mu.Lock()
 	conn := s.clients[userID]
+	web := s.webClients[userID]
 	delete(s.clients, userID)
+	delete(s.webClients, userID)
 	s.mu.Unlock()
-	if conn == nil {
-		return
+	if conn != nil {
+		_ = conn.Write(kickNotify(reason))
+		_ = conn.Close()
 	}
-	_ = conn.Write(kickNotify(reason))
-	_ = conn.Close()
+	if web != nil {
+		_ = web.CloseNow()
+	}
 }
 
 func (s *GateService) kickPrevious(ctx context.Context, previous *session.OnlineSession) {

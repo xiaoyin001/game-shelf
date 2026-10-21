@@ -25,6 +25,10 @@
 
 只有 `login` 和 `gate` 默认使用 `public`。
 
+## websocket
+
+仅 gate 使用。`listen_addr` 为浏览器监听地址，空值禁用；`advertise_url` 为返回客户端的完整 ws(s)://host:port/ws 地址；`origins` 是明确的页面 host:port 列表，不含 scheme 或通配符。启用时要求单端会话。当前返回本机回环地址，不承诺跨机接入；监听配置变更需要重启。
+
 ## internal
 
 - `listen_addr`：服务间 TCP 通信监听地址。

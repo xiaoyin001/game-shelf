@@ -8,6 +8,7 @@ description: 每个实现阶段完成与提交前，选择并执行当前阶段�
 - 当前 `npm run check` / `make check` 已包含规则、Go 格式检查、测试、vet 与构建；`make fmt` 负责格式化。
 - 尚无业务服务或客户端时，不假装联机/浏览器运行通过；相关能力出现后补充对应入口。
 - 服务链路改变执行 `npm run test:services`，依赖封装改变执行 `npm run test:infra`，运行器改变执行 `npm run test:runner`。
+- 浏览器、WebSocket、会话或世界改变还要执行 `npm run check:client` 和 `npm run test:all`，首次 `npm ci`、`npx playwright install chromium`。当前浏览器测试只覆盖当前已实现的在线能力，后续玩法必须加真实回归。
 - 新增行为同时增加实际回归。默认测试不能把外部依赖静默替换为假服务并宣称真实联机通过。
 - 编译、单元测试、真实服务链路、真实浏览器与 CI 分开记录，不沿用旧版报告。
 - 本阶段相关测试全部通过才允许 commit；更新 docs/progress.md 记录能力、命令、结果和未覆盖项。

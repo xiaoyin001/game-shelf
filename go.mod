@@ -3,6 +3,7 @@ module game-shelf
 go 1.25.0
 
 require (
+	github.com/coder/websocket v1.8.15
 	github.com/golang/protobuf v1.5.4
 	github.com/redis/go-redis/v9 v9.19.0
 	go.etcd.io/etcd/client/v3 v3.6.7

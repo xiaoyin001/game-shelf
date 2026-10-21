@@ -9,6 +9,7 @@ import (
 	"game-shelf/internal/config"
 	"game-shelf/internal/protocol"
 	"game-shelf/internal/transport"
+	"game-shelf/internal/world"
 	"game-shelf/pkg/contracts"
 
 	"github.com/redis/go-redis/v9"
@@ -18,12 +19,20 @@ type LobbyService struct {
 	app   config.App
 	log   *slog.Logger
 	redis *redis.Client
+	world *world.World
 }
 
 func (s *LobbyService) Handle(ctx context.Context, _ *transport.Conn, msg protocol.Message) (protocol.Message, bool) {
 	switch msg.ProtoID {
 	case contracts.GTLB_PingReq:
 		return pingReply(contracts.LBGT_PingResp, msg.Seq), true
+	case contracts.GTLB_WorldReq:
+		var req contracts.WorldReq
+		if err := protocol.UnmarshalBody(msg, &req); err != nil {
+			return errorReply(msg.Seq, "invalid_world_req"), true
+		}
+		reply, err := protocol.MarshalMessage(contracts.LBGT_WorldResp, msg.Seq, s.world.Apply(&req, time.Now()))
+		return reply, err == nil
 	case contracts.GTLB_LobbyListReq:
 		var req contracts.LobbyListReq
 		if err := protocol.UnmarshalBody(msg, &req); err != nil {

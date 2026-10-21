@@ -6,6 +6,24 @@ import (
 	"testing"
 )
 
+func TestWebSocketOriginValidation(t *testing.T) {
+	base, _, err := Load("../../configs/local/gate.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, origin := range []string{"", "*", "*.example.com", "http://127.0.0.1:11000"} {
+		copy := base
+		copy.WebSocket.Origins = []string{origin}
+		if copy.Validate() == nil {
+			t.Fatal("unsafe origin accepted", origin)
+		}
+	}
+	disabled := base
+	disabled.WebSocket.ListenAddr = ""
+	if disabled.Validate() != nil || disabled.WebSocket.AdvertiseURL != "" {
+		t.Fatal("disabled socket still advertised")
+	}
+}
 func TestCurrentConfigsLoad(t *testing.T) {
 	paths, err := filepath.Glob("../../configs/local/*.json")
 	if err != nil || len(paths) == 0 {

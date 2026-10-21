@@ -47,7 +47,9 @@ type LoginHTTPReply struct {
 	Token          string `json:"token"`
 	GateInstanceID string `json:"gate_instance_id"`
 	GateAddr       string `json:"gate_addr"`
-	ExpireAt       string `json:"expire_at"`
+	// GateWebSocketURL 由发现中的 ready gate 公布给浏览器。
+	GateWebSocketURL string `json:"gate_websocket_url,omitempty"`
+	ExpireAt         string `json:"expire_at"`
 }
 
 type GateAuthReq struct {

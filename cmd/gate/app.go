@@ -5,6 +5,8 @@ import (
 	"context"
 	"flag"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -73,6 +75,25 @@ func runGate() {
 	defer func() { _ = redisClient.Close() }()
 
 	service := NewGateService(app, log, etcdClient, redisClient)
+	if app.WebSocket.ListenAddr != "" {
+		listener, err := net.Listen("tcp", app.WebSocket.ListenAddr)
+		if err != nil {
+			log.Error("websocket listen failed", "error", err)
+			return
+		}
+		web := &http.Server{ReadHeaderTimeout: 2 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { service.serveWebSocket(ctx, w, r) })}
+		defer func() {
+			end, cancel := context.WithTimeout(context.Background(), app.ShutdownTimeout())
+			defer cancel()
+			_ = web.Shutdown(end)
+		}()
+		go func() {
+			if err := web.Serve(listener); err != nil && err != http.ErrServerClosed {
+				log.Error("websocket stopped", "error", err)
+				stop()
+			}
+		}()
+	}
 	publicServer := transport.NewServer(app.Public.ListenAddr, app.Limit.MaxBodyBytes, app.ClientIdleTimeout(), log, service.HandleClient)
 	if err := publicServer.Start(ctx); err != nil {
 		log.Error("gate public tcp server init failed", "error", err)

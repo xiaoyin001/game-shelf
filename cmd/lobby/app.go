@@ -17,6 +17,7 @@ import (
 	"game-shelf/internal/redisx"
 	appruntime "game-shelf/internal/runtime"
 	"game-shelf/internal/transport"
+	"game-shelf/internal/world"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -76,6 +77,7 @@ func runLobby() {
 		app:   app,
 		log:   log,
 		redis: redisClient,
+		world: world.New(),
 	}
 	tcpServer := transport.NewServer(app.Internal.ListenAddr, app.Limit.MaxBodyBytes, app.InternalIdleTimeout(), log, service.Handle)
 	if err := tcpServer.Start(ctx); err != nil {

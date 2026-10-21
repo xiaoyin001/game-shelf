@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"game-shelf/client"
 	"game-shelf/internal/config"
 	"game-shelf/internal/discovery"
 	"game-shelf/internal/session"
@@ -38,6 +39,7 @@ type LoginHTTP struct {
 func (h *LoginHTTP) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/login", h.login)
+	mux.Handle("/", client.Handler())
 	return mux
 }
 
@@ -90,11 +92,12 @@ func (h *LoginHTTP) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, contracts.LoginHTTPReply{
-		UserID:         userID,
-		Token:          token.Token,
-		GateInstanceID: gate.InstanceID,
-		GateAddr:       gate.PublicAddr,
-		ExpireAt:       token.ExpiresAt.Format(time.RFC3339),
+		UserID:           userID,
+		Token:            token.Token,
+		GateInstanceID:   gate.InstanceID,
+		GateAddr:         gate.PublicAddr,
+		GateWebSocketURL: gate.WebSocketURL,
+		ExpireAt:         token.ExpiresAt.Format(time.RFC3339),
 	})
 }
 

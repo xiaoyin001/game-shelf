@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- 文件说明：当前只提供共享世界登录、在线名单与退出，不显示尚未实现的玩法。 -->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>苔光原野 · game-shelf</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <strong>✦ GAME SHELF</strong><span id="status" role="status">尚未连接</span
+      ><i id="status-dot"></i>
+    </header>
+    <main>
+      <h1>苔光原野 <small>Mosslight Meadow</small></h1>
+      <p>共享世界的第一步：与其他旅人相遇。</p>
+      <div class="workspace">
+        <section class="world-panel">
+          <div class="map-bar">
+            <span>原野 · 林间营地</span><strong id="online-count">0 人在线</strong>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="world" width="1200" height="800" aria-label="共享世界地图"></canvas>
+            <div id="entry-panel">
+              <h2>原野在等你</h2>
+              <p>取个名字，与其他旅人一起进入。</p>
+              <form id="login-form">
+                <label for="account">旅人名字</label
+                ><input id="account" required maxlength="24" autocomplete="nickname" /><button
+                  id="join-button"
+                >
+                  进入原野 ↗
+                </button>
+              </form>
+              <small>开发体验服 · 无密码 · 请勿输入私人信息</small>
+            </div>
+          </div>
+          <div class="map-footer">
+            <span id="coordinates">坐标 —</span
+            ><button id="leave-button" type="button" hidden>离开世界</button>
+          </div>
+        </section>
+        <aside>
+          <section class="card">
+            <h2 id="player-name">尚未出发</h2>
+            <p>当前版本支持共享在线与重新进入。</p>
+          </section>
+          <section class="card">
+            <h2>附近的旅人 <span id="player-count">0</span></h2>
+            <ol id="players" aria-label="在线玩家"></ol>
+          </section>
+        </aside>
+      </div>
+      <p id="notice" role="status">用两个浏览器窗口、不同名字进入，验证共享在线。</p>
+      <footer>game-shelf · 每个成长阶段都有决策、验证与提交。</footer>
+    </main>
+  </body>
+</html>
