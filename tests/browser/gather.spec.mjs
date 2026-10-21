@@ -1,7 +1,7 @@
 // 文件说明：双浏览器验证采集分数与冷却共享，不直接操纵游戏状态。
 import { test, expect } from "@playwright/test";
 import { join, unique } from "./helpers.mjs";
-test("共享采集只奖励一次，离开重进重置本轮分数", async ({ browser }) => {
+test("共享采集只奖励一次，离开重进重置本轮分数", async ({ browser }, info) => {
   const a = await browser.newContext(),
     b = await browser.newContext();
   try {
@@ -10,12 +10,19 @@ test("共享采集只奖励一次，离开重进重置本轮分数", async ({ br
       name = unique("gather");
     await join(pa, name);
     await join(pb, unique("peer"));
+    const start = Number(await pa.locator("#coordinates").getAttribute("data-x"));
+    await pa.keyboard.down("d");
+    await expect
+      .poll(async () => Number(await pa.locator("#coordinates").getAttribute("data-x")))
+      .toBeGreaterThan(start + 35);
+    await pa.keyboard.up("d");
     await pa.keyboard.press("e");
     await expect(pa.locator("#score")).toHaveText("1");
     await expect(pb.locator("#players")).toContainText("✦ 1");
     await pb.keyboard.press("e");
     await expect(pb.locator("#notice")).toContainText(/没有可采集|附近没有/);
     await expect(pb.locator("#score")).toHaveText("0");
+    await pa.screenshot({ path: info.outputPath("two-player-world.png"), fullPage: true });
     await pa.getByRole("button", { name: "离开世界" }).click();
     await expect(pa.locator("#status")).toHaveText("连接已断开");
     await pa.getByRole("button", { name: /进入原野/ }).click();

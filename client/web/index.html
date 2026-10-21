@@ -1,64 +1,110 @@
 <!doctype html>
-<!-- 文件说明：提供共享在线世界、键盘移动与重新进入。 -->
+<!-- 文件说明：提供联机沙盒的登录、共享地图、聊天与操作界面。 -->
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#101c24" />
     <title>苔光原野 · game-shelf</title>
-    <link rel="icon" href="data:," />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%239bf0bd' d='M20 2 36 20 20 38 4 20Z'/%3E%3C/svg%3E"
+    />
     <link rel="stylesheet" href="/style.css" />
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <header>
-      <strong>✦ GAME SHELF</strong><span id="status" role="status">尚未连接</span
-      ><i id="status-dot"></i>
+    <header class="topbar">
+      <a class="brand" href="/"
+        ><span class="brand-mark">✦</span
+        ><span>GAME SHELF <small>一个正在生长的在线世界</small></span></a
+      >
+      <div class="connection">
+        <span id="status-dot"></span><span id="status" role="status">尚未连接</span
+        ><span class="version">原型 / v0.1</span>
+      </div>
     </header>
     <main>
-      <h1>苔光原野 <small>Mosslight Meadow</small></h1>
-      <p>共享世界的第一步：与其他旅人相遇。</p>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">SHARED WORLD · 001</p>
+          <h1>苔光原野<span> Mosslight Meadow</span></h1>
+          <p class="subtitle">在同一片原野相遇，收集微光，留下你的声音。</p>
+        </div>
+        <div class="world-info">
+          <span>共享沙盒</span><strong id="online-count">0 人在线</strong>
+        </div>
+      </section>
       <div class="workspace">
-        <section class="world-panel">
+        <section class="world-panel" aria-label="共享世界">
           <div class="map-bar">
-            <span>原野 · 林间营地</span><strong id="online-count">0 人在线</strong>
+            <span><i></i> 原野 · 林间营地</span><span>服务器权威世界 <b>●</b></span>
           </div>
           <div class="canvas-wrap">
-            <canvas id="world" width="1200" height="800" aria-label="共享世界地图"></canvas>
-            <div id="entry-panel">
+            <canvas
+              id="world"
+              width="1200"
+              height="800"
+              aria-label="游戏地图，使用 WASD 或方向键移动，E 采集"
+            ></canvas>
+            <div class="map-label">N ↑ <span>探索 / 采集 / 相遇</span></div>
+            <div id="entry-panel" class="entry-panel">
+              <span class="entry-icon">✧</span>
+              <p class="eyebrow">YOUR NEXT LITTLE ADVENTURE</p>
               <h2>原野在等你</h2>
-              <p>取个名字，与其他旅人一起进入。</p>
+              <p>取个名字，与其他旅人一起出发。</p>
               <form id="login-form">
                 <label for="account">旅人名字</label
-                ><input id="account" required maxlength="24" autocomplete="nickname" /><button
-                  id="join-button"
-                >
-                  进入原野 ↗
-                </button>
+                ><input
+                  id="account"
+                  name="account"
+                  required
+                  maxlength="24"
+                  autocomplete="nickname"
+                  placeholder="例如：林间旅人"
+                /><button id="join-button" type="submit">进入原野 <span>↗</span></button>
               </form>
-              <small>开发体验服 · 无密码 · 请勿输入私人信息</small>
+              <p class="entry-note">开发体验服 · 无密码 · 请勿输入私人信息</p>
+            </div>
+            <div id="game-hint" class="game-hint" hidden>
+              靠近发光晶簇，按 <kbd>E</kbd> 收集微光
             </div>
           </div>
           <div class="map-footer">
-            <span id="game-hint" hidden>靠近发光晶簇按 E 采集</span>
             <span id="coordinates">坐标 —</span
+            ><span>WASD 移动 <em>·</em> E 采集 <em>·</em> Enter 聊天</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
         </section>
-        <aside>
-          <section class="card">
-            <h2 id="player-name">尚未出发</h2>
-            <div class="score-value">本轮微光：<strong id="score">0</strong></div>
-            <p>临时沙盒：离开或重启会重置分数。</p>
-            <p>WASD / 方向键移动，Enter 聚焦聊天。</p>
+        <aside class="sidebar">
+          <section class="card journey">
+            <p class="eyebrow">YOUR JOURNEY</p>
+            <div class="score-heading">
+              <div>
+                <h2 id="player-name">尚未出发</h2>
+                <p>本轮收集的微光</p>
+              </div>
+              <span class="crystal">✦</span>
+            </div>
+            <div class="score-value"><strong id="score">0</strong><span>枚晶簇</span></div>
+            <p class="muted">临时沙盒：离开或重启后，本轮进度重置。</p>
           </section>
-          <section class="card">
-            <h2>附近的旅人 <span id="player-count">0</span></h2>
-            <ol id="players" aria-label="在线玩家"></ol>
+          <section class="card travelers">
+            <div class="section-title">
+              <h2>附近的旅人</h2>
+              <span id="player-count">0</span>
+            </div>
+            <ol id="players" aria-label="在线玩家">
+              <li class="empty">原野安静地等待着第一位旅人。</li>
+            </ol>
           </section>
           <section class="card chat">
-            <h2>原野频道</h2>
+            <div class="section-title">
+              <h2>原野频道</h2>
+              <span class="live-label">LIVE</span>
+            </div>
             <ol id="messages" aria-label="世界聊天" aria-live="polite">
-              <li>打个招呼吧，所有在线旅人都能看到。</li>
+              <li class="empty">打个招呼吧，所有在线旅人都能看到。</li>
             </ol>
             <form id="chat-form">
               <label class="sr-only" for="chat-input">聊天消息</label
@@ -73,8 +119,13 @@
           </section>
         </aside>
       </div>
-      <p id="notice" role="status">用两个浏览器窗口、不同名字进入，验证共享在线。</p>
-      <footer>game-shelf · 每个成长阶段都有决策、验证与提交。</footer>
+      <p id="notice" class="notice" role="status">
+        打开两个浏览器窗口，用不同名字进入，即可体验联机。
+      </p>
+      <footer>
+        <span>game-shelf <em>/</em> AI-assisted, decisions recorded.</span
+        ><span>小小的世界，真实的连接。</span>
+      </footer>
     </main>
   </body>
 </html>

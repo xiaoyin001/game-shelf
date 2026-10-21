@@ -1,32 +1,64 @@
-# game-shelf
+# game-shelf · 苔光原野
 
-以可验收的浏览器联机沙盒为目标，从空仓库逐段建立客户端、服务器、AI 开发规范和自动回归。
+同仓提供 Go 服务端和浏览器 2D 联机沙盒：在同一地图相遇、移动、聊天与共享采集。代码和 AI 规范从空仓库逐段实现、验证、提交，过程见 [成长记录](docs/progress.md)，不是拆分旧大提交伪造的开发历史。
 
-## 当前能力
+## 本地体验
 
-当前浏览器可以进入同一个世界、查看彼此在线、离开重进和同名顶替；四个 Go 服务与账号保存链路继续可用。支持 WASD / 方向键权威移动，其他浏览器看到同步坐标；世界文字聊天已实现，Enter 可聚焦聊天；靠近晶簇按 E 可共享采集；本轮分数和位置会随离开/重启重置，账号基础数据仍保存。后续每个真实实现阶段都会独立验证和提交；最新事实见 [成长记录](docs/progress.md)。
-
-## 本阶段验证
-
-需要 Node.js 22+ 和 Go 1.25+。Node 检查无第三方依赖，Go 依赖通过 go.mod 固定：
+需要 Go 1.25+、Node.js 22+ 和 Docker Compose；Windows 可使用 WSL 中的 Docker。
 
 ```text
-npm run check
+npm ci
+npm run dev
 ```
 
-真实基础设施烟测：`npm run test:infra`。需要 Docker Compose；Windows 可以使用 WSL 内 Docker，运行器只回收自己的保活管道，不清数据库或卷。
+打开 **http://127.0.0.1:11000**，用两个窗口、不同名字进入：
+- WASD / 方向键移动，坐标由服务器决定。
+- Enter 聚焦世界聊天，所有在线旅人可见。
+- 靠近发光晶簇按 E 采集，获得本轮分数；共享资源 10 秒后重生。
+- 同名登录顶替旧连接；离开后可以重新进入。
 
-启动当前服务：`npm run dev`；登录接口为 `POST http://127.0.0.1:11000/login`。浏览器打开 http://127.0.0.1:11000，以两个不同名字验证共享在线。
+运行器构建并托管自己的四服务，必要时启动本地依赖，日志在 `.local/logs/`。Ctrl+C 只回收自建服务和保活管道；端口被占用时拒绝接管，不清库、不删卷。WSL 依赖可能随宿主空闲停止，下次运行会再启动，命名卷保留。
 
-组合验证：`npm run test:services`；运行器安全验证：`npm run test:runner`。停止时只回收自建服务，日志在 `.local/logs/`。
+默认公布回环地址，只验收同机联机。开发登录没有密码，**不能直接开放互联网**。本轮位置、分数、资源与聊天是临时沙盒，离开/重启重置；基础账号经 db 保存到 MongoDB。这不是成熟 MMO、大规模容量或生产账号安全承诺。
 
-首次浏览器测试需 `npm ci` 与 `npx playwright install chromium`。执行 `npm run test:all` 可验证当前真实链路与双浏览器在线；`npm run check:client` 检查客户端与脚本格式。
+## 自动验收
 
-## 开发入口
+首次安装浏览器：
 
-- [产品目标与边界](docs/playable-mvp.md)
-- [技术决策记录](docs/decisions/README.md)
-- [AI 开发流程](docs/ai-development.md)
-- [成长与阶段验证](docs/progress.md)
+```text
+npx playwright install chromium
+```
 
-开发使用独立功能分支，完整通过后交付到 master，不使用 main。旧实现只是验收对照，不进入新历史；不倒填时间、不用拆分旧大提交冒充逐步开发。远端推送仍须单独确认。
+完整本地检查：
+
+```text
+make check
+npm run check:client
+npm run test:all
+```
+
+- `make check` / `npm run check`：AI 入口/ADR/文档检查、Go 格式、包测试、vet 与构建，不修改工作树。
+- `npm run test:all`：运行器所有权检查，构建并启动真实四服务，执行真实依赖/协议及双浏览器回归，最后回收自建进程。
+- `npm run test:infra` / `test:services`：分别复跑真实依赖或当前四服务链路。
+- `npm run test:e2e`：独立启动浏览器验收，可附加 `-- --headed`。
+- 普通 `go test ./...` 会明确跳过需起服的测试，不能单独作为可玩通过证据。
+
+截图/trace 在 `test-results/`，HTML 报告在 `playwright-report/`，均不提交。若异常强杀留下 `.local/stack.lock`，必须先确认原运行器已退出，再移除过期锁；不要按端口杀进程。
+
+## 代码与边界
+
+- `cmd/login`：HTTP 开发登录与内嵌静态页面。
+- `cmd/gate`：原始 TCP 与 WebSocket JSON v1，认证和转发，不模拟游戏。
+- `cmd/lobby` / `internal/world`：单世界权威在线、移动、聊天与采集。
+- `cmd/db`：统一 MongoDB 账号写入。
+- `internal/session`：Redis key、单次凭据与会话生命周期。
+- `internal/protocol` / `transport`：内部 TCP 16 字节大端头 + protobuf。
+- etcd 注册发现；当前世界要求恰好一个 ready lobby，不支持多世界路由或 AOI。
+
+配置在 `configs/local/`，字段见 [配置说明](configs/README.md)。当前只验收本机联机；正式账号、长期养成、跨服、生产安全和规模测试不在本轮。
+
+## AI 与成长历史
+
+先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
+
+开发只在功能分支，master 接收完整通过后的快进交付，不使用 main。每个阶段测试通过立即 commit，不积攒到最后才拆分；旧实现仅作验收参照。没有常驻 AI 代理、自动付费调用或远端发布；Push、PR、远端配置与部署分别授权。
