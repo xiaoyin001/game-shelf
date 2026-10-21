@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-10 个阶段已推送 GitHub master。首次 CI 的 source 成功、playable 因 MongoDB 不可达起服失败；独立修复分支已完成真实就绪、固定 CI 环境、先编译后启动与定向回收。本地两轮 Linux 新卷冷启动、故障路径、源码/race 和 Windows 兼容回归通过；GitHub 最终提交的 source/playable 仍待新 Push 授权后实跑，目标尚未闭环。
+前 12 阶段已推送 GitHub master（662f9ae）。第二次 CI 的 source 成功，playable 制品证实 MongoDB 8.0.34 因宿主 7.0 内核不兼容而退出。第 13 阶段保留数据库版本及完整测试，临时选择兼容的联机 runner 并检查实际内核；Ubuntu 22.04 用户态上的全部真实回归本地通过。新提交尚待另行获准 Push 后实跑，CI 全绿目标尚未闭环。
 
 ## 阶段记录
 
@@ -103,3 +103,14 @@
 - 本机下载工具曾遇到超时，改为官方校验的私有 SDK/缓存及局部解包库，未改全局系统库；具体取舍见 ADR。工具准备失败不冒充业务失败或通过。
 - 完成边界：这不是 GitHub 全绿证据，旧 CI 的最终 MongoDB 故障原因仍未知。下一步仅在展示最终提交并获准 Push 后，观察同一 SHA 的 source 和 playable；失败继续依据现场修复。
 - 决策：[ADR-0012](decisions/0012-reproducible-ci.md)。
+
+### 13 · 修正已证实的 MongoDB/宿主内核不兼容（本地完成）
+
+- 实际远端：已按授权快进推送 ed586de 与 662f9ae；[CI 39608598034](https://github.com/xiaoyin001/game-shelf/actions/runs/39608598034) 的 source 成功，playable 在依赖阶段失败，未启动业务和浏览器。
+- 本次直接证据：实际宿主 7.0.0-1017-azure；MongoDB 8.0.34 退出码 1、OOMKilled=false，明确报告 SERVER-121912 的内核限制。新制品完整保存 State/端口/digest/日志，失败后本轮容器、网络、卷均为 0。首次 CI 缺少相同现场，仍不追认其最终原因。
+- 官方核查：SERVER-131779 的 Ubuntu 版本号识别修复为 8.0.35，本次未发布且 registry tag 为 404。只将 playable 临时设为 ubuntu-22.04，source 保持 24.04；数据库、工具链、协议和六个浏览器用例不变，不强制 rseq、不关内核保护、不降级数据库。
+- 实际本地：独立 Ubuntu 22.04.5 工具容器、真实 WSL 6.18.54.1 内核，固定 Go/Node/Playwright；完整 test:ci（规则/历史/源码/真实依赖/四服务/协议/6 浏览器/故障清理）与 Go race 通过。发行版和内核均记录，不把容器用户态当作改变宿主内核。
+- 新内核范围、未知版本拒绝及既有 scope/端口保护共 5 个运行器测试在 Linux 和 Windows 通过。普通 Windows 路径与业务源码未变，阶段 12 的真实 Windows 6/6 结果仍适用，本阶段不冒称重复执行。
+- 本机工具容器只安装本任务依赖；官方镜像字节经 SHA256 校验，未改共享 WSL 库、原开发容器或原卷。准备时下载缓慢与命令超时已继续处理，不作为业务验收。
+- 临时 runner 已有退役期限：最迟 2027-02 或官方修复发布时重评。必须在新 SHA 的 GitHub source/playable 都通过后才闭环；本阶段推送及手动重跑未继承上次授权。
+- 决策：[ADR-0013](decisions/0013-mongodb-kernel-compatibility.md)。

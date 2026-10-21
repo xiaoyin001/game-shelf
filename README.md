@@ -45,7 +45,7 @@ npm run test:all
 
 ### 与 GitHub 相同的 Linux CI
 
-需要 Linux x64/AVX、Go **1.25.0**、Node.js **22.23.3** 和支持 `--wait` 的 Docker Compose v2：
+需要 Linux x64/AVX、当前固定数据库组合已验收的内核 **<6.19**、Go **1.25.0**、Node.js **22.23.3** 和支持 `--wait` 的 Docker Compose v2：
 
 ```text
 npm ci
@@ -57,7 +57,7 @@ npm run test:ci
 
 容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
 
-环境与清理结果在 `.local/logs/ci-environment.json`、`ci-cleanup.json`；预期失败证据分别保存在 `ci-failure-infra.log`、`ci-failure-cleanup.json`。配置理由和回退见 [ADR-0012](docs/decisions/0012-reproducible-ci.md)。
+环境与清理结果在 `.local/logs/ci-environment.json`、`ci-cleanup.json`；预期失败证据分别保存在 `ci-failure-infra.log`、`ci-failure-cleanup.json`。隔离配置理由和回退见 [ADR-0012](docs/decisions/0012-reproducible-ci.md)。联机 job 临时使用 Ubuntu 22.04，源码 job 保持 24.04：MongoDB 8.0.34 在实际 GitHub 7.0 内核主动拒绝启动，而官方 Ubuntu 修复 8.0.35 尚未发布。入口记录实际发行版/内核并拒绝超出已验收范围；不关闭数据库保护、不跳过测试。临时方案的弃用期限与恢复较新 runner 的条件见 [ADR-0013](docs/decisions/0013-mongodb-kernel-compatibility.md)。
 
 截图/trace 在 `test-results/`，HTML 报告在 `playwright-report/`，均不提交。若异常强杀留下 `.local/stack.lock`，必须先确认原运行器已退出，再移除过期锁；不要按端口杀进程。
 
@@ -76,7 +76,7 @@ npm run test:ci
 
 ## AI 与成长历史
 
-当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。首次远端 CI 的 source 通过，playable 在 MongoDB 不可达时起服失败；当前完整 CI 环境配套已通过两轮本地 Linux 新卷冷启动、故障清理及 Windows 兼容回归，远端效果仍待最终提交获准推送后复验，不把本地通过冒称 CI 通过或已上线。
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。前 12 阶段已推送。第二次 CI 的 source 通过，playable 已保存 MongoDB 因实际宿主内核不兼容而退出的证据；当前内核兼容修复已在 Ubuntu 22.04 用户态、WSL 6.18 内核上完成真实依赖/协议、全部 6 个浏览器用例和故障清理，本阶段新提交尚待另行获准推送后复验。不把本地通过冒称 GitHub 全绿或已上线。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

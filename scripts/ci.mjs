@@ -2,6 +2,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
+import { checkCiKernel } from "./ci-platform.mjs";
 if (process.platform !== "linux" || process.arch !== "x64") throw new Error("CI 需要 Linux x64");
 if (process.versions.node !== "22.23.3") throw new Error("CI 需要 Node.js 22.23.3");
 const go = spawnSync("go", ["env", "GOVERSION"], { encoding: "utf8" });
@@ -14,6 +15,7 @@ writeFileSync(
   JSON.stringify(
     {
       os: os.release(),
+      distribution: readFileSync("/etc/os-release", "utf8"),
       platform: process.platform,
       arch: process.arch,
       node: process.versions.node,
@@ -25,6 +27,7 @@ writeFileSync(
     2,
   ) + "\n",
 );
+checkCiKernel(os.release());
 process.env.GAME_SHELF_CI = "1";
 function command(file, args) {
   const r = spawnSync(file, args, { stdio: "inherit", env: process.env });

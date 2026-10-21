@@ -26,4 +26,6 @@
 
 - [ADR-0012：可复现的 Linux 冷启动 CI](0012-reproducible-ci.md)
 
+- [ADR-0013：MongoDB 与联机 CI 的内核兼容](0013-mongodb-kernel-compatibility.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

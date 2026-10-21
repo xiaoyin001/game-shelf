@@ -29,7 +29,7 @@ jobs:
       - name: 并发数据竞争检查
         run: go test -race -count=1 ./...
   playable:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
