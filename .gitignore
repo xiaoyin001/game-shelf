@@ -1,0 +1,13 @@
+# 文件说明：排除依赖、构建、日志和本机证据，不忽略项目文档。
+node_modules/
+.local/
+bin/
+logs/
+test-results/
+playwright-report/
+*.exe
+*.test
+*.out
+.env
+.env.*
+!.env.example

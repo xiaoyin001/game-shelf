@@ -1,0 +1,4 @@
+# 文件说明：源码统一文本换行，脚本不混入平台噪声。
+* text=auto eol=lf
+*.png binary
+*.zip binary

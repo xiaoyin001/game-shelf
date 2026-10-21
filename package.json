@@ -1,0 +1,14 @@
+{
+  "name": "game-shelf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "分阶段重建可验收的联机沙盒与 AI 开发闭环",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node --test tests/workflow/*.test.mjs",
+    "check:workflow": "node --test tests/workflow/*.test.mjs"
+  }
+}
