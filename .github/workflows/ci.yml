@@ -1,0 +1,59 @@
+# 文件说明：验证 master 与开发分支的真实成长记录、源码及联机回归，不自动写回仓库。
+name: ci
+on:
+  push:
+    branches: ["master", "feat/**", "fix/**", "build/**", "ci/**", "docs/**", "test/**", "chore/**"]
+  pull_request:
+    branches: ["master"]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: 安装固定工具依赖
+        run: npm ci
+      - name: 规则、历史、Go 与客户端检查
+        run: make check && npm run check:client && git diff --exit-code
+      - name: 并发数据竞争检查
+        run: go test -race -count=1 ./...
+  playable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: 安装浏览器工具
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: 当前真实依赖与浏览器完整回归
+        run: npm run test:all
+      - name: 保存证据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playable-evidence
+          path: |
+            test-results/
+            playwright-report/
+            .local/logs/
+          retention-days: 7

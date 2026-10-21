@@ -8,7 +8,12 @@ const root = resolve(".");
 async function markdown(dir) {
   const result = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
-    if (entry.name === ".git" || entry.name === "node_modules" || entry.name === ".local") continue;
+    if (
+      entry.name === ".git" ||
+      entry.name === "node_modules" ||
+      [".local", "bin", "logs", "test-results", "playwright-report"].includes(entry.name)
+    )
+      continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory()) result.push(...(await markdown(path)));
     else if (entry.name.endsWith(".md")) result.push(path);

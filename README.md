@@ -37,7 +37,7 @@ npm run check:client
 npm run test:all
 ```
 
-- `make check` / `npm run check`：AI 入口/ADR/文档检查、Go 格式、包测试、vet 与构建，不修改工作树。
+- `make check` / `npm run check`：AI 入口/ADR/文档、成长历史、Go 格式、包测试、vet 与构建，不修改工作树。
 - `npm run test:all`：运行器所有权检查，构建并启动真实四服务，执行真实依赖/协议及双浏览器回归，最后回收自建进程。
 - `npm run test:infra` / `test:services`：分别复跑真实依赖或当前四服务链路。
 - `npm run test:e2e`：独立启动浏览器验收，可附加 `-- --headed`。
@@ -58,6 +58,8 @@ npm run test:all
 配置在 `configs/local/`，字段见 [配置说明](configs/README.md)。当前只验收本机联机；正式账号、长期养成、跨服、生产安全和规模测试不在本轮。
 
 ## AI 与成长历史
+
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查，尚未执行远端 CI，不以本地完成冒称已上线。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

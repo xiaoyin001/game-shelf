@@ -28,6 +28,7 @@ if (process.argv.includes("--format")) {
   if (files.length) run("gofmt", ["-w", ...files]);
 } else {
   run(process.execPath, ["--test", "tests/workflow/governance.test.mjs"]);
+  run(process.execPath, ["scripts/check-history.mjs"]);
   const fmt = spawnSync("gofmt", ["-l", ...files], { encoding: "utf8", windowsHide: true });
   if (fmt.error || fmt.status !== 0 || fmt.stdout.trim())
     throw new Error("Go 格式检查失败：" + (fmt.stdout || fmt.stderr || fmt.error));

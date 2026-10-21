@@ -1,0 +1,90 @@
+{
+  "description": "本次从空仓库重新实现的真实阶段提交，不是旧版历史重排；命令是各阶段当次已执行的方法，结构核对不代替运行。",
+  "stages": [
+    {
+      "stage": 1,
+      "commit": "39ae07e",
+      "subject": "chore(ai): 从空仓库建立决策记录与阶段提交规范",
+      "verification": [
+        "npm run check"
+      ]
+    },
+    {
+      "stage": 2,
+      "commit": "2a3b545",
+      "subject": "build(transport): 建立可独立验证的 Go TCP 与 protobuf 基础",
+      "verification": [
+        "make check"
+      ]
+    },
+    {
+      "stage": 3,
+      "commit": "230c42d",
+      "subject": "build(infra): 验证真实开发依赖与公共会话边界",
+      "verification": [
+        "make check",
+        "npm run test:infra"
+      ]
+    },
+    {
+      "stage": 4,
+      "commit": "af8ed4e",
+      "subject": "feat(login): 跑通四服务登录与 TCP 大厅切片",
+      "verification": [
+        "make check",
+        "npm run test:services",
+        "npm run test:runner"
+      ]
+    },
+    {
+      "stage": 5,
+      "commit": "d17dde7",
+      "subject": "feat(world): 让双浏览器进入同一个在线世界",
+      "verification": [
+        "make check",
+        "npm run check:client",
+        "npm run test:all"
+      ]
+    },
+    {
+      "stage": 6,
+      "commit": "37ccfac",
+      "subject": "feat(movement): 增加按服务器时间预算的联机移动",
+      "verification": [
+        "make check",
+        "npm run check:client",
+        "npm run test:all"
+      ]
+    },
+    {
+      "stage": 7,
+      "commit": "178cb1a",
+      "subject": "feat(chat): 增加可跨浏览器验证的世界文字频道",
+      "verification": [
+        "make check",
+        "npm run check:client",
+        "npm run test:all"
+      ]
+    },
+    {
+      "stage": 8,
+      "commit": "081b2a4",
+      "subject": "feat(gather): 增加服务器原子处理的共享晶簇采集",
+      "verification": [
+        "make check",
+        "npm run check:client",
+        "npm run test:all"
+      ]
+    },
+    {
+      "stage": 9,
+      "commit": "615b860",
+      "subject": "feat(client): 完成苔光原野界面与窄屏进入体验",
+      "verification": [
+        "make check",
+        "npm run check:client",
+        "npm run test:all"
+      ]
+    }
+  ]
+}
