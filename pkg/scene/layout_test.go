@@ -20,7 +20,7 @@ func TestCanonicalLayout(t *testing.T) {
 		ids[e.ID] = e
 		kinds[e.Kind] = true
 	}
-	for _, kind := range []string{"tree", "rock", "tent", "campfire", "crystal"} {
+	for _, kind := range []string{"tree", "rock", "tent", "campfire", "crystal", "npc"} {
 		if !kinds[kind] {
 			t.Fatal("missing collider class", kind)
 		}
@@ -30,6 +30,17 @@ func TestCanonicalLayout(t *testing.T) {
 		if e.Kind != "crystal" || e.X != n.X || e.Y != n.Y {
 			t.Fatal("node/body drift")
 		}
+	}
+	if len(layout.NPCs) != 2 {
+		t.Fatal("missing NPCs")
+	}
+	seenNPC := map[string]bool{}
+	for _, n := range layout.NPCs {
+		e := ids[n.ID]
+		if seenNPC[n.ID] || n.Name == "" || n.Role == "" || n.Range != 85 || e.Kind != "npc" || e.X != n.X || e.Y != n.Y || e.Radius != 20 || e.Height != 66 {
+			t.Fatal("NPC/body drift", n)
+		}
+		seenNPC[n.ID] = true
 	}
 	copy := Default()
 	copy.Entities[0].X = -999

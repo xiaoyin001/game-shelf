@@ -18,6 +18,8 @@ type WorldReq struct {
 	DX        float64 `protobuf:"fixed64,5,opt,name=dx,proto3" json:"dx"`
 	DY        float64 `protobuf:"fixed64,6,opt,name=dy,proto3" json:"dy"`
 	Text      string  `protobuf:"bytes,7,opt,name=text,proto3" json:"text"`
+	NPCID     string  `protobuf:"bytes,8,opt,name=npc_id,json=npcId,proto3" json:"npc_id"`
+	ChoiceID  string  `protobuf:"bytes,9,opt,name=choice_id,json=choiceId,proto3" json:"choice_id"`
 }
 
 func (m *WorldReq) Reset()         { *m = WorldReq{} }
@@ -26,8 +28,10 @@ func (*WorldReq) ProtoMessage()    {}
 
 // WorldResp 返回当前权威快照或业务错误。
 type WorldResp struct {
-	Error string      `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	State *WorldState `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Error  string       `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	State  *WorldState  `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Quest  *WorldQuest  `protobuf:"bytes,3,opt,name=quest,proto3" json:"quest,omitempty"`
+	Dialog *WorldDialog `protobuf:"bytes,4,opt,name=dialog,proto3" json:"dialog,omitempty"`
 }
 
 func (m *WorldResp) Reset()         { *m = WorldResp{} }

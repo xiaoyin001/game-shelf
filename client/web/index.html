@@ -21,7 +21,7 @@
       >
       <div class="connection">
         <span id="status-dot"></span><span id="status" role="status">尚未连接</span
-        ><span class="version">3D 原型 / v0.2</span>
+        ><span class="version">3D 原型 / v0.3</span>
       </div>
     </header>
     <main>
@@ -29,7 +29,7 @@
         <div>
           <p class="eyebrow">SHARED WORLD · 001</p>
           <h1>苔光原野<span> Mosslight Meadow</span></h1>
-          <p class="subtitle">在同一片原野相遇，收集微光，留下你的声音。</p>
+          <p class="subtitle">与旅人相遇，听营地的故事，一起点亮微光。</p>
         </div>
         <div class="world-info">
           <span>共享沙盒</span><strong id="online-count">0 人在线</strong>
@@ -45,7 +45,8 @@
               id="world"
               width="1200"
               height="800"
-              aria-label="3D 游戏世界，WASD 移动，空格跳跃，右键环绕，滚轮缩放，E 采集"
+              tabindex="0"
+              aria-label="3D 游戏世界，WASD 移动，空格跳跃，右键环绕，滚轮缩放，E 交谈或采集"
             ></canvas>
             <div class="map-label">
               MOSSLIGHT 3D <span id="camera-readout">右键环绕 · 滚轮缩放</span>
@@ -88,15 +89,30 @@
               </form>
               <p class="entry-note">可信本机测试 · 账号 2–24 字符 · 请勿复用其他网站密码</p>
             </div>
+            <div
+              id="npc-dialog"
+              class="npc-dialog"
+              role="dialog"
+              aria-labelledby="npc-name"
+              aria-describedby="npc-text"
+              hidden
+            >
+              <p class="eyebrow">CAMPFIRE STORIES · 营地对话</p>
+              <h2 id="npc-name"></h2>
+              <p id="npc-text"></p>
+              <div id="npc-choices"></div>
+              <button id="npc-close" type="button">结束交谈 · Esc</button>
+            </div>
             <div id="game-hint" class="game-hint" hidden>
-              <kbd>空格</kbd> 跳跃，靠近晶簇按 <kbd>E</kbd> 采集
+              <span id="interaction-hint">靠近 NPC 按 E 交谈，靠近晶簇按 E 采集</span>
+              <button id="npc-talk" type="button" hidden>交谈</button>
             </div>
           </div>
           <div class="map-footer">
             <span id="coordinates">坐标 —</span
             ><span
               >WASD 移动 <em>·</em> 空格跳跃 <em>·</em> 右键环绕 <em>·</em> 滚轮缩放 <em>·</em> R
-              复位 <em>·</em> E 采集</span
+              复位 <em>·</em> E 交谈 / 采集</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
         </section>
@@ -106,12 +122,24 @@
             <div class="score-heading">
               <div>
                 <h2 id="player-name">尚未出发</h2>
-                <p>本轮收集的微光</p>
+                <p>本轮采集与委托奖励</p>
               </div>
               <span class="crystal">✦</span>
             </div>
-            <div class="score-value"><strong id="score">0</strong><span>枚晶簇</span></div>
+            <div class="score-value"><strong id="score">0</strong><span>分微光</span></div>
             <p class="muted">临时沙盒：离开或重启后，本轮进度重置。</p>
+          </section>
+          <section class="card camp-npcs" aria-label="营地人物与委托">
+            <div class="section-title">
+              <h2>营地人物</h2>
+              <span>NPC</span>
+            </div>
+            <ul id="npc-list"></ul>
+            <div class="quest-journal">
+              <h2>点亮营灯</h2>
+              <p id="quest-progress" role="status">与守灯人阿苔交谈，接取采集委托。</p>
+              <small>接取后采集 2 次 → 返回阿苔 → 额外 3 分微光。本轮有效。</small>
+            </div>
           </section>
           <section class="card travelers">
             <div class="section-title">

@@ -179,6 +179,9 @@ h1 span {
 .canvas-wrap {
   position: relative;
   aspect-ratio: 3/2;
+  /* 明确宽度，避免窄屏最小高度经宽高比撑宽内部场景、焦点滚动后裁切对话。 */
+  width: 100%;
+  min-width: 0;
   min-height: 560px;
   overflow: hidden;
 }
@@ -309,13 +312,87 @@ input:focus {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  text-align: center;
+  line-height: 1.7;
   background: #102127d9;
   border: 1px solid #668b7344;
   border-radius: 30px;
   padding: 10px 18px;
   color: #d8e8d9;
   font-size: 11px;
+}
+.npc-dialog {
+  position: absolute;
+  left: 50%;
+  bottom: 76px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 28px));
+  max-height: calc(100% - 100px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid #e9ce8b88;
+  border-radius: 14px;
+  background: #13272df5;
+  box-shadow: 0 14px 45px #0006;
+}
+#npc-text {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #d9e5d9;
+}
+#npc-choices {
+  display: grid;
+  gap: 8px;
+}
+#npc-choices button,
+#npc-talk {
+  border: 1px solid #adf2cb66;
+  border-radius: 7px;
+  padding: 9px 12px;
+  color: var(--mint);
+  background: #adf2cb17;
+  font-size: 12px;
+}
+#npc-talk {
+  padding: 3px 10px;
+  margin-left: 8px;
+}
+#npc-close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 12px 0 0;
+  font-size: 11px;
+}
+#npc-list {
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.9;
+  color: var(--gold);
+}
+#npc-list small {
+  display: block;
+  color: var(--muted);
+}
+.quest-journal {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.quest-journal h2 {
+  font-size: 12px;
+}
+.quest-journal p {
+  color: var(--mint);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.quest-journal small {
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
 }
 kbd {
   background: #b9dfc326;
@@ -576,7 +653,8 @@ button:focus-visible {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
-  .chat {
+  .chat,
+  .camp-npcs {
     grid-column: 1/-1;
   }
   .version,

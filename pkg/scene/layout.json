@@ -1,5 +1,5 @@
 {
-  "version": "mosslight-physics-1",
+  "version": "mosslight-npc-1",
   "width": 1200,
   "height": 800,
   "entities": [
@@ -984,7 +984,13 @@
       "radius": 22,
       "height": 50,
       "scale": 1
-    }
+    },
+    { "id": "keeper", "kind": "npc", "x": 540, "y": 500, "radius": 20, "height": 66, "scale": 1 },
+    { "id": "ranger", "kind": "npc", "x": 700, "y": 230, "radius": 20, "height": 66, "scale": 1 }
+  ],
+  "npcs": [
+    { "id": "keeper", "name": "阿苔", "role": "守灯人", "x": 540, "y": 500, "range": 85 },
+    { "id": "ranger", "name": "林哨", "role": "巡林员", "x": 700, "y": 230, "range": 85 }
   ],
   "nodes": [
     {

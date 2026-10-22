@@ -38,4 +38,8 @@
 
 - [ADR-0018：采集原页重进与 CI 时限](0018-browser-gather-ci.md)
 
+- [ADR-0019：近距离 NPC 对话与本轮采集委托](0019-npc-interactions.md)
+
+- [ADR-0020：protobuf 补丁与 proto3 标量 presence](0020-protobuf-scalar-presence.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

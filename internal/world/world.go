@@ -25,6 +25,7 @@ type player struct {
 	lastSeen time.Time
 	lastMove time.Time
 	lastChat time.Time
+	quest    contracts.WorldQuest
 	vz       float64
 }
 
@@ -68,7 +69,7 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		}
 		if p := w.players[req.UserID]; p != nil && p.session == req.SessionID {
 			p.lastSeen = now
-			return &contracts.WorldResp{State: w.snapshot(now)}
+			return w.response(p, now, nil)
 		}
 		if w.players[req.UserID] == nil && len(w.players) >= 100 {
 			return failure("world_full")
@@ -78,13 +79,14 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 			return failure("world_full")
 		}
 		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y, Grounded: true}, session: req.SessionID, lastSeen: now, lastMove: now}
-		return &contracts.WorldResp{State: w.snapshot(now)}
+		return w.response(w.players[req.UserID], now, nil)
 	}
 	p := w.players[req.UserID]
 	if p == nil || p.session != req.SessionID {
 		return failure("session_replaced_or_expired")
 	}
 	p.lastSeen = now
+	var dialog *contracts.WorldDialog
 	switch req.Action {
 	case "poll":
 	case "input":
@@ -101,6 +103,12 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if err := w.gather(p, now); err != "" {
 			return failure(err)
 		}
+	case "interact", "choose":
+		var err string
+		dialog, err = w.interact(p, req)
+		if err != "" {
+			return failure(err)
+		}
 	case "chat":
 		if err := w.chat(p, req.Text, now); err != "" {
 			return failure(err)
@@ -110,7 +118,7 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	default:
 		return failure("unknown_action")
 	}
-	return &contracts.WorldResp{State: w.snapshot(now)}
+	return w.response(p, now, dialog)
 }
 
 // spawn 同时检查静态实体与在线角色，不把新角色塞进障碍或其他身体。
@@ -142,6 +150,9 @@ func (w *World) gather(p *player, now time.Time) string {
 		if math.Hypot(math.Hypot(p.state.X-n.X, p.state.Y-n.Y), p.state.Z) <= 72 && now.UnixMilli() >= n.ReadyAtMS {
 			n.ReadyAtMS = now.Add(10 * time.Second).UnixMilli()
 			p.state.Score++
+			if p.quest.Status == "active" && p.quest.Progress < questGoal {
+				p.quest.Progress++
+			}
 			return ""
 		}
 	}

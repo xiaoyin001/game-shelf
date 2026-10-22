@@ -52,6 +52,16 @@ export class WorldView {
     sun.shadow.normalBias = 0.7;
     this.scene.add(sun, sun.target);
     this.makeLandscape();
+    this.npcs = layout.npcs.map((npc) => {
+      const entry = this.makePlayer(
+        { ...npc, z: 0, name: npc.role + " · " + npc.name + " [E]" },
+        false,
+        true,
+      );
+      entry.group.rotation.y = npc.id === "keeper" ? Math.PI : 0;
+      entry.label.position.set(npc.x, 88, npc.y);
+      return entry;
+    });
     this.makeControls();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas.parentElement);
@@ -324,14 +334,16 @@ export class WorldView {
     return sprite;
   }
 
-  makePlayer(player, own) {
+  makePlayer(player, own, npc = false) {
     const group = new THREE.Group();
     group.position.set(player.x, player.z, player.y);
-    group.name = "traveller:" + player.id;
-    const coat = color(own ? 0x9fd4b5 : 0x9faed3),
+    group.name = (npc ? "npc:" : "traveller:") + player.id;
+    const coat = color(
+        npc ? (player.id === "keeper" ? 0xd9b468 : 0x65b9b5) : own ? 0x9fd4b5 : 0x9faed3,
+      ),
       skin = color(0xf0d3b0),
       boots = color(0x465351),
-      hat = color(own ? 0x587951 : 0x656d99),
+      hat = color(npc ? 0x81643e : own ? 0x587951 : 0x656d99),
       bag = color(0x826b4d);
     this.addMesh(this.geometries.body, coat, 0, 25, 0, group);
     this.addMesh(this.geometries.head, skin, 0, 45, 0, group);
@@ -345,11 +357,11 @@ export class WorldView {
     ];
     this.addMesh(this.geometries.limb, coat, -17, 26, 0, group);
     this.addMesh(this.geometries.limb, coat, 17, 26, 0, group);
-    if (own) {
+    if (own || npc) {
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(21, 23, 32),
         new THREE.MeshBasicMaterial({
-          color: 0xc8f1bd,
+          color: npc ? 0xffd77c : 0xc8f1bd,
           side: THREE.DoubleSide,
           transparent: true,
           opacity: 0.8,
@@ -359,7 +371,10 @@ export class WorldView {
       ring.position.y = 0.6;
       group.add(ring);
     }
-    const label = this.label(player.name + (own ? " · 你" : ""), own ? "#d6ffdc" : "#e3e8ff");
+    const label = this.label(
+      player.name + (own ? " · 你" : ""),
+      npc ? "#ffe4a6" : own ? "#d6ffdc" : "#e3e8ff",
+    );
     label.position.y = 82;
     // 名牌独立于角色朝向，避免转身时文字翻转；只使用公共名字。
     this.scene.add(group, label);
@@ -487,6 +502,9 @@ export class WorldView {
     }
     this.renderer.render(this.scene, this.camera);
     this.canvas.dataset.selfHeight = me ? me.group.position.y.toFixed(2) : "";
+    this.canvas.dataset.npcCount = String(
+      this.npcs.filter((entry) => entry.group.parent === this.scene).length,
+    );
     this.canvas.dataset.cameraYaw = this.yaw.toFixed(4);
     this.canvas.dataset.cameraDistance = String(Math.round(this.distance));
     return {

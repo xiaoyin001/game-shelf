@@ -20,19 +20,23 @@ import (
 )
 
 type browserCommand struct {
-	Version int     `json:"version"`
-	Type    string  `json:"type"`
-	Token   string  `json:"token,omitempty"`
-	DX      float64 `json:"dx,omitempty"`
-	DY      float64 `json:"dy,omitempty"`
-	Text    string  `json:"text,omitempty"`
+	Version  int     `json:"version"`
+	Type     string  `json:"type"`
+	Token    string  `json:"token,omitempty"`
+	DX       float64 `json:"dx,omitempty"`
+	DY       float64 `json:"dy,omitempty"`
+	Text     string  `json:"text,omitempty"`
+	NPCID    string  `json:"npc_id,omitempty"`
+	ChoiceID string  `json:"choice_id,omitempty"`
 }
 type browserEvent struct {
-	Version int                   `json:"version"`
-	Type    string                `json:"type"`
-	UserID  string                `json:"user_id,omitempty"`
-	Error   string                `json:"error,omitempty"`
-	State   *contracts.WorldState `json:"state,omitempty"`
+	Version int                    `json:"version"`
+	Type    string                 `json:"type"`
+	UserID  string                 `json:"user_id,omitempty"`
+	Error   string                 `json:"error,omitempty"`
+	State   *contracts.WorldState  `json:"state,omitempty"`
+	Quest   *contracts.WorldQuest  `json:"quest,omitempty"`
+	Dialog  *contracts.WorldDialog `json:"dialog,omitempty"`
 }
 type webSession struct {
 	online session.OnlineSession
@@ -91,7 +95,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 	defer s.leaveBrowser(active, conn)
-	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State}) {
+	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Quest: resp.Quest}) {
 		return
 	}
 
@@ -133,16 +137,22 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" && cmd.Type != "jump" {
+			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" && cmd.Type != "jump" && cmd.Type != "interact" && cmd.Type != "choose" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}
-			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text})
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, NPCID: cmd.NPCID, ChoiceID: cmd.ChoiceID})
 			if err != nil {
 				return
 			}
-			if reply.Error != "" && !s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error}) {
-				return
+			if reply.Error != "" {
+				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error}) {
+					return
+				}
+			} else if reply.Dialog != nil {
+				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "dialog", State: reply.State, Quest: reply.Quest, Dialog: reply.Dialog}) {
+					return
+				}
 			}
 
 		case <-ticker.C:
@@ -154,7 +164,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error})
 				return
 			}
-			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State}) {
+			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Quest: reply.Quest}) {
 				return
 			}
 		}

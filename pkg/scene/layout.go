@@ -31,6 +31,16 @@ type Node struct {
 	Y  float64 `json:"y"`
 }
 
+// NPC 与同 ID 实体共用坐标，Range 为包含高度的交互距离。
+type NPC struct {
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
+	Role  string  `json:"role"`
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
+	Range float64 `json:"range"`
+}
+
 // Layout 是客户端绘制与服务器碰撞共用的公开场景版本。
 type Layout struct {
 	Version  string   `json:"version"`
@@ -38,6 +48,7 @@ type Layout struct {
 	Height   float64  `json:"height"`
 	Entities []Entity `json:"entities"`
 	Nodes    []Node   `json:"nodes"`
+	NPCs     []NPC    `json:"npcs"`
 }
 
 // Default 每次解码独立副本，调用者不能修改其他世界或公开布局。
