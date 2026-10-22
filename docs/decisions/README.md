@@ -36,4 +36,6 @@
 
 - [ADR-0017：服务端跳跃与实体碰撞](0017-authoritative-jump-collision.md)
 
+- [ADR-0018：采集原页重进与 CI 时限](0018-browser-gather-ci.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

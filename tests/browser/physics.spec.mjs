@@ -107,16 +107,21 @@ test("地面被晶簇阻挡，绕到空地后玩家身体也不能互穿", async
       await page.keyboard.up("w");
     }
     const bx = await coordinate(pb, "x");
+    const distance = async () =>
+      Math.hypot(
+        (await coordinate(pa, "x")) - bx,
+        (await coordinate(pa, "y")) - (await coordinate(pb, "y")),
+      );
     await pa.keyboard.down("d");
-    await pa.waitForTimeout(1000);
+    // 软件渲染时按住一秒不保证发出足够输入；先等真实接触，再持续施压验证阻挡。
+    await expect.poll(distance, { intervals: [50] }).toBeLessThan(43);
+    await pa.waitForTimeout(300);
     await pa.keyboard.up("d");
     await expect.poll(() => coordinate(pa, "x")).toBeGreaterThan(stopped + 25);
-    const gap = Math.hypot(
-      (await coordinate(pa, "x")) - bx,
-      (await coordinate(pa, "y")) - (await coordinate(pb, "y")),
-    );
+    expect(await coordinate(pa, "x")).toBeLessThan(bx);
+    const gap = await distance();
     expect(gap).toBeGreaterThanOrEqual(39.99);
-    expect(gap).toBeLessThan(47);
+    expect(gap).toBeLessThan(43);
     await pa.screenshot({ path: info.outputPath("player-collision.png"), fullPage: true });
   } finally {
     await a.close();

@@ -1,6 +1,6 @@
 // 文件说明：双浏览器验证采集分数与冷却共享，不直接操纵游戏状态。
 import { test, expect } from "@playwright/test";
-import { join, unique } from "./helpers.mjs";
+import { join, unique, password } from "./helpers.mjs";
 test("共享采集只奖励一次，离开重进重置本轮分数", async ({ browser }, info) => {
   const a = await browser.newContext(),
     b = await browser.newContext();
@@ -29,11 +29,18 @@ test("共享采集只奖励一次，离开重进重置本轮分数", async ({ br
     await pa.screenshot({ path: info.outputPath("two-player-world.png"), fullPage: true });
     await pa.getByRole("button", { name: "离开世界" }).click();
     await expect(pa.locator("#status")).toHaveText("连接已断开");
-    await join(pa, name, { register: false });
+    const ownRow = pa.locator("#players li").filter({ hasText: name });
+    const peerRow = pb.locator("#players li").filter({ hasText: name });
+    await expect(peerRow).toHaveCount(0);
+    // 原页表单重进不需要重新加载 3D；整页重载仍由 presence 用例覆盖。
+    await pa.getByLabel("账号", { exact: true }).fill(name);
+    await pa.getByLabel("密码", { exact: true }).fill(password);
+    await pa.getByRole("button", { name: /登录并进入原野/ }).click();
     await expect(pa.locator("#status")).toContainText("已连接");
     await expect(pa.locator("#score")).toHaveText("0");
+    await expect(ownRow.locator(".player-score")).toHaveText("✦ 0");
+    await expect(peerRow.locator(".player-score")).toHaveText("✦ 0");
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });
