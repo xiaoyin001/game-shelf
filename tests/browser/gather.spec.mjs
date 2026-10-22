@@ -25,7 +25,7 @@ test("共享采集只奖励一次，离开重进重置本轮分数", async ({ br
     await pa.screenshot({ path: info.outputPath("two-player-world.png"), fullPage: true });
     await pa.getByRole("button", { name: "离开世界" }).click();
     await expect(pa.locator("#status")).toHaveText("连接已断开");
-    await pa.getByRole("button", { name: /进入原野/ }).click();
+    await join(pa, name, { register: false });
     await expect(pa.locator("#status")).toContainText("已连接");
     await expect(pa.locator("#score")).toHaveText("0");
   } finally {

@@ -18,7 +18,7 @@ test("双浏览器同世界，退出移除并可重新进入", async ({ browser 
     await expect(pa.locator("#online-count")).toHaveText("2 人在线");
     await pb.getByRole("button", { name: "离开世界" }).click();
     await expect(pa.locator("#online-count")).toHaveText("1 人在线");
-    await pb.getByRole("button", { name: /进入原野/ }).click();
+    await join(pb, nb, { register: false });
     await expect(pb.locator("#status")).toContainText("已连接");
     await expect(pa.locator("#online-count")).toHaveText("2 人在线");
     expect(errors).toEqual([]);
@@ -35,7 +35,7 @@ test("同名新会话顶替旧连接", async ({ browser }) => {
       pb = await b.newPage(),
       name = unique("same");
     await join(pa, name);
-    await join(pb, name);
+    await join(pb, name, { register: false });
     await expect(pa.locator("#status")).toHaveText("连接已断开");
     await expect(pb.locator("#online-count")).toHaveText("1 人在线");
     await expect(pb.locator("#players")).toContainText(name);

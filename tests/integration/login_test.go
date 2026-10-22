@@ -29,7 +29,11 @@ func live(t *testing.T) {
 func name() string { return "test-" + strconv.FormatInt(time.Now().UnixNano(), 36) }
 func login(t *testing.T, account string) contracts.LoginHTTPReply {
 	t.Helper()
-	data, _ := json.Marshal(contracts.LoginHTTPRequest{Account: account, Channel: "integration"})
+	registration := accountRequest(t, "/register", account, testPassword, "integration")
+	if registration.status != http.StatusCreated && registration.status != http.StatusConflict {
+		t.Fatalf("register status: %d %s", registration.status, registration.body)
+	}
+	data, _ := json.Marshal(contracts.LoginHTTPRequest{Account: account, Password: testPassword, Channel: "integration"})
 	client := &http.Client{Timeout: 5 * time.Second}
 	res, err := client.Post("http://127.0.0.1:11000/login", "application/json", bytes.NewReader(data))
 	if err != nil {
@@ -61,7 +65,7 @@ func TestLiveHTTPAndAccountPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Disconnect(ctx)
-	count, err := db.Database("game_shelf").Collection("players").CountDocuments(ctx, bson.M{"user_id": first.UserID})
+	count, err := db.Database("game_shelf").Collection("accounts").CountDocuments(ctx, bson.M{"user_id": first.UserID})
 	if err != nil || count != 1 {
 		t.Fatal("login did not persist exactly one player", count, err)
 	}

@@ -11,15 +11,15 @@ npm ci
 npm run dev
 ```
 
-打开 **http://127.0.0.1:11000**，用两个窗口、不同名字进入：
+打开 **http://127.0.0.1:11000**，先填写账号与 12–128 字符密码，点击“注册并进入原野”；以后使用“登录并进入原野”。用两个窗口、不同账号进入：
 - WASD / 方向键移动，坐标由服务器决定。
 - Enter 聚焦世界聊天，所有在线旅人可见。
 - 靠近发光晶簇按 E 采集，获得本轮分数；共享资源 10 秒后重生。
-- 同名登录顶替旧连接；离开后可以重新进入。
+- 同账号通过正确密码验证后顶替旧连接；错误密码不影响原会话。离开后需重新输入密码登录。
 
 运行器先编译当前工具和全部四服务，必要时启动本地依赖，再用同款 Go 驱动验证 MongoDB/Redis/etcd 的真实协议就绪，最后统一启动业务进程，日志在 `.local/logs/`。编译不占用服务启动期限，TCP 端口接通不能单独放行；依赖或起服失败会保存本项目容器状态（含退出码/OOM）、端口、实际镜像 digest 与日志到 `.local/logs/infra.log`。Ctrl+C 只回收自建服务和保活管道；端口被占用时拒绝接管，不清库、不删卷。WSL 依赖可能随宿主空闲停止，下次运行会再启动，命名卷保留。
 
-默认公布回环地址，只验收同机联机。开发登录没有密码，**不能直接开放互联网**。本轮位置、分数、资源与聊天是临时沙盒，离开/重启重置；基础账号经 db 保存到 MongoDB。这不是成熟 MMO、大规模容量或生产账号安全承诺。
+默认公布回环地址，只验收同机联机。注册和登录都验证密码，db 只保存带随机盐的 Argon2id 慢哈希，入口有限频；但当前是可信本机 HTTP，**不能直接开放互联网或复用其他网站密码**。旧 players 试玩记录保留，同名新注册不会继承旧身份，见 [ADR-0014](docs/decisions/0014-password-authentication.md)。本轮位置、分数、资源与聊天是临时沙盒，离开/重启重置；基础账号经 db 保存到 MongoDB。这不是成熟 MMO、大规模容量或生产账号安全承诺。
 
 ## 自动验收
 
@@ -53,7 +53,7 @@ npx playwright install --with-deps --only-shell chromium
 npm run test:ci
 ```
 
-此入口执行源码检查、真实基础设施/协议、全部 6 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
+此入口执行源码检查、真实基础设施/协议、全部 7 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
 
 容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
 
@@ -63,7 +63,8 @@ npm run test:ci
 
 ## 代码与边界
 
-- `cmd/login`：HTTP 开发登录与内嵌静态页面。
+- `cmd/login`：HTTP 账号注册/密码登录、限频与内嵌页面。
+- `internal/credentials`：账号规范化、受限 Argon2id 和 db 专属 MongoDB 凭据存储。
 - `cmd/gate`：原始 TCP 与 WebSocket JSON v1，认证和转发，不模拟游戏。
 - `cmd/lobby` / `internal/world`：单世界权威在线、移动、聊天与采集。
 - `cmd/db`：统一 MongoDB 账号写入。
@@ -76,7 +77,7 @@ npm run test:ci
 
 ## AI 与成长历史
 
-当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。前 12 阶段已推送。第二次 CI 的 source 通过，playable 已保存 MongoDB 因实际宿主内核不兼容而退出的证据；当前内核兼容修复已在 Ubuntu 22.04 用户态、WSL 6.18 内核上完成真实依赖/协议、全部 6 个浏览器用例和故障清理，本阶段新提交尚待另行获准推送后复验。不把本地通过冒称 GitHub 全绿或已上线。
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。当前账号密码阶段通过本地真实服务、Windows/Linux 7 个浏览器回归；3D 是当前下一阶段目标，尚未实现。新增提交未 Push，不把基线 CI 或本地通过冒称新版本远端通过。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

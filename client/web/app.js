@@ -13,6 +13,13 @@ let joining = false,
   joinTimer = null;
 const errorMessages = {
   invalid_or_expired_token: "登录凭据已过期，请重新进入。",
+  invalid_credentials: "账号或密码错误。",
+  account_exists: "账号已存在，请使用原密码登录。",
+  invalid_account: "账号需要 2–24 个字母、数字、下划线或连字符。",
+  invalid_password: "密码需 12–128 个字符，不能全空白或包含控制字符。",
+  auth_rate_limited: "登录尝试过多，请一分钟后再试。",
+  auth_busy: "账号验证繁忙，请稍后再试。",
+  db_unavailable: "账号服务暂时不可用，请稍后再试。",
   no_resource_in_range: "附近没有可采集的晶簇，试试向发光处走近一点。",
   chat_too_fast: "说慢一点，让原野听清楚。",
   invalid_chat: "消息不能为空，最多 140 个字。",
@@ -43,7 +50,8 @@ function disconnected(text) {
   $("chat-input").disabled = true;
   $("chat-send").disabled = true;
   $("join-button").disabled = false;
-  $("join-button").textContent = "重新进入原野 ↗";
+  $("register-button").disabled = false;
+  $("join-button").textContent = "登录并进入原野 ↗";
   status("连接已断开", false);
   notice(text);
 }
@@ -51,20 +59,24 @@ $("login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (joining) return;
   const account = $("account").value.trim();
-  if (!account) return;
+  const password = $("password").value;
+  if (!account || !password) return;
+  const registering = event.submitter?.value === "register";
   joining = true;
   $("join-button").disabled = true;
+  $("register-button").disabled = true;
   status("正在连接…", false);
   try {
-    const response = await fetch("/login", {
+    const response = await fetch(registering ? "/register" : "/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ account, channel: "browser" }),
+      body: JSON.stringify({ account, password, channel: "browser" }),
       signal: AbortSignal.timeout(5000),
     });
     const login = await response.json();
     if (!response.ok || !login.gate_websocket_url)
       throw new Error(login.error || "websocket_unavailable");
+    $("password").value = "";
     if (socket) socket.close();
     const current = new WebSocket(login.gate_websocket_url);
     socket = current;
@@ -107,7 +119,9 @@ $("login-form").addEventListener("submit", async (event) => {
         $("chat-input").disabled = false;
         $("chat-send").disabled = false;
         $("join-button").disabled = false;
+        $("register-button").disabled = false;
         $("account").blur();
+        $("password").blur();
         status("已连接 · 原野 01", true);
         notice("你已进入共享原野。靠近晶簇按 E 采集，按 Enter 与旅人聊天。");
       }
@@ -118,7 +132,7 @@ $("login-form").addEventListener("submit", async (event) => {
     });
     current.addEventListener("close", () => {
       if (socket === current)
-        disconnected("连接已断开；若同名旅人在别处进入，旧连接会被顶替。可重新进入。");
+        disconnected("连接已断开；若同账号通过验证后在别处进入，旧连接会被顶替。可重新登录。");
     });
     current.addEventListener("error", () => {
       if (socket === current) notice("暂时无法连接网关，请确认服务已经启动。");

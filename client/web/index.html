@@ -52,19 +52,33 @@
               <span class="entry-icon">✧</span>
               <p class="eyebrow">YOUR NEXT LITTLE ADVENTURE</p>
               <h2>原野在等你</h2>
-              <p>取个名字，与其他旅人一起出发。</p>
+              <p>注册一个账号，以密码守护你的旅人身份。</p>
               <form id="login-form">
-                <label for="account">旅人名字</label
+                <label for="account">账号</label
                 ><input
                   id="account"
                   name="account"
                   required
                   maxlength="24"
-                  autocomplete="nickname"
+                  autocomplete="username"
                   placeholder="例如：林间旅人"
-                /><button id="join-button" type="submit">进入原野 <span>↗</span></button>
+                />
+                <label for="password">密码</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  minlength="12"
+                  autocomplete="current-password"
+                  placeholder="12–128 个字符"
+                />
+                <button id="join-button" type="submit" value="login">
+                  登录并进入原野 <span>↗</span>
+                </button>
+                <button id="register-button" type="submit" value="register">注册并进入原野</button>
               </form>
-              <p class="entry-note">开发体验服 · 无密码 · 请勿输入私人信息</p>
+              <p class="entry-note">可信本机测试 · 账号 2–24 字符 · 请勿复用其他网站密码</p>
             </div>
             <div id="game-hint" class="game-hint" hidden>
               靠近发光晶簇，按 <kbd>E</kbd> 收集微光
@@ -120,7 +134,7 @@
         </aside>
       </div>
       <p id="notice" class="notice" role="status">
-        打开两个浏览器窗口，用不同名字进入，即可体验联机。
+        用不同账号进入可体验联机；同账号需正确密码才能替换旧会话。
       </p>
       <footer>
         <span>game-shelf <em>/</em> AI-assisted, decisions recorded.</span

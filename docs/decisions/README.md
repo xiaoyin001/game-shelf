@@ -28,4 +28,6 @@
 
 - [ADR-0013：MongoDB 与联机 CI 的内核兼容](0013-mongodb-kernel-compatibility.md)
 
+- [ADR-0014：账号密码验证与试玩身份隔离](0014-password-authentication.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

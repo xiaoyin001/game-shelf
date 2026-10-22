@@ -18,10 +18,9 @@ const (
 	GTLB_LobbyListReq  uint32 = 400003
 	LBGT_LobbyListResp uint32 = 400004
 
-	LGDB_PingReq          uint32 = 500001
-	DBLG_PingResp         uint32 = 500002
-	LGDB_UpsertPlayerReq  uint32 = 500003
-	DBLG_UpsertPlayerResp uint32 = 500004
+	LGDB_PingReq  uint32 = 500001
+	DBLG_PingResp uint32 = 500002
+	// 500003/500004 原无密码 upsert 身份入口已移除，不再复用。
 
 	LBDB_PingReq  uint32 = 600001
 	DBLB_PingResp uint32 = 600002
@@ -38,8 +37,9 @@ const (
 )
 
 type LoginHTTPRequest struct {
-	Account string `json:"account"`
-	Channel string `json:"channel"`
+	Account  string `json:"account"`
+	Password string `json:"password"`
+	Channel  string `json:"channel"`
 }
 
 type LoginHTTPReply struct {
@@ -70,24 +70,6 @@ type GateAuthResp struct {
 func (m *GateAuthResp) Reset()         { *m = GateAuthResp{} }
 func (m *GateAuthResp) String() string { return proto.CompactTextString(m) }
 func (*GateAuthResp) ProtoMessage()    {}
-
-type UpsertPlayerReq struct {
-	UserID  string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Account string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
-	Channel string `protobuf:"bytes,3,opt,name=channel,proto3" json:"channel,omitempty"`
-}
-
-func (m *UpsertPlayerReq) Reset()         { *m = UpsertPlayerReq{} }
-func (m *UpsertPlayerReq) String() string { return proto.CompactTextString(m) }
-func (*UpsertPlayerReq) ProtoMessage()    {}
-
-type UpsertPlayerResp struct {
-	UserID string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-}
-
-func (m *UpsertPlayerResp) Reset()         { *m = UpsertPlayerResp{} }
-func (m *UpsertPlayerResp) String() string { return proto.CompactTextString(m) }
-func (*UpsertPlayerResp) ProtoMessage()    {}
 
 type LobbyListReq struct {
 	UserID string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`

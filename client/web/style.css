@@ -179,6 +179,7 @@ h1 span {
 .canvas-wrap {
   position: relative;
   aspect-ratio: 3/2;
+  min-height: 480px;
   overflow: hidden;
 }
 canvas {
@@ -253,12 +254,26 @@ input:focus {
   border-color: var(--mint);
   box-shadow: 0 0 0 2px #adf2cb15;
 }
-#account {
+#account,
+#password {
   display: block;
   width: 100%;
   padding: 12px;
   margin-top: 8px;
   font-size: 13px;
+}
+#login-form label {
+  display: block;
+  margin-top: 10px;
+}
+#register-button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  color: var(--mint);
+  background: transparent;
+  border: 1px solid #82ac9d66;
+  border-radius: 7px;
 }
 #join-button {
   display: flex;
