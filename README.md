@@ -13,7 +13,7 @@ npm run dev
 
 打开 **http://127.0.0.1:11000**，先填写账号与 **6–32 位密码**（仅英文字母、数字和英文符号，不含空格；中文、表情与非法粘贴拒绝），点击“注册并进入原野”；以后使用“登录并进入原野”。用两个窗口、不同账号进入：
 - WASD / 方向键相对镜头移动，**空格跳跃**，最终位置、重力和碰撞由服务器决定；空中不能再次起跳，按住不自动连跳。
-- 玩家之间、玩家与树木/岩石/帐篷/篝火实体/晶簇相互阻挡，能跳上低矮实体、站稳再跳，离开支撑会落下。
+- 站稳后步行会自动迈上每级高度差 **不超过18单位** 的静态矮台阶，脚底到达实体顶面，不穿石；现有矮石和篝火低矮实体可直接走过，连续台阶按每级高度差判断。高于阈值的台阶、晶簇、帐篷和树干仍阻挡，需要跳跃或绕行；玩家/NPC不能当自动迈步台阶。头顶没有足够空间时不能硬挤上去，空中不自动抬高，走离支撑后真实下落。
 - 右键拖动环绕镜头、滚轮缩放、R 复位；树林、营地、湖面、旅人和晶簇均为真实 3D 场景。
 - Enter 聚焦世界聊天，所有在线旅人可见。
 - 靠近发光晶簇按 E 采集，获得本轮分数；共享资源 10 秒后重生，附近提示显示倒计时。
@@ -57,7 +57,7 @@ npx playwright install --with-deps --only-shell chromium
 npm run test:ci
 ```
 
-此入口执行源码与依赖产物检查、真实基础设施/协议、全部 17 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
+此入口执行源码与依赖产物检查、真实基础设施/协议、全部 18 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
 
 容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
 
@@ -91,7 +91,9 @@ npm run test:ci
 
 当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。账号密码与 3D 阶段已独立提交并通过本地真实服务，真实双人 3D 截图已查看；随后密码输入改为 6–32 位 ASCII，Windows/Linux 最新真实服务/协议与浏览器各 11/11 通过，Go race 与清理通过，见 [ADR-0016](docs/decisions/0016-password-input-policy.md)。最新跳跃/碰撞阶段已通过 Windows/Linux 真实服务/协议与各 14/14 浏览器、Go race 及清理，角色首帧与短暂高度采用实际只读观察验收。上述4个提交已普通推送至 a5963e3；[CI 39741132203](https://github.com/xiaoyin001/game-shelf/actions/runs/39741132203) 的 source 成功、playable 仅采集用例在收尾时超过30s，其余13项及真实协议通过。采集原页重进/碰撞等待已按 [ADR-0018](docs/decisions/0018-browser-gather-ci.md) 在 Windows 与双CPU Linux 各14/14验证；修复尚未补推，不能把本地结果冒称云端通过。
 
-NPC 阶段已在独立 Linux 网络命名空间与空依赖上完成真实四服务、独立协议、全部 **17/17** 浏览器及 Go race 回归；Windows 源码/客户端检查通过，原生 Windows 全套联机未重跑。包含两位实体角色、选项对话、营灯委托与唯一奖励，详见 [ADR-0019](docs/decisions/0019-npc-interactions.md)。最后 race 发现的 protobuf 标量 presence 问题已用官方补丁修复并整套复验，见 [ADR-0020](docs/decisions/0020-protobuf-scalar-presence.md)。新版未 Push/PR/远端 CI 复验，现有试玩服务未自动接管或重启；需正常重启后体验 NPC。角色为预设对话，无巡逻、生成式 AI 或长期任务存档。
+NPC 阶段已在独立 Linux 网络命名空间与空依赖上完成真实四服务、独立协议、全部 **17/17** 浏览器及 Go race 回归；Windows 源码/客户端检查通过，原生 Windows 全套联机未重跑。包含两位实体角色、选项对话、营灯委托与唯一奖励，详见 [ADR-0019](docs/decisions/0019-npc-interactions.md)。最后 race 发现的 protobuf 标量 presence 问题已用官方补丁修复并整套复验，见 [ADR-0020](docs/decisions/0020-protobuf-scalar-presence.md)。该阶段未 Push/PR/远端 CI 复验；随后已按用户授权正常重启本地 NPC 试玩。角色为预设对话，无巡逻、生成式 AI 或长期任务存档。
+
+低台阶迈步阶段已通过 Windows 源码/客户端检查、Linux 隔离真实四服务与全部 **18/18** 浏览器、独立协议回归和全量 Go race；原17项保持不变。当前每级步高18，脚底到真实顶面、走离自然落下，详见 [ADR-0021](docs/decisions/0021-authoritative-step-up.md)。未跑新版原生Windows完整联机或远端CI，未Push/PR；正常重建重启本地四服务后加载新规则，不更改账号数据。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

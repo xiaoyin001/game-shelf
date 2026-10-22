@@ -11,10 +11,12 @@ import (
 const (
 	playerRadius = 20.0
 	playerHeight = 66.0
-	jumpSpeed    = 380.0
-	gravity      = 800.0
-	ceiling      = 512.0
-	epsilon      = 1e-6
+	// 每级相对脚底最多迈高18单位，不能把高墙按小步反复抬升。
+	stepHeight = 18.0
+	jumpSpeed  = 380.0
+	gravity    = 800.0
+	ceiling    = 512.0
+	epsilon    = 1e-6
 )
 
 // overlaps 判定角色足迹与圆柱/盒体的交叠，接触边缘不算穿入。
@@ -126,6 +128,59 @@ func (w *World) fall(p *player, dt float64) {
 	}
 	p.state.Z = math.Max(0, next)
 }
+
+// walk 只提交完整可行的小步；迈步失败不留下部分抬升或竖直速度变化。
+func (w *World) walk(p *player, x, y float64) bool {
+	if w.blocked(p, x, y) {
+		if !p.state.Grounded || !w.supported(p) || (x == p.state.X && y == p.state.Y) {
+			return false
+		}
+		top := p.state.Z
+		for _, e := range w.layout.Entities {
+			if !overlaps(x, y, e) {
+				continue
+			}
+			if e.Kind == "npc" {
+				if p.state.Z < e.Height-epsilon {
+					return false
+				}
+				continue
+			}
+			if e.Height > top && e.Height <= p.state.Z+stepHeight+epsilon {
+				top = e.Height
+			}
+		}
+		if top <= p.state.Z+epsilon || top+playerHeight > ceiling+epsilon {
+			return false
+		}
+		// 玩家身体不能因迈上旁边的矮物体而被当成可跨越的一级台阶。
+		for id, other := range w.players {
+			if id != p.state.ID && math.Hypot(x-other.state.X, y-other.state.Y) < 2*playerRadius-epsilon && p.state.Z < other.state.Z+playerHeight-epsilon && p.state.Z+playerHeight > other.state.Z+epsilon {
+				return false
+			}
+		}
+		clearance := true
+		w.intervals(p, p.state.X, p.state.Y, func(bottom, obstacleTop float64) {
+			if p.state.Z < obstacleTop-epsilon && top+playerHeight > bottom+epsilon {
+				clearance = false
+			}
+		})
+		probe := *p
+		probe.state.Z = top
+		if !clearance || w.blocked(&probe, x, y) {
+			return false
+		}
+		p.state.Z, p.vz = top, 0
+		p.state.Grounded = true
+	}
+	p.state.X, p.state.Y = x, y
+	// 每个小步立即处理失去支撑，不能离开平台后在同一输入包内继续空中迈步。
+	if p.state.Grounded && !w.supported(p) {
+		p.state.Grounded = false
+	}
+	return true
+}
+
 func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	if math.IsNaN(dx) || math.IsNaN(dy) || math.IsInf(dx, 0) || math.IsInf(dy, 0) {
 		return "invalid_direction"
@@ -147,18 +202,12 @@ func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	for i := 0; i < steps; i++ {
 		x := math.Max(playerRadius, math.Min(width-playerRadius, p.state.X+mx/float64(steps)))
 		y := math.Max(playerRadius, math.Min(height-playerRadius, p.state.Y+my/float64(steps)))
-		if !w.blocked(p, x, y) {
-			p.state.X = x
-			p.state.Y = y
+		if w.walk(p, x, y) {
 			continue
 		}
-		// 沿未阻挡轴滑动，不把一次碰撞改成穿透或横向推走其他玩家。
-		if !w.blocked(p, x, p.state.Y) {
-			p.state.X = x
-		}
-		if !w.blocked(p, p.state.X, y) {
-			p.state.Y = y
-		}
+		// 沿未阻挡轴滑动，轴向尝试也必须经过相同的迈步与净空检查。
+		w.walk(p, x, p.state.Y)
+		w.walk(p, p.state.X, y)
 	}
 	if p.state.Grounded && !w.supported(p) {
 		p.state.Grounded = false

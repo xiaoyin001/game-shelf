@@ -42,4 +42,6 @@
 
 - [ADR-0020：protobuf 补丁与 proto3 标量 presence](0020-protobuf-scalar-presence.md)
 
+- [ADR-0021：服务端低台阶自动迈步](0021-authoritative-step-up.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

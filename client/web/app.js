@@ -309,7 +309,7 @@ function updateInteraction(me) {
     ? node.ready_at_ms <= state.time_ms
       ? "E 采集微光"
       : "晶簇重生中 · " + Math.ceil((node.ready_at_ms - state.time_ms) / 1000) + " 秒"
-    : "空格跳跃 · 靠近 NPC 按 E 交谈，靠近晶簇按 E 采集";
+    : "矮台阶自动迈上 · 高障碍按空格跳跃 · E 交谈 / 采集";
   $("interaction-hint").textContent = dialogNPC
     ? "正在交谈 · Esc 结束"
     : nearestNPC

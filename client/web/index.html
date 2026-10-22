@@ -46,7 +46,7 @@
               width="1200"
               height="800"
               tabindex="0"
-              aria-label="3D 游戏世界，WASD 移动，空格跳跃，右键环绕，滚轮缩放，E 交谈或采集"
+              aria-label="3D 游戏世界，WASD 移动并自动迈上矮台阶，空格跳跃，右键环绕，滚轮缩放，E 交谈或采集"
             ></canvas>
             <div class="map-label">
               MOSSLIGHT 3D <span id="camera-readout">右键环绕 · 滚轮缩放</span>
@@ -104,15 +104,15 @@
               <button id="npc-close" type="button">结束交谈 · Esc</button>
             </div>
             <div id="game-hint" class="game-hint" hidden>
-              <span id="interaction-hint">靠近 NPC 按 E 交谈，靠近晶簇按 E 采集</span>
+              <span id="interaction-hint">矮台阶自动迈上 · 高障碍按空格跳跃 · E 交谈 / 采集</span>
               <button id="npc-talk" type="button" hidden>交谈</button>
             </div>
           </div>
           <div class="map-footer">
             <span id="coordinates">坐标 —</span
             ><span
-              >WASD 移动 <em>·</em> 空格跳跃 <em>·</em> 右键环绕 <em>·</em> 滚轮缩放 <em>·</em> R
-              复位 <em>·</em> E 交谈 / 采集</span
+              >WASD 移动 / 迈步 <em>·</em> 空格跳跃 <em>·</em> 右键环绕 <em>·</em> 滚轮缩放
+              <em>·</em> R 复位 <em>·</em> E 交谈 / 采集</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
         </section>
