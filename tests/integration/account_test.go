@@ -6,11 +6,13 @@ import (
 	"context"
 	"encoding/json"
 	"game-shelf/internal/credentials"
+	"game-shelf/internal/protocol"
 	"game-shelf/pkg/contracts"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -42,6 +44,69 @@ func accountRequest(t *testing.T, path, account, password, channel string) accou
 	_ = json.Unmarshal(raw, &reply)
 	return accountResult{status: res.StatusCode, body: string(raw), reply: reply}
 }
+func TestLivePasswordInputPolicy(t *testing.T) {
+	live(t)
+	for _, password := range []string{"123456", strings.Repeat("A", 32)} {
+		account := name()
+		created := accountRequest(t, "/register", account, password, "browser")
+		logged := accountRequest(t, "/login", account, password, "browser")
+		if created.status != 201 || logged.status != 200 || created.reply.UserID != logged.reply.UserID {
+			t.Fatal("valid password boundary rejected", created.status, logged.status)
+		}
+	}
+	account := name()
+	for _, password := range []string{"12345", strings.Repeat("a", 33), strings.Repeat("a", 128), "abc中文def", "abc😀def", "Ａbc123", "abc def", "abc\x00def", "abc\x7fdef", "abc\ndef", "abc\u200bdef"} {
+		for _, path := range []string{"/register", "/login"} {
+			r := accountRequest(t, path, account, password, "browser")
+			if r.status != 400 || !strings.Contains(r.body, "invalid_password") || r.reply.Token != "" || r.reply.UserID != "" {
+				t.Fatal("invalid password passed real HTTP", path, r.status)
+			}
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	db, err := mongo.Connect(options.Client().ApplyURI("mongodb://127.0.0.1:27017"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Disconnect(ctx)
+	if n, err := db.Database("game_shelf").Collection("accounts").CountDocuments(ctx, bson.M{"_id": account}); err != nil || n != 0 {
+		t.Fatal("invalid registration wrote an account", n, err)
+	}
+}
+
+func TestLiveDBRejectsInvalidPasswordsWithoutHTTP(t *testing.T) {
+	live(t)
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:14010", 3*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	for _, ids := range [][2]uint32{
+		{contracts.LGDB_RegisterAccountReq, contracts.DBLG_RegisterAccountResp},
+		{contracts.LGDB_VerifyAccountReq, contracts.DBLG_VerifyAccountResp},
+	} {
+		for _, password := range []string{"12345", strings.Repeat("a", 33), "abc中文def", "abc😀def", "abc def", "abc\x7fdef"} {
+			_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
+			msg, err := protocol.MarshalMessage(ids[0], 1, &contracts.AccountRequest{Account: name(), Password: password})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := protocol.WriteMessage(conn, msg); err != nil {
+				t.Fatal(err)
+			}
+			response, err := protocol.ReadMessage(conn, 1048576)
+			if err != nil || response.ProtoID != ids[1] {
+				t.Fatal("db password boundary unavailable", err)
+			}
+			var reply contracts.AccountReply
+			if err := protocol.UnmarshalBody(response, &reply); err != nil || reply.Code != contracts.AccountInvalid || reply.UserID != "" || reply.Account != "" {
+				t.Fatal("db accepted invalid password", err)
+			}
+		}
+	}
+}
+
 func TestLivePasswordValidationAndPersistence(t *testing.T) {
 	live(t)
 	account := name()

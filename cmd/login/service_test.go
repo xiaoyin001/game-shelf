@@ -2,10 +2,26 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+func TestPasswordPolicyAtBothHTTPRoutes(t *testing.T) {
+	for _, path := range []string{"/register", "/login"} {
+		for _, password := range []string{"12345", strings.Repeat("a", 33), "abc中文def", "abc😀def", "abc def", "abc\x7fdef", "abc\ndef"} {
+			data, _ := json.Marshal(map[string]string{"account": "demo", "password": password})
+			req := httptest.NewRequest("POST", path, strings.NewReader(string(data)))
+			req.Header.Set("Content-Type", "application/json")
+			out := httptest.NewRecorder()
+			(&LoginHTTP{}).routes().ServeHTTP(out, req)
+			if out.Code != 400 || !strings.Contains(out.Body.String(), "invalid_password") {
+				t.Fatal("invalid password passed HTTP input boundary", path, out.Code)
+			}
+		}
+	}
+}
 
 func TestAuthenticationInputBoundary(t *testing.T) {
 	for _, tc := range []struct {

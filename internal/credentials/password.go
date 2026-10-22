@@ -40,14 +40,13 @@ func Normalize(account string) (key, display string, err error) {
 	return cases.Fold().String(display), display, nil
 }
 
-// ValidatePassword 不截断或清理密码，拒绝超长、控制字符和全空白输入。
+// ValidatePassword 只接受 6–32 位 ASCII 可见字符，不截断、清理或规范化口令。
 func ValidatePassword(password string) error {
-	n := utf8.RuneCountInString(password)
-	if !utf8.ValidString(password) || n < 12 || n > 128 || len(password) > 512 || strings.TrimSpace(password) == "" {
+	if len(password) < 6 || len(password) > 32 {
 		return ErrInvalidPassword
 	}
-	for _, r := range password {
-		if unicode.IsControl(r) {
+	for i := range len(password) {
+		if password[i] < 0x21 || password[i] > 0x7e {
 			return ErrInvalidPassword
 		}
 	}

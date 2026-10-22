@@ -42,14 +42,27 @@ func TestPasswordHash(t *testing.T) {
 	}
 }
 func TestPasswordBoundaries(t *testing.T) {
-	for _, v := range []string{"short", strings.Repeat(" ", 12), strings.Repeat("a", 129), "twelve-test\x00end"} {
+	for _, v := range []string{"", "12345", strings.Repeat("a", 33), strings.Repeat("a", 128), "中文密码测试", "abc中文def", "abc😀def", "Ａbc123", "abc def", " abc123", "abc123 ", "abc\tdef", "abc\ndef", "abc\rdef", "abc\x00def", "abc\x7fdef", "abc\u200bdef", "abc\u00a0def"} {
 		if ValidatePassword(v) == nil {
 			t.Fatal("accepted invalid password")
 		}
+		if _, err := Hash(v); err != ErrInvalidPassword {
+			t.Fatal("hash accepted invalid input")
+		}
 	}
-	for _, v := range []string{"  valid-password  ", strings.Repeat("好", 12), strings.Repeat("a", 128)} {
-		if ValidatePassword(v) != nil {
-			t.Fatal("rejected valid password")
+	for _, v := range []string{"123456", "abcdef", "!@#$%^", strings.Repeat("a", 32), "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"} {
+		hash, err := Hash(v)
+		if err != nil || !Verify(hash, v) || Verify(hash, v+"中") {
+			t.Fatal("valid boundary did not round trip")
+		}
+	}
+}
+
+func TestPasswordCharacterRange(t *testing.T) {
+	for b := 0; b < 256; b++ {
+		err := ValidatePassword("abcde" + string([]byte{byte(b)}))
+		if (err == nil) != (b >= 0x21 && b <= 0x7e) {
+			t.Fatalf("incorrect byte boundary: %d", b)
 		}
 	}
 }

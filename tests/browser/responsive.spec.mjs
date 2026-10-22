@@ -1,9 +1,21 @@
-// 文件说明：验证窄屏真实账号注册和可见地图，不将此视为触屏移动支持。
+// 文件说明：验证常用窗口的完整密码表单和窄屏真实注册，不将此视为触屏移动支持。
 import { test, expect } from "@playwright/test";
 import { unique, password } from "./helpers.mjs";
-test("窄屏可操作进入且不横向溢出", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+test("常用窗口密码表单不裁切，窄屏可进入且不横向溢出", async ({ page }) => {
+  for (const [width, height] of [
+    [1150, 900],
+    [1280, 720],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    const panel = await page.locator("#entry-panel").boundingBox();
+    const frame = await page.locator(".canvas-wrap").boundingBox();
+    expect(panel.y).toBeGreaterThanOrEqual(frame.y);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(frame.y + frame.height);
+    await expect(page.locator("#password-hint")).toBeVisible();
+    await expect(page.locator("#register-button")).toBeVisible();
+  }
   await expect(page.getByLabel("账号", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

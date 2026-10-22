@@ -32,4 +32,6 @@
 
 - [ADR-0015：本地 Three.js 与真正 3D 场景](0015-browser-3d.md)
 
+- [ADR-0016：6–32 位 ASCII 密码与一致输入限制](0016-password-input-policy.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

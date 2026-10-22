@@ -17,7 +17,7 @@ const errorMessages = {
   invalid_credentials: "账号或密码错误。",
   account_exists: "账号已存在，请使用原密码登录。",
   invalid_account: "账号需要 2–24 个字母、数字、下划线或连字符。",
-  invalid_password: "密码需 12–128 个字符，不能全空白或包含控制字符。",
+  invalid_password: "密码需 6–32 位，仅限英文字母、数字和英文符号，不含空格。",
   auth_rate_limited: "登录尝试过多，请一分钟后再试。",
   auth_busy: "账号验证繁忙，请稍后再试。",
   db_unavailable: "账号服务暂时不可用，请稍后再试。",
@@ -64,12 +64,53 @@ function disconnected(text) {
   status(rendererFailure ? "3D 不可用" : "连接已断开", false);
   notice(rendererFailure || text);
 }
+// 整次拒绝非法输入，不能把粘贴口令截成或清理成另一口令；提交时仍要再次验证。
+const passwordInput = $("password");
+let acceptedPassword = "";
+const passwordDraft = /^[!-~]{0,32}$/;
+function rejectPassword() {
+  passwordInput.setCustomValidity(errorMessages.invalid_password);
+  notice(errorMessages.invalid_password);
+}
+function canInsertPassword(text) {
+  const candidate =
+    passwordInput.value.slice(0, passwordInput.selectionStart) +
+    text +
+    passwordInput.value.slice(passwordInput.selectionEnd);
+  return passwordDraft.test(candidate);
+}
+passwordInput.addEventListener("beforeinput", (event) => {
+  if (!event.isComposing && event.data !== null && !canInsertPassword(event.data)) {
+    event.preventDefault();
+    rejectPassword();
+  }
+});
+passwordInput.addEventListener("paste", (event) => {
+  if (event.clipboardData && !canInsertPassword(event.clipboardData.getData("text"))) {
+    event.preventDefault();
+    rejectPassword();
+  }
+});
+passwordInput.addEventListener("input", () => {
+  if (!passwordDraft.test(passwordInput.value)) {
+    passwordInput.value = acceptedPassword;
+    rejectPassword();
+    return;
+  }
+  acceptedPassword = passwordInput.value;
+  passwordInput.setCustomValidity("");
+});
 $("login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (joining || !view || view.failed) return;
   const account = $("account").value.trim();
-  const password = $("password").value;
-  if (!account || !password) return;
+  const password = passwordInput.value;
+  if (!account) return;
+  if (!/^[!-~]{6,32}$/.test(password) || passwordInput.validity.customError) {
+    rejectPassword();
+    passwordInput.focus();
+    return;
+  }
   const registering = event.submitter?.value === "register";
   joining = true;
   $("join-button").disabled = true;
@@ -85,7 +126,8 @@ $("login-form").addEventListener("submit", async (event) => {
     const login = await response.json();
     if (!response.ok || !login.gate_websocket_url)
       throw new Error(login.error || "websocket_unavailable");
-    $("password").value = "";
+    passwordInput.value = "";
+    acceptedPassword = "";
     if (socket) socket.close();
     const current = new WebSocket(login.gate_websocket_url);
     socket = current;

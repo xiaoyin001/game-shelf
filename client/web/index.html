@@ -71,10 +71,16 @@
                   name="password"
                   type="password"
                   required
-                  minlength="12"
+                  minlength="6"
+                  maxlength="32"
+                  pattern="[!-~]{6,32}"
                   autocomplete="current-password"
-                  placeholder="12–128 个字符"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  aria-describedby="password-hint"
+                  placeholder="6–32 位英文、数字或符号"
                 />
+                <small id="password-hint">6–32 位，仅限英文字母、数字和英文符号，不含空格。</small>
                 <button id="join-button" type="submit" value="login">
                   登录并进入原野 <span>↗</span>
                 </button>

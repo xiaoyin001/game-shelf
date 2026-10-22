@@ -35,6 +35,18 @@ func TestHashWorkersBoundedAndCancelable(t *testing.T) {
 	}
 	release()
 }
+func TestInvalidPasswordRejectedBeforeStorage(t *testing.T) {
+	s := &Store{}
+	for _, password := range []string{"12345", strings.Repeat("a", 33), "abc中文def", "abc def"} {
+		if _, err := s.Register(context.Background(), "test-user", password); !errors.Is(err, ErrInvalidPassword) {
+			t.Fatal("register reached storage with invalid password")
+		}
+		if _, err := s.Login(context.Background(), "test-user", password); !errors.Is(err, ErrInvalidPassword) {
+			t.Fatal("login reached storage with invalid password")
+		}
+	}
+}
+
 func TestAccountHashNeverJSON(t *testing.T) {
 	data, _ := json.Marshal(Account{PasswordHash: "private-hash"})
 	if strings.Contains(string(data), "private-hash") {

@@ -29,7 +29,8 @@ type Store struct {
 
 // NewStore 为未知账号准备等成本的验证材料，不写入默认账号。
 func NewStore(db *mongo.Database) (*Store, error) {
-	secret := make([]byte, 32)
+	// 16 字节随机值编码成 32 位十六进制口令，符合统一输入上限。
+	secret := make([]byte, 16)
 	if _, err := rand.Read(secret); err != nil {
 		return nil, err
 	}

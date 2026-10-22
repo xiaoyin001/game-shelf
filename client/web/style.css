@@ -179,7 +179,7 @@ h1 span {
 .canvas-wrap {
   position: relative;
   aspect-ratio: 3/2;
-  min-height: 480px;
+  min-height: 560px;
   overflow: hidden;
 }
 canvas.orbiting {
@@ -265,6 +265,13 @@ input:focus {
   padding: 12px;
   margin-top: 8px;
   font-size: 13px;
+}
+#password-hint {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
 }
 #login-form label {
   display: block;
@@ -559,6 +566,9 @@ button:focus-visible {
   }
 }
 @media (max-width: 760px) {
+  .canvas-wrap {
+    min-height: 480px;
+  }
   .workspace {
     grid-template-columns: 1fr;
   }
