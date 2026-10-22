@@ -26,6 +26,7 @@ const errorMessages = {
   invalid_chat: "消息不能为空，最多 140 个字。",
   session_replaced_or_expired: "会话已结束，请重新进入。",
   world_full: "原野暂时已满，请稍后再试。",
+  jump_not_grounded: "落地或站稳后才能再次跳跃。",
   single_world_unavailable: "世界服务尚未就绪，请稍后再试。",
   rate_limited: "请求过于频繁，连接已关闭。",
 };
@@ -177,6 +178,10 @@ $("login-form").addEventListener("submit", async (event) => {
         notice("你已进入共享原野。靠近晶簇按 E 采集，按 Enter 与旅人聊天。");
       }
       if (event.state) {
+        if (event.state.scene_version !== view.layout.version) {
+          fail3D("场景与服务器版本不一致，请刷新页面。");
+          return;
+        }
         state = event.state;
         updateUI();
       }
@@ -225,6 +230,10 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     send("gather");
   }
+  if (event.code === "Space") {
+    event.preventDefault();
+    if (!event.repeat) send("jump");
+  }
   if (key === "r") {
     event.preventDefault();
     view?.resetCamera();
@@ -263,6 +272,8 @@ function updateUI() {
       score.className = "player-score";
       li.dataset.x = player.x;
       li.dataset.y = player.y;
+      li.dataset.z = player.z;
+      li.dataset.grounded = player.grounded;
       li.title = "坐标 " + Math.round(player.x) + " / " + Math.round(player.y);
       li.append(name, score);
       return li;
@@ -272,9 +283,12 @@ function updateUI() {
     const previous = Number($("score").textContent);
     $("score").textContent = me.score;
     $("player-name").textContent = me.name;
-    $("coordinates").textContent = "坐标 " + Math.round(me.x) + " / " + Math.round(me.y);
+    $("coordinates").textContent =
+      "坐标 " + Math.round(me.x) + " / " + Math.round(me.y) + " · 高度 " + Math.round(me.z);
     $("coordinates").dataset.x = me.x;
     $("coordinates").dataset.y = me.y;
+    $("coordinates").dataset.z = me.z;
+    $("coordinates").dataset.grounded = me.grounded;
     if (me.score > previous) notice("收集到一枚微光晶簇 ✦ 共享资源将在 10 秒后重生。");
   }
   const chats = state.chats || [],
@@ -307,7 +321,10 @@ function fail3D(message) {
   notice(message);
 }
 try {
-  view = new WorldView(canvas, fail3D);
+  const response = await fetch("/scene.json", { cache: "no-store" });
+  if (!response.ok) throw new Error("场景加载失败");
+  const layout = await response.json();
+  view = new WorldView(canvas, fail3D, layout);
   $("renderer-status").textContent = "3D · WebGL2";
 } catch (error) {
   fail3D("无法启动 3D / WebGL2：" + error.message + "；请启用硬件加速或使用支持 WebGL2 的浏览器。");

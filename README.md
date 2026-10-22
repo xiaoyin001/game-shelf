@@ -1,6 +1,6 @@
 # game-shelf · 苔光原野
 
-同仓提供 Go 服务端和浏览器 3D 联机沙盒：在同一地图相遇、移动、聊天与共享采集。代码和 AI 规范从空仓库逐段实现、验证、提交，过程见 [成长记录](docs/progress.md)，不是拆分旧大提交伪造的开发历史。
+同仓提供 Go 服务端和浏览器 3D 联机沙盒：在同一地图相遇、移动、跳跃、实体碰撞、聊天与共享采集。代码和 AI 规范从空仓库逐段实现、验证、提交，过程见 [成长记录](docs/progress.md)，不是拆分旧大提交伪造的开发历史。
 
 ## 本地体验
 
@@ -12,7 +12,8 @@ npm run dev
 ```
 
 打开 **http://127.0.0.1:11000**，先填写账号与 **6–32 位密码**（仅英文字母、数字和英文符号，不含空格；中文、表情与非法粘贴拒绝），点击“注册并进入原野”；以后使用“登录并进入原野”。用两个窗口、不同账号进入：
-- WASD / 方向键相对镜头移动，最终坐标由服务器决定。
+- WASD / 方向键相对镜头移动，**空格跳跃**，最终位置、重力和碰撞由服务器决定；空中不能再次起跳，按住不自动连跳。
+- 玩家之间、玩家与树木/岩石/帐篷/篝火实体/晶簇相互阻挡，能跳上低矮实体、站稳再跳，离开支撑会落下。
 - 右键拖动环绕镜头、滚轮缩放、R 复位；树林、营地、湖面、旅人和晶簇均为真实 3D 场景。
 - Enter 聚焦世界聊天，所有在线旅人可见。
 - 靠近发光晶簇按 E 采集，获得本轮分数；共享资源 10 秒后重生。
@@ -54,7 +55,7 @@ npx playwright install --with-deps --only-shell chromium
 npm run test:ci
 ```
 
-此入口执行源码与依赖产物检查、真实基础设施/协议、全部 11 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
+此入口执行源码与依赖产物检查、真实基础设施/协议、全部 14 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
 
 容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
 
@@ -64,7 +65,7 @@ npm run test:ci
 
 ## 3D 客户端与依赖
 
-客户端需要 WebGL2，使用 Three.js 0.186.1 的真实透视场景、光照/阴影和立体角色。地面世界的服务器 X/Y 映射为场景 X/Z，不宣称已经实现跳跃或垂直物理；场景装饰不新增碰撞规则。无 WebGL2 或图形上下文丢失会明确提示并停止会话，不用 2D 或截图代替。
+客户端需要 WebGL2，使用 Three.js 0.186.1 的真实透视场景、光照/阴影和立体角色。服务器 X/Y/Z 映射为场景 X/Z/Y，客户端只插值高度，不自行决定轨迹或碰撞。服务端简化圆柱/盒体与绘制共用 `pkg/scene/layout.json`，以只读 `/scene.json` 提供，版本不匹配必须刷新；见 [ADR-0017](docs/decisions/0017-authoritative-jump-collision.md)。这不是完整网格刚体引擎，没有推箱、载具、物体破坏或游泳。无 WebGL2 或图形上下文丢失会明确提示并停止会话，不用 2D 或截图代替。
 
 官方模块与 MIT 许可原样保存在 `client/web/vendor/` 并内嵌到 Go；没有 CDN 或额外 bundler/dev server。升级精确依赖后显式执行 `npm run vendor:sync`；`npm run vendor:check` 和默认源码检查只核对字节，不修改文件。第三方文件不手改、不全量格式化；选择、开销与回退见 [ADR-0015](docs/decisions/0015-browser-3d.md)。
 
@@ -75,6 +76,7 @@ npm run test:ci
 - `cmd/gate`：原始 TCP 与 WebSocket JSON v1，认证和转发，不模拟游戏。
 - `cmd/lobby` / `internal/world`：单世界权威在线、移动、聊天与采集。
 - `cmd/db`：统一 MongoDB 账号写入。
+- `pkg/scene`：唯一的场景实体/碰撞布局；Go 内嵌并由 login 只读提供给客户端。
 - `client/web/view3d.js`：3D 场景、镜头、立体角色/资源与 GPU 生命周期；不决定游戏结果。
 - `cmd/infra-check`：一次性依赖协议就绪工具，不是第五个业务服务，不写账号或游戏数据。
 - `internal/session`：Redis key、单次凭据与会话生命周期。
@@ -85,7 +87,7 @@ npm run test:ci
 
 ## AI 与成长历史
 
-当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。账号密码与 3D 阶段已独立提交并通过本地真实服务，真实双人 3D 截图已查看；随后密码输入改为 6–32 位 ASCII，Windows/Linux 最新真实服务/协议与浏览器各 11/11 通过，Go race 与清理通过，见 [ADR-0016](docs/decisions/0016-password-input-policy.md)。新增提交未 Push，不把基线 CI 或本地通过冒称新版本远端通过。
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。账号密码与 3D 阶段已独立提交并通过本地真实服务，真实双人 3D 截图已查看；随后密码输入改为 6–32 位 ASCII，Windows/Linux 最新真实服务/协议与浏览器各 11/11 通过，Go race 与清理通过，见 [ADR-0016](docs/decisions/0016-password-input-policy.md)。最新跳跃/碰撞阶段已通过 Windows/Linux 真实服务/协议与各 14/14 浏览器、Go race 及清理，角色首帧与短暂高度采用实际只读观察验收。新增提交未 Push，不把基线 CI 或本地通过冒称新版本远端通过。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

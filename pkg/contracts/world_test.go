@@ -7,8 +7,8 @@ import (
 )
 
 func TestWorldProtobufRoundTrip(t *testing.T) {
-	input := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800,
-		Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 400, Score: 2}},
+	input := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800, SceneVersion: "mosslight-physics-1",
+		Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 400, Z: 42.5, Grounded: true, Score: 2}},
 		Nodes:   []*WorldNode{{ID: "n", X: 620, ReadyAtMS: 100}},
 		Chats:   []*WorldChat{{ID: 1, Name: "旅人", Text: "你好"}},
 	}}

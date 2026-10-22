@@ -14,8 +14,12 @@ test("共享采集只奖励一次，离开重进重置本轮分数", async ({ br
     await pa.keyboard.down("d");
     await expect
       .poll(async () => Number(await pa.locator("#coordinates").getAttribute("data-x")))
-      .toBeGreaterThan(start + 35);
+      .toBeGreaterThan(start + 10);
     await pa.keyboard.up("d");
+    // 实体晶簇前停止后仍应能采集，不能靠穿进资源内部完成测试。
+    expect(Number(await pa.locator("#coordinates").getAttribute("data-x"))).toBeLessThanOrEqual(
+      578.01,
+    );
     await pa.keyboard.press("e");
     await expect(pa.locator("#score")).toHaveText("1");
     await expect(pb.locator("#players")).toContainText("✦ 1");

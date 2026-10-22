@@ -34,4 +34,6 @@
 
 - [ADR-0016：6–32 位 ASCII 密码与一致输入限制](0016-password-input-policy.md)
 
+- [ADR-0017：服务端跳跃与实体碰撞](0017-authoritative-jump-collision.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

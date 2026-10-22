@@ -36,12 +36,13 @@ func (*WorldResp) ProtoMessage()    {}
 
 // WorldState 是独立复制的在线状态，不暴露凭据。
 type WorldState struct {
-	TimeMS  int64          `protobuf:"varint,1,opt,name=time_ms,json=timeMs,proto3" json:"time_ms"`
-	Width   float64        `protobuf:"fixed64,2,opt,name=width,proto3" json:"width"`
-	Height  float64        `protobuf:"fixed64,3,opt,name=height,proto3" json:"height"`
-	Players []*WorldPlayer `protobuf:"bytes,4,rep,name=players,proto3" json:"players"`
-	Chats   []*WorldChat   `protobuf:"bytes,6,rep,name=chats,proto3" json:"chats"`
-	Nodes   []*WorldNode   `protobuf:"bytes,5,rep,name=nodes,proto3" json:"nodes"`
+	SceneVersion string         `protobuf:"bytes,7,opt,name=scene_version,json=sceneVersion,proto3" json:"scene_version"`
+	TimeMS       int64          `protobuf:"varint,1,opt,name=time_ms,json=timeMs,proto3" json:"time_ms"`
+	Width        float64        `protobuf:"fixed64,2,opt,name=width,proto3" json:"width"`
+	Height       float64        `protobuf:"fixed64,3,opt,name=height,proto3" json:"height"`
+	Players      []*WorldPlayer `protobuf:"bytes,4,rep,name=players,proto3" json:"players"`
+	Chats        []*WorldChat   `protobuf:"bytes,6,rep,name=chats,proto3" json:"chats"`
+	Nodes        []*WorldNode   `protobuf:"bytes,5,rep,name=nodes,proto3" json:"nodes"`
 }
 
 func (m *WorldState) Reset()         { *m = WorldState{} }
@@ -50,11 +51,13 @@ func (*WorldState) ProtoMessage()    {}
 
 // WorldPlayer 仅包含对其他玩家可见的当前属性。
 type WorldPlayer struct {
-	ID    string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
-	Name  string  `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
-	X     float64 `protobuf:"fixed64,3,opt,name=x,proto3" json:"x"`
-	Y     float64 `protobuf:"fixed64,4,opt,name=y,proto3" json:"y"`
-	Score int32   `protobuf:"varint,5,opt,name=score,proto3" json:"score"`
+	ID       string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`
+	Name     string  `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
+	X        float64 `protobuf:"fixed64,3,opt,name=x,proto3" json:"x"`
+	Y        float64 `protobuf:"fixed64,4,opt,name=y,proto3" json:"y"`
+	Score    int32   `protobuf:"varint,5,opt,name=score,proto3" json:"score"`
+	Z        float64 `protobuf:"fixed64,6,opt,name=z,proto3" json:"z"`
+	Grounded bool    `protobuf:"varint,7,opt,name=grounded,proto3" json:"grounded"`
 }
 
 func (m *WorldPlayer) Reset()         { *m = WorldPlayer{} }

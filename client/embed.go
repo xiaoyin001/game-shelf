@@ -3,6 +3,7 @@ package client
 
 import (
 	"embed"
+	"game-shelf/pkg/scene"
 	"io/fs"
 	"net/http"
 )
@@ -16,5 +17,13 @@ func Handler() http.Handler {
 	if err != nil {
 		panic(err)
 	}
-	return http.FileServer(http.FS(root))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/scene.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		data, _ := scene.Files.ReadFile("layout.json")
+		_, _ = w.Write(data)
+	})
+	mux.Handle("/", http.FileServer(http.FS(root)))
+	return mux
 }

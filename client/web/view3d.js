@@ -1,4 +1,4 @@
-// 文件说明：用真实 WebGL2 场景呈现权威平面世界；镜头只变换输入与视角，不计算游戏结果。
+// 文件说明：用共享场景和真实 WebGL2 呈现权威三维位置；镜头与插值不计算物理结果。
 import * as THREE from "./vendor/three.module.js";
 
 const clamp = THREE.MathUtils.clamp;
@@ -6,7 +6,9 @@ const color = (value) => new THREE.MeshLambertMaterial({ color: value, flatShadi
 
 // WorldView 持有 GPU 资源、角色和镜头；网络与账号状态仍由 app 管理。
 export class WorldView {
-  constructor(canvas, onFailure) {
+  constructor(canvas, onFailure, layout) {
+    this.layout = layout;
+    canvas.dataset.sceneVersion = layout.version;
     this.canvas = canvas;
     this.failed = false;
     this.onFailure = onFailure;
@@ -165,16 +167,7 @@ export class WorldView {
       465,
     );
     shore.scale.z = 0.65;
-    const trees = [];
-    for (let i = 0; i < 76; i++) {
-      const edge = i % 4,
-        t = ((i * 137) % 1000) / 1000;
-      trees.push(
-        edge < 2
-          ? [edge === 0 ? 10 + (i % 3) * 28 : 1160 + (i % 3) * 25, 15 + t * 770]
-          : [60 + t * 1110, edge === 2 ? 20 + (i % 3) * 22 : 780 + (i % 3) * 22],
-      );
-    }
+    const trees = this.layout.entities.filter((e) => e.kind === "tree");
     const dummy = new THREE.Object3D();
     const trunk = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(5, 8, 38, 6),
@@ -191,8 +184,7 @@ export class WorldView {
       color(0x4d7754),
       trees.length,
     );
-    trees.forEach(([x, z], i) => {
-      const scale = 0.8 + (i % 5) * 0.12;
+    trees.forEach(({ x, y: z, scale }, i) => {
       dummy.scale.setScalar(scale);
       for (const [mesh, y] of [
         [trunk, 19],
@@ -213,41 +205,55 @@ export class WorldView {
     }
     const stone = color(0x859184),
       wood = color(0x755744);
+    const camp = this.layout.entities.find((e) => e.kind === "campfire");
+    const shelter = this.layout.entities.find((e) => e.kind === "tent");
     for (let i = 0; i < 10; i++) {
       const a = (i / 10) * Math.PI * 2;
       this.addMesh(
         new THREE.DodecahedronGeometry(7, 0),
         stone,
-        500 + Math.cos(a) * 31,
+        camp.x + Math.cos(a) * 31,
         4,
-        430 + Math.sin(a) * 31,
+        camp.y + Math.sin(a) * 31,
       );
     }
     for (let i = 0; i < 3; i++) {
-      const log = this.addMesh(new THREE.CylinderGeometry(4, 5, 38, 6), wood, 500, 5 + i * 2, 430);
+      const log = this.addMesh(
+        new THREE.CylinderGeometry(4, 5, 38, 6),
+        wood,
+        camp.x,
+        5 + i * 2,
+        camp.y,
+      );
       log.rotation.z = Math.PI / 2;
       log.rotation.y = (i * Math.PI) / 3;
     }
     this.flame = this.addMesh(
       new THREE.ConeGeometry(13, 39, 6),
       new THREE.MeshBasicMaterial({ color: 0xffc16b }),
-      500,
+      camp.x,
       25,
-      430,
+      camp.y,
     );
     this.fire = new THREE.PointLight(0xffac52, 5000, 180, 2);
-    this.fire.position.set(500, 42, 430);
+    this.fire.position.set(camp.x, 42, camp.y);
     this.scene.add(this.fire);
-    const tent = this.addMesh(new THREE.ConeGeometry(48, 60, 4), color(0xc8a171), 390, 30, 475);
+    const tent = this.addMesh(
+      new THREE.ConeGeometry(Math.SQRT2 * shelter.half_x, shelter.height, 4),
+      color(0xc8a171),
+      shelter.x,
+      shelter.height / 2,
+      shelter.y,
+    );
     tent.rotation.y = Math.PI / 4;
-    this.addMesh(new THREE.BoxGeometry(15, 34, 2), color(0x3c493d), 390, 17, 510);
-    for (let i = 0; i < 26; i++) {
+    this.addMesh(new THREE.BoxGeometry(15, 34, 2), color(0x3c493d), shelter.x, 17, shelter.y + 35);
+    for (const entity of this.layout.entities.filter((e) => e.kind === "rock")) {
       const rock = this.addMesh(
-        new THREE.DodecahedronGeometry(6 + (i % 5), 0),
+        new THREE.DodecahedronGeometry(entity.radius, 0),
         stone,
-        80 + ((i * 137) % 1050),
+        entity.x,
         3,
-        60 + ((i * 97) % 670),
+        entity.y,
       );
       rock.scale.y = 0.5;
     }
@@ -320,7 +326,7 @@ export class WorldView {
 
   makePlayer(player, own) {
     const group = new THREE.Group();
-    group.position.set(player.x, 0, player.y);
+    group.position.set(player.x, player.z, player.y);
     group.name = "traveller:" + player.id;
     const coat = color(own ? 0x9fd4b5 : 0x9faed3),
       skin = color(0xf0d3b0),
@@ -362,7 +368,7 @@ export class WorldView {
       label,
       legs,
       materials: [coat, skin, boots, hat, bag],
-      target: new THREE.Vector3(player.x, 0, player.y),
+      target: new THREE.Vector3(player.x, player.z, player.y),
     };
   }
 
@@ -415,7 +421,8 @@ export class WorldView {
         this.players.set(player.id, entry);
         this.shadowDirty = true;
       }
-      entry.target.set(player.x, 0, player.y);
+      entry.target.set(player.x, player.z, player.y);
+      if (Math.abs(entry.target.y - entry.group.position.y) > 0.05) this.shadowDirty = true;
       const dx = entry.target.x - entry.group.position.x,
         dz = entry.target.z - entry.group.position.z;
       if (Math.hypot(dx, dz) > 0.2) {
@@ -425,7 +432,7 @@ export class WorldView {
         entry.legs[1].rotation.x = -entry.legs[0].rotation.x;
       } else for (const leg of entry.legs) leg.rotation.x = 0;
       entry.group.position.lerp(entry.target, smoothing);
-      entry.label.position.copy(entry.group.position).y = 82;
+      entry.label.position.copy(entry.group.position).y += 82;
     }
     for (const [id, entry] of this.players)
       if (!alive.has(id)) {
@@ -454,13 +461,14 @@ export class WorldView {
       entry.material.emissiveIntensity = ready ? 0.7 : 0;
       entry.ring.material.opacity = ready ? 0.45 : 0.12;
       entry.crystal.rotation.y = now / 1600;
-      entry.crystal.position.y = ready ? 27 + Math.sin(now / 650 + node.x) * 2 : 13;
-      entry.crystal.scale.set(ready ? 1 : 0.55, ready ? 1.45 : 0.65, ready ? 1 : 0.55);
+      // 冷却只改变颜色/发光，不把仍有实体的晶簇缩小成看不见的空气墙。
+      entry.crystal.position.y = 27 + (ready ? Math.sin(now / 650 + node.x) * 2 : 0);
+      entry.crystal.scale.set(1, 1.45, 1);
     }
     const me = this.players.get(selfID);
     if (me) {
       const follow = me.group.position.clone();
-      follow.y = 16;
+      follow.y += 16;
       this.target.lerp(follow, 1 - Math.exp(-dt * 8));
     }
     const desired = new THREE.Vector3(
@@ -478,6 +486,7 @@ export class WorldView {
       this.lastShadow = now;
     }
     this.renderer.render(this.scene, this.camera);
+    this.canvas.dataset.selfHeight = me ? me.group.position.y.toFixed(2) : "";
     this.canvas.dataset.cameraYaw = this.yaw.toFixed(4);
     this.canvas.dataset.cameraDistance = String(Math.round(this.distance));
     return {

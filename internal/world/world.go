@@ -3,6 +3,7 @@ package world
 
 import (
 	"game-shelf/pkg/contracts"
+	"game-shelf/pkg/scene"
 	"math"
 	"sort"
 	"strings"
@@ -24,22 +25,27 @@ type player struct {
 	lastSeen time.Time
 	lastMove time.Time
 	lastChat time.Time
+	vz       float64
 }
 
 // World 统一持有在线角色，快照与修改在同一锁中完成。
 type World struct {
-	mu      sync.Mutex
-	players map[string]*player
-	chats   []contracts.WorldChat
-	chatID  int64
-	nodes   []contracts.WorldNode
+	mu          sync.Mutex
+	players     map[string]*player
+	chats       []contracts.WorldChat
+	chatID      int64
+	nodes       []contracts.WorldNode
+	layout      scene.Layout
+	lastPhysics time.Time
 }
 
 // New 创建没有在线玩家的世界。
 func New() *World {
-	return &World{players: make(map[string]*player), nodes: []contracts.WorldNode{
-		{ID: "crystal-1", X: 620, Y: 400}, {ID: "crystal-2", X: 300, Y: 260}, {ID: "crystal-3", X: 900, Y: 260}, {ID: "crystal-4", X: 350, Y: 600}, {ID: "crystal-5", X: 850, Y: 600},
-	}}
+	w := &World{players: make(map[string]*player), layout: scene.Default()}
+	for _, n := range w.layout.Nodes {
+		w.nodes = append(w.nodes, contracts.WorldNode{ID: n.ID, X: n.X, Y: n.Y})
+	}
+	return w
 }
 
 // Apply 使用服务器时间校验会话并复制当前快照。
@@ -54,6 +60,7 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	if req.UserID == "" || req.SessionID == "" {
 		return failure("unauthenticated")
 	}
+	w.advance(now)
 	if req.Action == "enter" {
 		name := strings.TrimSpace(req.Name)
 		if name == "" || !utf8.ValidString(name) || utf8.RuneCountInString(name) > 24 {
@@ -66,8 +73,11 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if w.players[req.UserID] == nil && len(w.players) >= 100 {
 			return failure("world_full")
 		}
-		x, y := w.spawn(req.UserID)
-		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y}, session: req.SessionID, lastSeen: now, lastMove: now}
+		x, y, ok := w.spawn(req.UserID)
+		if !ok {
+			return failure("world_full")
+		}
+		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y, Grounded: true}, session: req.SessionID, lastSeen: now, lastMove: now}
 		return &contracts.WorldResp{State: w.snapshot(now)}
 	}
 	p := w.players[req.UserID]
@@ -81,6 +91,12 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if err := w.move(p, req.DX, req.DY, now); err != "" {
 			return failure(err)
 		}
+	case "jump":
+		if !p.state.Grounded || !w.supported(p) {
+			return failure("jump_not_grounded")
+		}
+		p.vz = jumpSpeed
+		p.state.Grounded = false
 	case "gather":
 		if err := w.gather(p, now); err != "" {
 			return failure(err)
@@ -97,8 +113,8 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	return &contracts.WorldResp{State: w.snapshot(now)}
 }
 
-// spawn 由服务端选择不重叠的出生点，避免 3D 角色在同一点完全遮挡；不改变移动或采集规则。
-func (w *World) spawn(userID string) (float64, float64) {
+// spawn 同时检查静态实体与在线角色，不把新角色塞进障碍或其他身体。
+func (w *World) spawn(userID string) (float64, float64, bool) {
 	offset := func(i int) float64 {
 		if i%2 == 1 {
 			return float64((i+1)/2) * 40
@@ -111,45 +127,19 @@ func (w *World) spawn(userID string) (float64, float64) {
 			if x < 20 || x > width-20 || y < 20 || y > height-20 {
 				continue
 			}
-			free := true
-			for id, p := range w.players {
-				if id != userID && math.Hypot(p.state.X-x, p.state.Y-y) < 28 {
-					free = false
-					break
-				}
-			}
-			if free {
-				return x, y
+			probe := &player{state: contracts.WorldPlayer{ID: userID, X: x, Y: y}}
+			if !w.blocked(probe, x, y) {
+				return x, y, true
 			}
 		}
 	}
-	return 560, 400
-}
-
-func (w *World) move(p *player, dx, dy float64, now time.Time) string {
-	if math.IsNaN(dx) || math.IsNaN(dy) || math.IsInf(dx, 0) || math.IsInf(dy, 0) {
-		return "invalid_direction"
-	}
-	length := math.Hypot(dx, dy)
-	if math.IsInf(length, 0) {
-		return "invalid_direction"
-	}
-	if length > 1 {
-		dx /= length
-		dy /= length
-	}
-	// 每次最多承认 150ms 的位移，空闲与网络堵塞不能积攒移动额度。
-	dt := math.Max(0, math.Min(now.Sub(p.lastMove).Seconds(), 0.15))
-	p.lastMove = now
-	p.state.X = math.Max(20, math.Min(width-20, p.state.X+dx*speed*dt))
-	p.state.Y = math.Max(20, math.Min(height-20, p.state.Y+dy*speed*dt))
-	return ""
+	return 0, 0, false
 }
 
 func (w *World) gather(p *player, now time.Time) string {
 	for i := range w.nodes {
 		n := &w.nodes[i]
-		if math.Hypot(p.state.X-n.X, p.state.Y-n.Y) <= 72 && now.UnixMilli() >= n.ReadyAtMS {
+		if math.Hypot(math.Hypot(p.state.X-n.X, p.state.Y-n.Y), p.state.Z) <= 72 && now.UnixMilli() >= n.ReadyAtMS {
 			n.ReadyAtMS = now.Add(10 * time.Second).UnixMilli()
 			p.state.Score++
 			return ""
@@ -176,7 +166,7 @@ func (w *World) chat(p *player, raw string, now time.Time) string {
 }
 
 func (w *World) snapshot(now time.Time) *contracts.WorldState {
-	state := &contracts.WorldState{TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players)), Chats: make([]*contracts.WorldChat, 0, len(w.chats)), Nodes: make([]*contracts.WorldNode, 0, len(w.nodes))}
+	state := &contracts.WorldState{SceneVersion: w.layout.Version, TimeMS: now.UnixMilli(), Width: width, Height: height, Players: make([]*contracts.WorldPlayer, 0, len(w.players)), Chats: make([]*contracts.WorldChat, 0, len(w.chats)), Nodes: make([]*contracts.WorldNode, 0, len(w.nodes))}
 	for _, p := range w.players {
 		copy := p.state
 		state.Players = append(state.Players, &copy)

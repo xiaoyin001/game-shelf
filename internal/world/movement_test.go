@@ -11,6 +11,8 @@ import (
 func TestMovementIsServerAuthoritative(t *testing.T) {
 	now := time.Unix(1000, 0)
 	w := New()
+	// 本例隔离时间/方向预算；实体阻挡、滑动和高速穿透由物理用例独立覆盖。
+	w.layout.Entities = nil
 	initial := enter(w, "a", "s", now)
 	moved := w.Apply(&contracts.WorldReq{UserID: "a", SessionID: "s", Action: "input", DX: 100, DY: 100}, now.Add(100*time.Millisecond))
 	p := moved.State.Players[0]

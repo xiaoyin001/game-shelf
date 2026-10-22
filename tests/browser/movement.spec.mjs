@@ -10,17 +10,18 @@ test("键盘权威移动同步到另一旅人", async ({ browser }) => {
       name = unique("move");
     await join(pa, name);
     await join(pb, unique("peer"));
-    const start = Number(await pa.locator("#coordinates").getAttribute("data-x"));
-    await pa.keyboard.down("d");
+    // 正前方晶簇现在有实体碰撞，沿无障碍的北侧验证同样的速度和双端位移。
+    const start = Number(await pa.locator("#coordinates").getAttribute("data-y"));
+    await pa.keyboard.down("w");
     await expect
-      .poll(async () => Number(await pa.locator("#coordinates").getAttribute("data-x")))
-      .toBeGreaterThan(start + 35);
-    await pa.keyboard.up("d");
+      .poll(async () => Number(await pa.locator("#coordinates").getAttribute("data-y")))
+      .toBeLessThan(start - 35);
+    await pa.keyboard.up("w");
     await expect
       .poll(async () =>
-        Number(await pb.locator("#players li").filter({ hasText: name }).getAttribute("data-x")),
+        Number(await pb.locator("#players li").filter({ hasText: name }).getAttribute("data-y")),
       )
-      .toBeGreaterThan(start + 35);
+      .toBeLessThan(start - 35);
   } finally {
     await a.close();
     await b.close();

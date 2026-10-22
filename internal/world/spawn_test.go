@@ -24,8 +24,11 @@ func TestAuthoritativeSpawnSeparation(t *testing.T) {
 			if a.X < 20 || a.X > width-20 || a.Y < 20 || a.Y > height-20 {
 				t.Fatal("out of world")
 			}
+			if w.blocked(w.players[a.ID], a.X, a.Y) {
+				t.Fatal("spawn inside physical entity")
+			}
 			for _, b := range reply.State.Players {
-				if a.ID != b.ID && math.Hypot(a.X-b.X, a.Y-b.Y) < 28 {
+				if a.ID != b.ID && math.Hypot(a.X-b.X, a.Y-b.Y) < 2*playerRadius-epsilon {
 					t.Fatal("overlapping spawn")
 				}
 			}

@@ -133,7 +133,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" {
+			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" && cmd.Type != "jump" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}

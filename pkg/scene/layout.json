@@ -1,0 +1,1016 @@
+{
+  "version": "mosslight-physics-1",
+  "width": 1200,
+  "height": 800,
+  "entities": [
+    {
+      "id": "tree-0",
+      "kind": "tree",
+      "x": 10,
+      "y": 15,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-1",
+      "kind": "tree",
+      "x": 1185,
+      "y": 120.49,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-2",
+      "kind": "tree",
+      "x": 364.14,
+      "y": 64,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-3",
+      "kind": "tree",
+      "x": 516.21,
+      "y": 780,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-4",
+      "kind": "tree",
+      "x": 38,
+      "y": 436.96,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-5",
+      "kind": "tree",
+      "x": 1210,
+      "y": 542.45,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-6",
+      "kind": "tree",
+      "x": 972.42,
+      "y": 20,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-7",
+      "kind": "tree",
+      "x": 1124.49,
+      "y": 802,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-8",
+      "kind": "tree",
+      "x": 66,
+      "y": 88.92,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-9",
+      "kind": "tree",
+      "x": 1160,
+      "y": 194.41,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-10",
+      "kind": "tree",
+      "x": 470.7,
+      "y": 42,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-11",
+      "kind": "tree",
+      "x": 622.77,
+      "y": 824,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-12",
+      "kind": "tree",
+      "x": 10,
+      "y": 510.88,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-13",
+      "kind": "tree",
+      "x": 1185,
+      "y": 616.37,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-14",
+      "kind": "tree",
+      "x": 1078.98,
+      "y": 64,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-15",
+      "kind": "tree",
+      "x": 121.05,
+      "y": 780,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-16",
+      "kind": "tree",
+      "x": 38,
+      "y": 162.84,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-17",
+      "kind": "tree",
+      "x": 1210,
+      "y": 268.33,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-18",
+      "kind": "tree",
+      "x": 577.26,
+      "y": 20,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-19",
+      "kind": "tree",
+      "x": 729.33,
+      "y": 802,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-20",
+      "kind": "tree",
+      "x": 66,
+      "y": 584.8,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-21",
+      "kind": "tree",
+      "x": 1160,
+      "y": 690.29,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-22",
+      "kind": "tree",
+      "x": 75.54,
+      "y": 42,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-23",
+      "kind": "tree",
+      "x": 227.61,
+      "y": 824,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-24",
+      "kind": "tree",
+      "x": 10,
+      "y": 236.76,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-25",
+      "kind": "tree",
+      "x": 1185,
+      "y": 342.25,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-26",
+      "kind": "tree",
+      "x": 683.82,
+      "y": 64,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-27",
+      "kind": "tree",
+      "x": 835.89,
+      "y": 780,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-28",
+      "kind": "tree",
+      "x": 38,
+      "y": 658.72,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-29",
+      "kind": "tree",
+      "x": 1210,
+      "y": 764.21,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-30",
+      "kind": "tree",
+      "x": 182.1,
+      "y": 20,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-31",
+      "kind": "tree",
+      "x": 334.17,
+      "y": 802,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-32",
+      "kind": "tree",
+      "x": 66,
+      "y": 310.68,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-33",
+      "kind": "tree",
+      "x": 1160,
+      "y": 416.17,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-34",
+      "kind": "tree",
+      "x": 790.38,
+      "y": 42,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-35",
+      "kind": "tree",
+      "x": 942.45,
+      "y": 824,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-36",
+      "kind": "tree",
+      "x": 10,
+      "y": 732.64,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-37",
+      "kind": "tree",
+      "x": 1185,
+      "y": 68.13,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-38",
+      "kind": "tree",
+      "x": 288.66,
+      "y": 64,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-39",
+      "kind": "tree",
+      "x": 440.73,
+      "y": 780,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-40",
+      "kind": "tree",
+      "x": 38,
+      "y": 384.6,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-41",
+      "kind": "tree",
+      "x": 1210,
+      "y": 490.09,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-42",
+      "kind": "tree",
+      "x": 896.94,
+      "y": 20,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-43",
+      "kind": "tree",
+      "x": 1049.01,
+      "y": 802,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-44",
+      "kind": "tree",
+      "x": 66,
+      "y": 36.56,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-45",
+      "kind": "tree",
+      "x": 1160,
+      "y": 142.05,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-46",
+      "kind": "tree",
+      "x": 395.22,
+      "y": 42,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-47",
+      "kind": "tree",
+      "x": 547.29,
+      "y": 824,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-48",
+      "kind": "tree",
+      "x": 10,
+      "y": 458.52,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-49",
+      "kind": "tree",
+      "x": 1185,
+      "y": 564.01,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-50",
+      "kind": "tree",
+      "x": 1003.5,
+      "y": 64,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-51",
+      "kind": "tree",
+      "x": 1155.57,
+      "y": 780,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-52",
+      "kind": "tree",
+      "x": 38,
+      "y": 110.48,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-53",
+      "kind": "tree",
+      "x": 1210,
+      "y": 215.97,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-54",
+      "kind": "tree",
+      "x": 501.78,
+      "y": 20,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-55",
+      "kind": "tree",
+      "x": 653.85,
+      "y": 802,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-56",
+      "kind": "tree",
+      "x": 66,
+      "y": 532.44,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-57",
+      "kind": "tree",
+      "x": 1160,
+      "y": 637.93,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-58",
+      "kind": "tree",
+      "x": 1110.06,
+      "y": 42,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-59",
+      "kind": "tree",
+      "x": 152.13,
+      "y": 824,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-60",
+      "kind": "tree",
+      "x": 10,
+      "y": 184.4,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-61",
+      "kind": "tree",
+      "x": 1185,
+      "y": 289.89,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-62",
+      "kind": "tree",
+      "x": 608.34,
+      "y": 64,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-63",
+      "kind": "tree",
+      "x": 760.41,
+      "y": 780,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-64",
+      "kind": "tree",
+      "x": 38,
+      "y": 606.36,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-65",
+      "kind": "tree",
+      "x": 1210,
+      "y": 711.85,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-66",
+      "kind": "tree",
+      "x": 106.62,
+      "y": 20,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-67",
+      "kind": "tree",
+      "x": 258.69,
+      "y": 802,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-68",
+      "kind": "tree",
+      "x": 66,
+      "y": 258.32,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-69",
+      "kind": "tree",
+      "x": 1160,
+      "y": 363.81,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-70",
+      "kind": "tree",
+      "x": 714.9,
+      "y": 42,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-71",
+      "kind": "tree",
+      "x": 866.97,
+      "y": 824,
+      "radius": 30.36,
+      "height": 104.88,
+      "scale": 0.92
+    },
+    {
+      "id": "tree-72",
+      "kind": "tree",
+      "x": 10,
+      "y": 680.28,
+      "radius": 34.32,
+      "height": 118.56,
+      "scale": 1.04
+    },
+    {
+      "id": "tree-73",
+      "kind": "tree",
+      "x": 1185,
+      "y": 15.77,
+      "radius": 38.28,
+      "height": 132.24,
+      "scale": 1.16
+    },
+    {
+      "id": "tree-74",
+      "kind": "tree",
+      "x": 213.18,
+      "y": 64,
+      "radius": 42.24,
+      "height": 145.92,
+      "scale": 1.28
+    },
+    {
+      "id": "tree-75",
+      "kind": "tree",
+      "x": 365.25,
+      "y": 780,
+      "radius": 26.4,
+      "height": 91.2,
+      "scale": 0.8
+    },
+    {
+      "id": "rock-0",
+      "kind": "rock",
+      "x": 80,
+      "y": 60,
+      "radius": 6,
+      "height": 6,
+      "scale": 1
+    },
+    {
+      "id": "rock-1",
+      "kind": "rock",
+      "x": 217,
+      "y": 157,
+      "radius": 7,
+      "height": 6.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-2",
+      "kind": "rock",
+      "x": 354,
+      "y": 254,
+      "radius": 8,
+      "height": 7,
+      "scale": 1
+    },
+    {
+      "id": "rock-3",
+      "kind": "rock",
+      "x": 491,
+      "y": 351,
+      "radius": 9,
+      "height": 7.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-4",
+      "kind": "rock",
+      "x": 628,
+      "y": 448,
+      "radius": 10,
+      "height": 8,
+      "scale": 1
+    },
+    {
+      "id": "rock-5",
+      "kind": "rock",
+      "x": 765,
+      "y": 545,
+      "radius": 6,
+      "height": 6,
+      "scale": 1
+    },
+    {
+      "id": "rock-6",
+      "kind": "rock",
+      "x": 902,
+      "y": 642,
+      "radius": 7,
+      "height": 6.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-7",
+      "kind": "rock",
+      "x": 1039,
+      "y": 69,
+      "radius": 8,
+      "height": 7,
+      "scale": 1
+    },
+    {
+      "id": "rock-8",
+      "kind": "rock",
+      "x": 126,
+      "y": 166,
+      "radius": 9,
+      "height": 7.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-9",
+      "kind": "rock",
+      "x": 263,
+      "y": 263,
+      "radius": 10,
+      "height": 8,
+      "scale": 1
+    },
+    {
+      "id": "rock-10",
+      "kind": "rock",
+      "x": 400,
+      "y": 360,
+      "radius": 6,
+      "height": 6,
+      "scale": 1
+    },
+    {
+      "id": "rock-11",
+      "kind": "rock",
+      "x": 537,
+      "y": 457,
+      "radius": 7,
+      "height": 6.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-12",
+      "kind": "rock",
+      "x": 674,
+      "y": 554,
+      "radius": 8,
+      "height": 7,
+      "scale": 1
+    },
+    {
+      "id": "rock-13",
+      "kind": "rock",
+      "x": 811,
+      "y": 651,
+      "radius": 9,
+      "height": 7.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-14",
+      "kind": "rock",
+      "x": 948,
+      "y": 78,
+      "radius": 10,
+      "height": 8,
+      "scale": 1
+    },
+    {
+      "id": "rock-15",
+      "kind": "rock",
+      "x": 1085,
+      "y": 175,
+      "radius": 6,
+      "height": 6,
+      "scale": 1
+    },
+    {
+      "id": "rock-16",
+      "kind": "rock",
+      "x": 172,
+      "y": 272,
+      "radius": 7,
+      "height": 6.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-17",
+      "kind": "rock",
+      "x": 309,
+      "y": 369,
+      "radius": 8,
+      "height": 7,
+      "scale": 1
+    },
+    {
+      "id": "rock-18",
+      "kind": "rock",
+      "x": 446,
+      "y": 466,
+      "radius": 9,
+      "height": 7.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-19",
+      "kind": "rock",
+      "x": 583,
+      "y": 563,
+      "radius": 10,
+      "height": 8,
+      "scale": 1
+    },
+    {
+      "id": "rock-20",
+      "kind": "rock",
+      "x": 720,
+      "y": 660,
+      "radius": 6,
+      "height": 6,
+      "scale": 1
+    },
+    {
+      "id": "rock-21",
+      "kind": "rock",
+      "x": 857,
+      "y": 87,
+      "radius": 7,
+      "height": 6.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-22",
+      "kind": "rock",
+      "x": 994,
+      "y": 184,
+      "radius": 8,
+      "height": 7,
+      "scale": 1
+    },
+    {
+      "id": "rock-23",
+      "kind": "rock",
+      "x": 81,
+      "y": 281,
+      "radius": 9,
+      "height": 7.5,
+      "scale": 1
+    },
+    {
+      "id": "rock-24",
+      "kind": "rock",
+      "x": 218,
+      "y": 378,
+      "radius": 10,
+      "height": 8,
+      "scale": 1
+    },
+    {
+      "id": "rock-25",
+      "kind": "rock",
+      "x": 355,
+      "y": 475,
+      "radius": 6,
+      "height": 6,
+      "scale": 1
+    },
+    {
+      "id": "tent",
+      "kind": "tent",
+      "x": 390,
+      "y": 475,
+      "half_x": 34,
+      "half_y": 36,
+      "height": 60,
+      "scale": 1
+    },
+    {
+      "id": "campfire",
+      "kind": "campfire",
+      "x": 500,
+      "y": 430,
+      "radius": 38,
+      "height": 12,
+      "scale": 1
+    },
+    {
+      "id": "crystal-1",
+      "x": 620,
+      "y": 400,
+      "kind": "crystal",
+      "radius": 22,
+      "height": 50,
+      "scale": 1
+    },
+    {
+      "id": "crystal-2",
+      "x": 300,
+      "y": 260,
+      "kind": "crystal",
+      "radius": 22,
+      "height": 50,
+      "scale": 1
+    },
+    {
+      "id": "crystal-3",
+      "x": 900,
+      "y": 260,
+      "kind": "crystal",
+      "radius": 22,
+      "height": 50,
+      "scale": 1
+    },
+    {
+      "id": "crystal-4",
+      "x": 350,
+      "y": 600,
+      "kind": "crystal",
+      "radius": 22,
+      "height": 50,
+      "scale": 1
+    },
+    {
+      "id": "crystal-5",
+      "x": 850,
+      "y": 600,
+      "kind": "crystal",
+      "radius": 22,
+      "height": 50,
+      "scale": 1
+    }
+  ],
+  "nodes": [
+    {
+      "id": "crystal-1",
+      "x": 620,
+      "y": 400
+    },
+    {
+      "id": "crystal-2",
+      "x": 300,
+      "y": 260
+    },
+    {
+      "id": "crystal-3",
+      "x": 900,
+      "y": 260
+    },
+    {
+      "id": "crystal-4",
+      "x": 350,
+      "y": 600
+    },
+    {
+      "id": "crystal-5",
+      "x": 850,
+      "y": 600
+    }
+  ]
+}
