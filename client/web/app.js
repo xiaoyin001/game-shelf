@@ -448,19 +448,21 @@ try {
 }
 let lastRender = 0;
 function render(now) {
-  // 30fps 足够呈现 10Hz 权威快照的插值，避免软件渲染挤占表单和网络事件。
-  if (now - lastRender < 1000 / 30) {
-    requestAnimationFrame(render);
-    return;
-  }
-  lastRender = now;
-  if (view && !view.failed) {
-    try {
-      const camera = view.render(now, state, selfID);
-      $("camera-readout").textContent = "视角 " + camera.heading + "° · 距离 " + camera.distance;
-    } catch (error) {
-      fail3D("3D 渲染失败：" + error.message);
+  // 活动时维持30fps目标插值，静止时12fps继续真实绘制，给双窗口表单和网络留出预算。
+  try {
+    const delay = view && !view.failed ? view.frameDelay(now, state) : 1000 / 12;
+    if (now - lastRender < delay) {
+      requestAnimationFrame(render);
+      return;
     }
+    lastRender = now;
+    if (view && !view.failed) {
+      const camera = view.render(now, state, selfID);
+      canvas.dataset.renderMode = delay === 1000 / 30 ? "active" : "idle";
+      $("camera-readout").textContent = "视角 " + camera.heading + "° · 距离 " + camera.distance;
+    }
+  } catch (error) {
+    fail3D("3D 渲染失败：" + error.message);
   }
   requestAnimationFrame(render);
 }

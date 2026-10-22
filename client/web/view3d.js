@@ -19,6 +19,8 @@ export class WorldView {
     this.distance = 560;
     this.target = new THREE.Vector3(560, 16, 400);
     this.lastTime = 0;
+    this.activityUntil = 0;
+    this.renderedFrames = 0;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -74,6 +76,7 @@ export class WorldView {
   }
 
   resize() {
+    this.activityUntil = performance.now() + 750;
     const bounds = this.canvas.parentElement.getBoundingClientRect();
     const width = Math.max(1, Math.round(bounds.width));
     const height = Math.max(1, Math.round(bounds.height));
@@ -88,11 +91,13 @@ export class WorldView {
     this.canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 2) return;
       drag = { x: event.clientX, y: event.clientY };
+      this.activityUntil = performance.now() + 750;
       this.canvas.setPointerCapture(event.pointerId);
       this.canvas.classList.add("orbiting");
     });
     this.canvas.addEventListener("pointermove", (event) => {
       if (!drag) return;
+      this.activityUntil = performance.now() + 750;
       this.yaw -= (event.clientX - drag.x) * 0.008;
       this.pitch = clamp(this.pitch + (event.clientY - drag.y) * 0.004, 0.4, 1.1);
       drag = { x: event.clientX, y: event.clientY };
@@ -110,12 +115,14 @@ export class WorldView {
       (event) => {
         event.preventDefault();
         this.distance = clamp(this.distance + event.deltaY * 0.4, 280, 1000);
+        this.activityUntil = performance.now() + 750;
       },
       { passive: false },
     );
   }
 
   resetCamera() {
+    this.activityUntil = performance.now() + 750;
     this.yaw = 0;
     this.pitch = 0.65;
     this.distance = 560;
@@ -423,6 +430,27 @@ export class WorldView {
     return { group, crystal, material, ring };
   }
 
+  // 只比较角色空间状态，不因每次10Hz轮询的新对象而把静止场景误判成活动。
+  frameDelay(now, state) {
+    const players = state?.players || [];
+    if (
+      players.length !== this.players.size ||
+      players.some((player) => {
+        const entry = this.players.get(player.id);
+        return (
+          !entry ||
+          Math.hypot(
+            player.x - entry.group.position.x,
+            player.y - entry.group.position.z,
+            player.z - entry.group.position.y,
+          ) > 0.1
+        );
+      })
+    )
+      this.activityUntil = now + 750;
+    return now < this.activityUntil ? 1000 / 30 : 1000 / 12;
+  }
+
   render(now, state, selfID) {
     const dt = this.lastTime ? Math.min(0.1, (now - this.lastTime) / 1000) : 0.016;
     this.lastTime = now;
@@ -501,6 +529,7 @@ export class WorldView {
       this.lastShadow = now;
     }
     this.renderer.render(this.scene, this.camera);
+    this.canvas.dataset.renderCount = String(++this.renderedFrames);
     this.canvas.dataset.selfHeight = me ? me.group.position.y.toFixed(2) : "";
     this.canvas.dataset.npcCount = String(
       this.npcs.filter((entry) => entry.group.parent === this.scene).length,

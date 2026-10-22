@@ -30,7 +30,7 @@ jobs:
         run: go test -race -count=1 ./...
   playable:
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,8 +44,10 @@ jobs:
           node-version: "22.23.3"
           cache: npm
       - name: 安装浏览器工具
+        timeout-minutes: 10
         run: npm ci && npx playwright install --with-deps --only-shell chromium
       - name: 当前真实依赖与浏览器完整回归
+        timeout-minutes: 12
         run: npm run test:ci
       - name: 保存证据
         if: always()

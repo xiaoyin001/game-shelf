@@ -45,15 +45,18 @@ test("守灯人委托从交谈、采集到领取奖励，另一旅人只看到�
     await expect(pa.getByRole("dialog")).toBeHidden();
     await walk(pa, "w", "y", 405, false);
     await walk(pa, "d", "x", 573);
+    await expect(pa.locator("#interaction-hint")).toHaveText("E 采集微光", { timeout: 12000 });
     await pa.keyboard.press("e");
     await expect(pa.locator("#quest-progress")).toContainText("1 / 2");
     await expect(pa.locator("#interaction-hint")).toContainText("重生中");
-    await expect(pa.locator("#interaction-hint")).toHaveText("E 采集微光", { timeout: 12000 });
+    // 探索东南方第二处真实晶簇；同地等待重生由独立完整用例覆盖，不与整段委托耦合。
+    await pa.keyboard.press("Space");
+    await walk(pa, "s", "y", 450);
+    await walk(pa, "d", "x", 820);
+    await walk(pa, "s", "y", 550);
     await pa.keyboard.press("e");
     await expect(pa.locator("#quest-progress")).toContainText("2 / 2");
-    // 晶簇北侧的圆柱接触会阻挡正南路线，使用真实跳跃越过，不假设资源可穿透。
-    await pa.keyboard.press("Space");
-    await walk(pa, "s", "y", 440);
+    await walk(pa, "a", "x", 580, false);
     await expect(pa.locator("#interaction-hint")).toContainText("阿苔");
     await pa.keyboard.press("e");
     await pa.getByRole("button", { name: "完成委托 · 领取 3 分微光" }).click();
@@ -76,6 +79,19 @@ test("守灯人委托从交谈、采集到领取奖励，另一旅人只看到�
   } finally {
     await Promise.all([a.close(), b.close()]);
   }
+});
+
+test("晶簇自然重生后可以在原地再次采集", async ({ page }) => {
+  await join(page, unique("regrow"));
+  await walk(page, "d", "x", 573);
+  await expect(page.locator("#interaction-hint")).toHaveText("E 采集微光", { timeout: 12000 });
+  await page.keyboard.press("e");
+  await expect(page.locator("#score")).toHaveText("1");
+  await expect(page.locator("#interaction-hint")).toContainText("重生中");
+  await expect(page.locator("#interaction-hint")).toHaveText("E 采集微光", { timeout: 12000 });
+  await page.keyboard.press("e");
+  await expect(page.locator("#score")).toHaveText("2");
+  await expect(page.locator("#quest-progress")).toHaveAttribute("data-status", "");
 });
 
 test("巡林员提供不同提示，对话时不移动或跳跃，关闭后恢复输入", async ({ page }, info) => {

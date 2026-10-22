@@ -57,7 +57,7 @@ npx playwright install --with-deps --only-shell chromium
 npm run test:ci
 ```
 
-此入口执行源码与依赖产物检查、真实基础设施/协议、全部 18 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。
+此入口执行源码与依赖产物检查、真实基础设施/协议、全部 19 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。GitHub playable 总预算25分钟，浏览器工具安装单步10分钟、完整`test:ci`单步12分钟；浏览器每例仍30秒、零重试、单worker，不用延长业务用例掩盖失败。
 
 容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
 
@@ -67,7 +67,7 @@ npm run test:ci
 
 ## 3D 客户端与依赖
 
-客户端需要 WebGL2，使用 Three.js 0.186.1 的真实透视场景、光照/阴影和立体角色。服务器 X/Y/Z 映射为场景 X/Z/Y，客户端只插值高度，不自行决定轨迹或碰撞。服务端简化圆柱/盒体与绘制共用 `pkg/scene/layout.json`，以只读 `/scene.json` 提供，版本不匹配必须刷新；见 [ADR-0017](docs/decisions/0017-authoritative-jump-collision.md)。这不是完整网格刚体引擎，没有推箱、载具、物体破坏或游泳。无 WebGL2 或图形上下文丢失会明确提示并停止会话，不用 2D 或截图代替。
+客户端需要 WebGL2，使用 Three.js 0.186.1 的真实透视场景、光照/阴影和立体角色。活动时以30fps为绘制目标，静止/表单阶段12fps继续真实绘制；角色位置/高度、镜头或尺寸变化会恢复活动预算并保留750ms插值余量，网络输入/轮询仍为100ms。这是调度目标，不保证所有硬件的实际帧率。服务器 X/Y/Z 映射为场景 X/Z/Y，客户端只插值高度，不自行决定轨迹或碰撞。服务端简化圆柱/盒体与绘制共用 `pkg/scene/layout.json`，以只读 `/scene.json` 提供，版本不匹配必须刷新；见 [ADR-0017](docs/decisions/0017-authoritative-jump-collision.md)。这不是完整网格刚体引擎，没有推箱、载具、物体破坏或游泳。无 WebGL2 或图形上下文丢失会明确提示并停止会话，不用 2D 或截图代替。
 
 官方模块与 MIT 许可原样保存在 `client/web/vendor/` 并内嵌到 Go；没有 CDN 或额外 bundler/dev server。升级精确依赖后显式执行 `npm run vendor:sync`；`npm run vendor:check` 和默认源码检查只核对字节，不修改文件。第三方文件不手改、不全量格式化；选择、开销与回退见 [ADR-0015](docs/decisions/0015-browser-3d.md)。
 
@@ -91,9 +91,11 @@ npm run test:ci
 
 当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。账号密码与 3D 阶段已独立提交并通过本地真实服务，真实双人 3D 截图已查看；随后密码输入改为 6–32 位 ASCII，Windows/Linux 最新真实服务/协议与浏览器各 11/11 通过，Go race 与清理通过，见 [ADR-0016](docs/decisions/0016-password-input-policy.md)。最新跳跃/碰撞阶段已通过 Windows/Linux 真实服务/协议与各 14/14 浏览器、Go race 及清理，角色首帧与短暂高度采用实际只读观察验收。上述4个提交已普通推送至 a5963e3；[CI 39741132203](https://github.com/xiaoyin001/game-shelf/actions/runs/39741132203) 的 source 成功、playable 仅采集用例在收尾时超过30s，其余13项及真实协议通过。采集原页重进/碰撞等待已按 [ADR-0018](docs/decisions/0018-browser-gather-ci.md) 在 Windows 与双CPU Linux 各14/14验证；修复尚未补推，不能把本地结果冒称云端通过。
 
-NPC 阶段已在独立 Linux 网络命名空间与空依赖上完成真实四服务、独立协议、全部 **17/17** 浏览器及 Go race 回归；Windows 源码/客户端检查通过，原生 Windows 全套联机未重跑。包含两位实体角色、选项对话、营灯委托与唯一奖励，详见 [ADR-0019](docs/decisions/0019-npc-interactions.md)。最后 race 发现的 protobuf 标量 presence 问题已用官方补丁修复并整套复验，见 [ADR-0020](docs/decisions/0020-protobuf-scalar-presence.md)。该阶段未 Push/PR/远端 CI 复验；随后已按用户授权正常重启本地 NPC 试玩。角色为预设对话，无巡逻、生成式 AI 或长期任务存档。
+NPC 阶段已在独立 Linux 网络命名空间与空依赖上完成真实四服务、独立协议、全部 **17/17** 浏览器及 Go race 回归；Windows 源码/客户端检查通过，原生 Windows 全套联机未重跑。包含两位实体角色、选项对话、营灯委托与唯一奖励，详见 [ADR-0019](docs/decisions/0019-npc-interactions.md)。最后 race 发现的 protobuf 标量 presence 问题已用官方补丁修复并整套复验，见 [ADR-0020](docs/decisions/0020-protobuf-scalar-presence.md)。上述是该阶段本地验收记录；随后已按授权推送至516a117并正常重启试玩，远端未全部通过，详见下面CI修复记录。角色为预设对话，无巡逻、生成式 AI 或长期任务存档。
 
-低台阶迈步阶段已通过 Windows 源码/客户端检查、Linux 隔离真实四服务与全部 **18/18** 浏览器、独立协议回归和全量 Go race；原17项保持不变。当前每级步高18，脚底到真实顶面、走离自然落下，详见 [ADR-0021](docs/decisions/0021-authoritative-step-up.md)。未跑新版原生Windows完整联机或远端CI，未Push/PR；正常重建重启本地四服务后加载新规则，不更改账号数据。
+低台阶迈步阶段已通过 Windows 源码/客户端检查、Linux 隔离真实四服务与全部 **18/18** 浏览器、独立协议回归和全量 Go race；原17项保持不变。当前每级步高18，脚底到真实顶面、走离自然落下，详见 [ADR-0021](docs/decisions/0021-authoritative-step-up.md)。原生Windows完整联机未跑。516a117已按授权推送，云端source成功、playable超时取消；正常重建重启本地四服务加载新规则，不更改账号数据。
+
+最新CI修复见 [ADR-0022](docs/decisions/0022-ci-render-budget.md)：原版在双CPU真实环境复现17/18、NPC超30s；修复后双CPU真实四服务/协议及 **19/19（3.9m）**、独立服务回归和Go race通过，30s/零重试不变。新增独立重生验证，保留完整委托和presence整页重进。GitHub原运行未通过，新修复尚未补推/云端复验；新的冷安装、完整test:ci故障注入与原生Windows全套未跑，不能用本地结果冒称云端成功。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

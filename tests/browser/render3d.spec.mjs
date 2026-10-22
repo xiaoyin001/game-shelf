@@ -35,6 +35,25 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     expect(gl.lost).toBe(false);
     expect(gl.width).toBeGreaterThan(300);
     await expect(pa.locator("#players")).toContainText(nb);
+    await expect(canvas).toHaveAttribute("data-render-mode", "idle");
+    const idle = await canvas.evaluate(async (element) => {
+      const start = performance.now(),
+        count = Number(element.dataset.renderCount);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return {
+        elapsed: performance.now() - start,
+        frames: Number(element.dataset.renderCount) - count,
+      };
+    });
+    expect(idle.frames).toBeGreaterThan(0);
+    expect(idle.frames).toBeLessThanOrEqual(Math.ceil((idle.elapsed * 12) / 1000) + 1);
+    await canvas.evaluate((element) => {
+      // 只读记录短暂的活动模式，不能因跨进程采样延迟漏掉已经绘制的镜头动画。
+      window.renderEvidence = { active: false };
+      new MutationObserver(() => {
+        if (element.dataset.renderMode === "active") window.renderEvidence.active = true;
+      }).observe(element, { attributes: true, attributeFilter: ["data-render-mode"] });
+    });
     const initial = Number(await canvas.getAttribute("data-camera-distance"));
     const box = await canvas.boundingBox();
     await pa.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.6);
@@ -42,6 +61,7 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     await expect
       .poll(async () => Number(await canvas.getAttribute("data-camera-distance")))
       .toBeLessThan(initial);
+    await expect.poll(() => pa.evaluate(() => window.renderEvidence.active)).toBe(true);
     await pa.mouse.down({ button: "right" });
     await pa.mouse.move(box.x + box.width * 0.5 + 160, box.y + box.height * 0.6 - 40, { steps: 8 });
     await pa.mouse.up({ button: "right" });

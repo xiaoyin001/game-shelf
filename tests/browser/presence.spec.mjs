@@ -23,8 +23,7 @@ test("双浏览器同世界，退出移除并可重新进入", async ({ browser 
     await expect(pa.locator("#online-count")).toHaveText("2 人在线");
     expect(errors).toEqual([]);
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });
 test("同名新会话顶替旧连接", async ({ browser }) => {
@@ -40,7 +39,6 @@ test("同名新会话顶替旧连接", async ({ browser }) => {
     await expect(pb.locator("#online-count")).toHaveText("1 人在线");
     await expect(pb.locator("#players")).toContainText(name);
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });
