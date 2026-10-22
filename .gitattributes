@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.png binary
 *.zip binary
+# 第三方原样代码保留上游缩进，仅免空白风格检查；完整性由 vendor:check 核对字节。
+client/web/vendor/** -whitespace

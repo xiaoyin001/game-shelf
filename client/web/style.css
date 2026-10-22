@@ -182,7 +182,11 @@ h1 span {
   min-height: 480px;
   overflow: hidden;
 }
+canvas.orbiting {
+  cursor: grabbing;
+}
 canvas {
+  cursor: grab;
   width: 100%;
   height: 100%;
   display: block;

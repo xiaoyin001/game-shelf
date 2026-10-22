@@ -12,6 +12,8 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:11000",
+    // 在有/无独显的本地与 CI 都执行真正的软件 WebGL2，不用 2D 替身。
+    launchOptions: { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] },
     viewport: { width: 1440, height: 1080 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

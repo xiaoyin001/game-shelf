@@ -30,4 +30,6 @@
 
 - [ADR-0014：账号密码验证与试玩身份隔离](0014-password-authentication.md)
 
+- [ADR-0015：本地 Three.js 与真正 3D 场景](0015-browser-3d.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

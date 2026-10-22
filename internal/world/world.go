@@ -66,7 +66,8 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if w.players[req.UserID] == nil && len(w.players) >= 100 {
 			return failure("world_full")
 		}
-		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: 560, Y: 400}, session: req.SessionID, lastSeen: now, lastMove: now}
+		x, y := w.spawn(req.UserID)
+		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y}, session: req.SessionID, lastSeen: now, lastMove: now}
 		return &contracts.WorldResp{State: w.snapshot(now)}
 	}
 	p := w.players[req.UserID]
@@ -95,6 +96,36 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	}
 	return &contracts.WorldResp{State: w.snapshot(now)}
 }
+
+// spawn 由服务端选择不重叠的出生点，避免 3D 角色在同一点完全遮挡；不改变移动或采集规则。
+func (w *World) spawn(userID string) (float64, float64) {
+	offset := func(i int) float64 {
+		if i%2 == 1 {
+			return float64((i+1)/2) * 40
+		}
+		return -float64(i/2) * 40
+	}
+	for row := 0; row < 19; row++ {
+		for col := 0; col < 29; col++ {
+			x, y := 560+offset(col), 400+offset(row)
+			if x < 20 || x > width-20 || y < 20 || y > height-20 {
+				continue
+			}
+			free := true
+			for id, p := range w.players {
+				if id != userID && math.Hypot(p.state.X-x, p.state.Y-y) < 28 {
+					free = false
+					break
+				}
+			}
+			if free {
+				return x, y
+			}
+		}
+	}
+	return 560, 400
+}
+
 func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	if math.IsNaN(dx) || math.IsNaN(dy) || math.IsInf(dx, 0) || math.IsInf(dy, 0) {
 		return "invalid_direction"

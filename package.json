@@ -10,6 +10,8 @@
   "scripts": {
     "check": "node scripts/check.mjs",
     "check:workflow": "node --test tests/workflow/*.test.mjs",
+    "vendor:sync": "node scripts/client-vendor.mjs",
+    "vendor:check": "node scripts/client-vendor.mjs --check",
     "check:history": "node scripts/check-history.mjs",
     "test:infra": "node scripts/test-infra.mjs",
     "dev": "node scripts/local-stack.mjs",
@@ -19,10 +21,13 @@
     "test:ci": "node scripts/ci.mjs",
     "test:ci-cleanup": "node scripts/test-ci-cleanup.mjs",
     "test:e2e": "node scripts/verify.mjs --browser-only",
-    "check:client": "node --check client/web/app.js && prettier --check client/web scripts/*.mjs tests/browser tests/runner tests/workflow playwright.config.mjs package.json .prettierrc.json"
+    "check:client": "node --check client/web/app.js && node --check client/web/view3d.js && prettier --check client/web scripts/*.mjs tests/browser tests/runner tests/workflow playwright.config.mjs package.json .prettierrc.json"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "prettier": "3.6.2"
+  },
+  "dependencies": {
+    "three": "0.186.1"
   }
 }
