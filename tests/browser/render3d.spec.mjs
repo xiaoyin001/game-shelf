@@ -91,10 +91,10 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
       return event.defaultPrevented;
     });
     expect(intercepted).toBe(false);
-    await pa.screenshot({ path: info.outputPath("three-dimensional-orbit.png"), fullPage: true });
+    await pa.screenshot({ path: info.outputPath("three-dimensional-orbit.png"), fullPage: false });
     await pa.keyboard.press("r");
     await expect(canvas).toHaveAttribute("data-camera-yaw", "0.0000");
-    await pa.screenshot({ path: info.outputPath("three-dimensional-world.png"), fullPage: true });
+    await pa.screenshot({ path: info.outputPath("three-dimensional-world.png"), fullPage: false });
     expect(errors).toEqual([]);
     expect(external).toEqual([]);
     // 真实丢失 GL 上下文后必须断开会话并保留原因，不能把画面冻结当作仍在游戏。

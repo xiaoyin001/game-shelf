@@ -69,7 +69,7 @@ test("守灯人委托从交谈、采集到领取奖励，另一旅人只看到�
       pb.locator("#players li").filter({ hasText: name }).locator(".player-score"),
     ).toHaveText("✦ 5");
     await expect(pa.getByRole("button", { name: /完成委托 · 领取/ })).toHaveCount(0);
-    await pa.screenshot({ path: info.outputPath("keeper-quest-completed.png"), fullPage: true });
+    await pa.screenshot({ path: info.outputPath("keeper-quest-completed.png"), fullPage: false });
     await pa.getByRole("button", { name: "结束交谈 · Esc" }).click();
     await pa.getByRole("button", { name: "离开世界" }).click();
     await expect(pa.locator("#status")).toHaveText("连接已断开");
@@ -114,7 +114,7 @@ test("巡林员提供不同提示，对话时不移动或跳跃，关闭后恢�
   await expect(page.locator("#coordinates")).toHaveAttribute("data-z", "0");
   await page.getByRole("button", { name: "营地里有什么？" }).click();
   await expect(page.locator("#npc-text")).toContainText("540 / 500");
-  await page.screenshot({ path: info.outputPath("ranger-dialog.png"), fullPage: true });
+  await page.screenshot({ path: info.outputPath("ranger-dialog.png"), fullPage: false });
   await page.keyboard.press("Escape");
   await walk(page, "a", "x", x - 20, false);
 });
