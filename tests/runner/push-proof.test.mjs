@@ -1,7 +1,7 @@
 // 文件说明：用合成报告和临时Git仓库验证防漏检判据，不将这些数据当成本仓库真实CI证明。
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, readFile, copyFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, copyFile, rm, chmod } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { root, git, gitIdentity, repositoryKey } from "../../scripts/ci-git.mjs";
@@ -101,6 +101,7 @@ async function fixture(run) {
       await copyFile(join(root, file), join(dir, file));
     await writeFile(join(dir, ".gitignore"), ".local/\n");
     await writeFile(join(dir, ".githooks/pre-push"), "#!/bin/sh\nexit 0\n");
+    await chmod(join(dir, ".githooks/pre-push"), 0o755);
     git(["add", "."], dir);
     git(["update-index", "--chmod=+x", ".githooks/pre-push"], dir);
     git(["commit", "--quiet", "-m", "fixture"], dir);

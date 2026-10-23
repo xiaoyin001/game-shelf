@@ -222,4 +222,11 @@
 - 策略澄清：本地默认preflight两轮浏览器、27秒余量，比云端更严格；CI单job保留全部原test:ci一次及30秒硬上限，环境/资源/原命令不分叉。原因是本地额外轮令playable达到642.4s，不给云端叠加无必要重复回归的总期限风险，不放宽任何原用例/重试。
 - 真实pre-push已安装到本仓库local配置，执行位100755，不改全局/远端配置。只读检查Git提供的实际refs，要求当前已验收HEAD、相同仓库、CI覆盖分支及可证明快进；不隐式运行长测试，也不授权删除/标签/main或强推。
 - 实际相关验证：Windows运行器22/22通过；合成报告仅验证判据，不作为联机证明。临时Git仓库测试旧HEAD/tree、时效/未来时间、候选/单job、缺race、资源/余量/重试/零残留、报告字节与运行锁，以及已有hooksPath/活动hook保留。真实git hook run在缺少干净最终证据时退出1，未实际Push。
-- 正式证据由本切片commit后运行同一真实共用入口生成，读取本地绑定记录与报告；不预填该步骤成功，不将阶段22候选改名为新SHA通过。云端须再次获准Push后核对同SHA，两者不能混称；未Push/PR/部署。决策：[ADR-0025](decisions/0025-push-verification-gate.md)。
+- 正式证据由本切片commit后运行同一真实共用入口生成，读取本地绑定记录与报告；不预填该步骤成功，不将阶段22候选改名为新SHA通过。云端须再次获准Push后核对同SHA，两者不能混称；未Push/PR/部署。决策：[ADR-0025](decisions/0025-push-verification-gate.md)。本地实现提交3244040。
+
+### 24 · 在本地门禁修正Linux夹具实际执行位（2026-10-23）
+
+- 3244040第一次正式preflight的source/race通过，playable在运行器单元测试阶段拒绝：临时Git夹具索引为100755、磁盘仍0644，Linux正确报告脏tree；Windows默认filemode=false的22项没有暴露。未进入浏览器，整次失败且不产生有效推送记录，未Push。
+- 修复：夹具写入后实际chmod(0755)，保留Git索引执行位及干净tree检查，不使用core.filemode=false掩盖差异。
+- 实际回归：固定Linux SDK工具容器、2CPU/4GiB/无swap的全部运行器21通过，Windows专有1项明确跳过；Windows22/22通过。这里只把相关回归算通过，修复后的最终commit还须通过默认完整preflight生成正式记录，不复用3244040的source成功或阶段22候选。
+- 这次缺陷在本地正式入口而不是远端暴露；保留失败日志与原提交，不改写成首次全绿。未Push/PR/部署。
