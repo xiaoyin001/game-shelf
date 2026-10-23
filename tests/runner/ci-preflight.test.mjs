@@ -10,6 +10,7 @@ import {
   profile,
   toolRecipeHash,
   verificationPolicy,
+  runnerIdentity,
   cpuList,
   checkLimits,
   browserResult,
@@ -17,6 +18,7 @@ import {
 } from "../../scripts/ci-profile.mjs";
 import {
   toolArgs,
+  cacheInitArgs,
   guardPorts,
   gitIdentity,
   createSnapshot,
@@ -54,6 +56,23 @@ test("工具配方包含package与锁文件内容，不能复用旧依赖图像"
   assert.notEqual(toolRecipeHash("recipe", "package", "changed"), hash);
 });
 
+test("宿主身份不写死，缓存初始化仅接触私有卷", () => {
+  assert.deepEqual(runnerIdentity("1001", "121", "108"), { uid: 1001, gid: 121, socket_gid: 108 });
+  for (const value of ["", "bad", "-1", "1.5"]) assert.throws(() => runnerIdentity(value, 1, 1));
+  const args = cacheInitArgs({
+    name: "owned-init",
+    cache: "owned-cache",
+    id: "owned",
+    image: "owned-image",
+    runner: { uid: 1001, gid: 121 },
+  });
+  assert.equal(args[args.indexOf("--user") + 1], "0:0");
+  assert.ok(args.includes("CHOWN") && args.includes("--read-only"));
+  assert.equal(args.filter((arg) => arg === "--mount").length, 1);
+  assert.ok(args.includes("type=volume,source=owned-cache,target=/ci-cache"));
+  assert.ok(!args.some((arg) => arg.includes("target=/workspace")));
+});
+
 test("工具容器受同一限制且只有playable获得本机socket", () => {
   const id = "verify-" + "a".repeat(32) + "-1";
   for (const kind of ["source", "playable"]) {
@@ -63,7 +82,11 @@ test("工具容器受同一限制且只有playable获得本机socket", () => {
       workspace: "/owned/repo",
       id,
       kind,
+      runner: { uid: 1001, gid: 1002, socket_gid: 108 },
     });
+    assert.equal(args[args.indexOf("--user") + 1], "1001:1002");
+    assert.equal(args.includes("--group-add"), kind === "playable");
+    assert.ok(args.includes("HOME=/ci-cache/home"));
     assert.equal(args[args.indexOf("--cpus") + 1], "2");
     assert.equal(args[args.indexOf("--memory") + 1], String(4 * 1024 ** 3));
     assert.equal(args[args.indexOf("--memory-swap") + 1], String(4 * 1024 ** 3));

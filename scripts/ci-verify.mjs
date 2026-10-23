@@ -13,6 +13,7 @@ import {
   browserResult,
   ownedProjects,
   verificationPolicy,
+  runnerIdentity,
 } from "./ci-profile.mjs";
 import { taskNetwork } from "./ci-network.mjs";
 import { clientImages } from "./ci-images.mjs";
@@ -41,7 +42,8 @@ function sync(file, args, cwd = root) {
     throw r.error || new Error(file + " exited " + r.status + ": " + r.stderr);
   return r.stdout.trim();
 }
-export function toolArgs({ name, image, workspace, id, kind }) {
+export function toolArgs({ name, image, workspace, id, kind, runner }) {
+  assert.deepEqual(runnerIdentity(runner.uid, runner.gid, runner.socket_gid), runner);
   assert.match(id, /^verify-[a-f0-9]{32}-[12]$/);
   assert.ok(["source", "playable"].includes(kind));
   assert.equal(name, "game-shelf-" + id + "-" + kind);
@@ -55,6 +57,14 @@ export function toolArgs({ name, image, workspace, id, kind }) {
     name,
     "--label",
     ownerLabel + "=" + id,
+    "--user",
+    String(runner.uid) + ":" + String(runner.gid),
+    "--env",
+    "HOME=/ci-cache/home",
+    "--env",
+    "GAME_SHELF_RUN_UID=" + runner.uid,
+    "--env",
+    "GAME_SHELF_RUN_GID=" + runner.gid,
     "--network",
     "host",
     "--cpus",
@@ -95,6 +105,8 @@ export function toolArgs({ name, image, workspace, id, kind }) {
     args.push(
       "--env",
       "GAME_SHELF_CI=1",
+      "--group-add",
+      String(runner.socket_gid),
       "--mount",
       "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock",
     );
@@ -184,6 +196,13 @@ async function dockerBridge() {
     "仅支持本机默认Docker socket；不自动改context",
   );
   const info = JSON.parse(read(["info", "--format", "{{json .}}"]));
+  const hostRead = (command, args) =>
+    process.platform === "win32" ? sync("wsl", ["--exec", command, ...args]) : sync(command, args);
+  const runner = runnerIdentity(
+    process.platform === "win32" ? hostRead("id", ["-u"]) : process.getuid(),
+    process.platform === "win32" ? hostRead("id", ["-g"]) : process.getgid(),
+    hostRead("stat", ["-c", "%g", "/var/run/docker.sock"]),
+  );
   assert.equal(info.OSType, "linux");
   assert.ok(["x86_64", "amd64"].includes(info.Architecture), "CI需要x64 Docker");
   assert.equal(info.CgroupVersion, "2", "需要cgroup v2实际资源限制");
@@ -209,6 +228,7 @@ async function dockerBridge() {
   const bridge = {
     read,
     info,
+    runner,
     get proxy_enabled() {
       return network?.enabled ?? false;
     },
@@ -239,6 +259,55 @@ async function dockerBridge() {
     },
   };
   return bridge;
+}
+function stopOwnedTool(bridge, name, id) {
+  const present = bridge.read(["ps", "-aq", "--filter", "name=^/" + name + "$"]);
+  if (!present) return;
+  assert.equal(
+    bridge.read(["inspect", "--format", '{{index .Config.Labels "' + ownerLabel + '"}}', present]),
+    id,
+    "拒绝停止非本轮工具容器",
+  );
+  bridge.read(["stop", "--timeout", "10", present]);
+  if (bridge.read(["ps", "-aq", "--filter", "name=^/" + name + "$"])) bridge.read(["rm", present]);
+}
+export function cacheInitArgs({ name, cache, id, image, runner }) {
+  const code =
+    "const fs=require('fs');const [uid,gid]=process.argv.slice(1).map(Number);fs.mkdirSync('/ci-cache/home',{recursive:true});fs.chownSync('/ci-cache/home',uid,gid);fs.chownSync('/ci-cache',uid,gid)";
+  return [
+    "run",
+    "--rm",
+    "--init",
+    "--name",
+    name,
+    "--label",
+    ownerLabel + "=" + id,
+    "--user",
+    "0:0",
+    "--network",
+    "none",
+    "--read-only",
+    "--cap-drop",
+    "ALL",
+    "--cap-add",
+    "CHOWN",
+    "--cpus",
+    "0.25",
+    "--memory",
+    "128m",
+    "--memory-swap",
+    "128m",
+    "--pids-limit",
+    "64",
+    "--mount",
+    "type=volume,source=" + cache + ",target=/ci-cache",
+    image,
+    "node",
+    "-e",
+    code,
+    String(runner.uid),
+    String(runner.gid),
+  ];
 }
 function counts(bridge, project) {
   const label = "label=com.docker.compose.project=" + project;
@@ -344,13 +413,20 @@ async function runJob(bridge, kind, workspace, folder, runId, image, signal, pol
     "拒绝复用已有job缓存",
   );
   bridge.read(["volume", "create", "--label", ownerLabel + "=" + runId + "/" + kind, cache]);
+  const initName = "game-shelf-ci-cache-init-" + runId + "-" + kind;
+  const initId = runId + "/" + kind + "/cache";
   let result, failure;
   try {
+    await bridge.run(
+      cacheInitArgs({ name: initName, cache, id: initId, image, runner: bridge.runner }),
+      { timeout: 30000, log: join(folder, "cache-init-" + kind + ".log"), signal },
+    );
     result = await runRounds(bridge, kind, workspace, folder, runId, image, signal, policy);
   } catch (error) {
     failure = error;
   } finally {
     try {
+      stopOwnedTool(bridge, initName, initId);
       assert.equal(
         bridge.read([
           "volume",
@@ -400,13 +476,22 @@ async function runRounds(bridge, kind, workspace, folder, runId, image, signal, 
       const remaining = profile.runMs - profile.cleanupReserveMs - (Date.now() - started);
       assert.ok(remaining > 0, "job执行预算已耗尽");
       result.duration_ms = await bridge.run(
-        toolArgs({ name, image, workspace: bridge.path(workspace), id, kind }),
+        toolArgs({
+          name,
+          image,
+          workspace: bridge.path(workspace),
+          id,
+          kind,
+          runner: bridge.runner,
+        }),
         { timeout: remaining, log: join(evidence, "runner.log"), signal },
       );
       result.environment = JSON.parse(
         await readFile(join(workspace, ".local/logs/ci-tool-result.json"), "utf8"),
       );
       assert.equal(result.environment.status, "passed");
+      assert.equal(result.environment.uid, bridge.runner.uid);
+      assert.equal(result.environment.gid, bridge.runner.gid);
       assert.equal(result.environment.run_id, id, "不是本轮工具报告");
       assert.equal(
         result.environment.scope,
@@ -439,22 +524,7 @@ async function runRounds(bridge, kind, workspace, folder, runId, image, signal, 
       failure = error;
     } finally {
       try {
-        const present = bridge.read(["ps", "-aq", "--filter", "name=^/" + name + "$"]);
-        if (present) {
-          assert.equal(
-            bridge.read([
-              "inspect",
-              "--format",
-              '{{index .Config.Labels "' + ownerLabel + '"}}',
-              present,
-            ]),
-            id,
-            "拒绝停止非本轮工具容器",
-          );
-          bridge.read(["stop", "--timeout", "10", present]);
-          if (bridge.read(["ps", "-aq", "--filter", "name=^/" + name + "$"]))
-            bridge.read(["rm", present]);
-        }
+        stopOwnedTool(bridge, name, id);
         result.cleanup = {};
         for (const project of projects) {
           const before = counts(bridge, project);
@@ -535,6 +605,7 @@ async function verifyRun({
   try {
     if (!prepareOnly && jobs.includes("playable")) await guardPorts();
     bridge = await dockerBridge();
+    report.runner = bridge.runner;
     report.host = {
       kernel: bridge.info.KernelVersion,
       docker: bridge.info.ServerVersion,

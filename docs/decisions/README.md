@@ -52,4 +52,6 @@
 
 - [ADR-0025：提交绑定的 pre-push 防漏检门禁](0025-push-verification-gate.md)
 
+- [ADR-0026：宿主 UID/GID 与非特权 Linux 父进程](0026-ci-runner-ownership.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

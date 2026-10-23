@@ -25,6 +25,7 @@ function sample(identity, recipe, now = Date.now()) {
     mode: "commit",
     status: "passed",
     ...identity,
+    runner: { uid: 1001, gid: 1001, socket_gid: 108 },
     profile_hash: digest(JSON.stringify(profile)),
     recipe_hash: recipe,
     started_at: new Date(now - 10000).toISOString(),
@@ -63,6 +64,8 @@ function sample(identity, recipe, now = Date.now()) {
             node: profile.node,
             go: profile.go,
             cgo: kind === "source" ? 1 : 0,
+            uid: 1001,
+            gid: 1001,
             cpus: profile.cpus,
             memory_bytes: profile.memoryBytes,
             swap_bytes: 0,
@@ -153,6 +156,9 @@ test("合成判据拒绝候选/部分job/缺race/错误资源/临界耗时/非�
     },
     (r) => {
       r.jobs[1].rounds[0].environment.cpus = 4;
+    },
+    (r) => {
+      r.jobs[1].rounds[0].environment.uid = 0;
     },
     (r) => {
       r.jobs[1].rounds[0].environment.swap_bytes = 1024;

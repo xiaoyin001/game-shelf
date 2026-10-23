@@ -50,6 +50,9 @@ if (!process.argv.includes("--bounded")) {
 } else {
   assert.equal(os.availableParallelism(), profile.cpus, "CPU亲和限制未生效");
   assert.equal(process.versions.node, profile.node);
+  assert.equal(process.getuid(), Number(process.env.GAME_SHELF_RUN_UID), "运行UID未沿用宿主");
+  assert.equal(process.getgid(), Number(process.env.GAME_SHELF_RUN_GID), "运行GID未沿用宿主");
+  assert.equal(process.env.HOME, "/ci-cache/home", "HOME必须属于本job私有缓存");
   if (kind === "playable") {
     checkCiKernel(os.release());
     assert.match(readFileSync("/proc/cpuinfo", "utf8"), /\bavx\b/, "MongoDB需要AVX");
@@ -71,6 +74,8 @@ if (!process.argv.includes("--bounded")) {
     node: process.versions.node,
     go: profile.go,
     cgo: kind === "source" ? 1 : 0,
+    uid: process.getuid(),
+    gid: process.getgid(),
     cpus: os.availableParallelism(),
     memory_bytes: profile.memoryBytes,
     swap_bytes: 0,

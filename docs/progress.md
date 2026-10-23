@@ -16,6 +16,8 @@
 
 第23阶段完成提交绑定防漏检：默认完整preflight才可生成24小时有效的最终commit/tree记录；真实pre-push已安装，缺少干净最终证据会拒绝。正式记录由提交后真实共用入口生成，不用合成样本或候选记录代替；新SHA远端仍待另获授权。
 
+第25阶段修正本次云端属主缺口：8ffe6aa已按授权推送，CI39918335777源码/race及19/19通过，但普通runner清理root SDK生成目录EACCES，两个job最终失败。修复候选已在普通UID1001 Linux父进程复现旧故障并通过真实source/playable，新SDK沿用宿主身份；最终新SHA仍需正式本地记录和另获授权的远端复验。
+
 ## 阶段记录
 
 ### 01 · 建立 AI 规范与规则检查
@@ -229,4 +231,13 @@
 - 3244040第一次正式preflight的source/race通过，playable在运行器单元测试阶段拒绝：临时Git夹具索引为100755、磁盘仍0644，Linux正确报告脏tree；Windows默认filemode=false的22项没有暴露。未进入浏览器，整次失败且不产生有效推送记录，未Push。
 - 修复：夹具写入后实际chmod(0755)，保留Git索引执行位及干净tree检查，不使用core.filemode=false掩盖差异。
 - 实际回归：固定Linux SDK工具容器、2CPU/4GiB/无swap的全部运行器21通过，Windows专有1项明确跳过；Windows22/22通过。这里只把相关回归算通过，修复后的最终commit还须通过默认完整preflight生成正式记录，不复用3244040的source成功或阶段22候选。
-- 这次缺陷在本地正式入口而不是远端暴露；保留失败日志与原提交，不改写成首次全绿。未Push/PR/部署。
+- 这次缺陷在本地正式入口而不是远端暴露；保留失败日志与原提交，不改写成首次全绿。未Push/PR/部署。本阶段本地提交8ffe6aa，随后正式本地验收成功并按新授权推送；云端结果见阶段25。
+
+### 25 · 补齐普通Linux父进程与文件属主语义（2026-10-23）
+
+- 实际远端：8ffe6aa已普通推送；CI39918335777 source/race通过、playable原协议/19/19（4.3m）通过，但最后宿主清理临时副本分别在`.local/logs`、`.local/bin`报EACCES，两个job最终failure。两份完整制品与日志已核对，不能以业务通过冒充CI成功。
+- 缺口：默认root SDK在挂载目录产生root属主文件，GitHub普通runner无权递归删除；Windows/NTFS删除成功不等价于Unix UID权限。固定SDK/资源仍未覆盖父进程身份，这属于环境封装遗漏。
+- 修复：读取实际宿主UID/GID（Windows取WSL）与socket组，SDK明确用该身份、playable仅补socket组、HOME属于私有job缓存。短命root初始化仅chown新缓存卷根/home，不挂工作副本、不递归改原仓库/共享目录；实际身份写入报告且门禁核对。新增SDK目录/文件属主及同身份删除测试。
+- 版本化普通父进程入口：test-ci-owner.mjs将源码放本轮Linux卷，用UID1001/GID1001父进程及同一host绝对路径运行真实job；原仓库Git配置/属主、开发数据不改。旧8ffe6aa在该环境先通过源码/race再原样复现EACCES（expected-eacces-reproduced），不是修复通过。
+- 修复候选tree718744b68d90b9435c1fd9abb62a9af93351a780：同样普通Linux父进程的source/race、完整test:ci（真实三依赖/四服务/全部协议/19例、3.8m）及正常/故障回收通过；SDK实际1001:1001，父测试容器/卷及job资源为0，无保留卷。Windows运行器23通过、SDK专有1跳过；正式Linux SDK运行器23通过、Windows专有1跳过，新UID/文件属主测试已实际执行。
+- 完成边界：这不是新commit正式记录或新SHA云端通过。提交后必须默认完整preflight再生成当前HEAD绑定记录；新Push另行授权，不重跑或篡改原失败，不使用sudo rm/忽略清理错误放行。未Push新修复、PR或部署。决策：[ADR-0026](decisions/0026-ci-runner-ownership.md)。

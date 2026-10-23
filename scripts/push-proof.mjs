@@ -43,6 +43,13 @@ export function validateReport(report, identity, recipeHash, now = Date.now()) {
     finished <= now + 5000 && now - finished <= profile.receiptMaxAgeMs,
     "验收记录超出24小时窗口或来自未来",
   );
+  assert.ok(
+    report.runner &&
+      [report.runner.uid, report.runner.gid, report.runner.socket_gid].every(
+        (value) => Number.isInteger(value) && value >= 0,
+      ),
+    "缺少实际宿主执行身份",
+  );
   assert.equal(report.jobs.length, 2, "缺少完整source/playable");
   assert.deepEqual(report.jobs.map((job) => job.kind).sort(), ["playable", "source"]);
   for (const job of report.jobs) {
@@ -73,6 +80,8 @@ export function validateReport(report, identity, recipeHash, now = Date.now()) {
       assert.equal(env.node, profile.node);
       assert.equal(env.go, profile.go);
       assert.equal(env.cgo, job.kind === "source" ? 1 : 0);
+      assert.equal(env.uid, report.runner.uid, "SDK文件属主与宿主身份不一致");
+      assert.equal(env.gid, report.runner.gid, "SDK文件组与宿主身份不一致");
       assert.equal(env.cpus, profile.cpus);
       assert.equal(env.memory_bytes, profile.memoryBytes);
       assert.equal(env.swap_bytes, 0);

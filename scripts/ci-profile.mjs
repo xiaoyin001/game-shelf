@@ -9,6 +9,18 @@ export const digest = (value) => createHash("sha256").update(value).digest("hex"
 export function toolRecipeHash(recipe, packageJson, packageLock) {
   return digest([recipe, packageJson, packageLock].join("\0"));
 }
+export function runnerIdentity(uid, gid, socketGid) {
+  assert.ok(
+    [uid, gid, socketGid].every((value) => String(value).trim() !== ""),
+    "宿主身份缺失",
+  );
+  const values = [uid, gid, socketGid].map(Number);
+  assert.ok(
+    values.every((value) => Number.isInteger(value) && value >= 0 && value <= 2147483647),
+    "宿主UID/GID/socket组无效",
+  );
+  return { uid: values[0], gid: values[1], socket_gid: values[2] };
+}
 export function verificationPolicy(jobs, prepareOnly = false) {
   const preflight = jobs.length === 2 && !prepareOnly;
   return {

@@ -57,7 +57,7 @@ npm run verify:ci
 
 需要 Node.js 22+、本机 Linux x64/AVX Docker（至少2CPU、6GiB、cgroup v2），以及支持 `--wait` 的 Compose；Windows入口使用WSL Docker。[共用工具构建配方](deploy/ci-tools.Dockerfile)使用固定digest的SDK/CGO工具，Ubuntu官方冻结快照的图形库/字体，以及锁文件Playwright安装器的唯一headless shell，不改主机系统库。source执行规则/历史/Go/客户端与全量CGO race；playable完整`test:ci`包括真实三依赖/四服务/协议、全部19例及预期故障清理。本地默认完整preflight再在另一新DB/新四服务上额外重复全部19例，任一失败整次失败，不是失败重试；额外轮不冒称再次执行源码/原始协议/故障注入。
 
-每个工具容器实际限制 **2CPU/4GiB/无swap** 并绑定两个CPU；数据库也有资源上限。每job从空npm/Go模块/编译缓存开始，第二轮只复用本job已校验的工具缓存，数据库每轮仍为独立project/空卷。固定镜像层可缓存并记录，不清全局镜像。每job准备10分钟、执行12分钟（预留1分钟退出取证）、总预算25分钟；CI浏览器仍30秒、零重试、单worker；本地完整preflight另要求所有用例不超过27秒，留3秒余量，不把本地余量阈值当远端业务失败条件。单一参数见 [CI配置](configs/README.md#ci-profilejson)。
+每个工具容器实际限制 **2CPU/4GiB/无swap** 并绑定两个CPU；SDK运行UID/GID沿用实际宿主（Windows取本次WSL身份），仅playable添加实际Docker socket组，HOME位于本job私有缓存。新缓存卷的短命root初始化只设置该卷属主，不挂工作副本、不改原仓库权限；数据库也有资源上限。每job从空npm/Go模块/编译缓存开始，第二轮只复用本job已校验的工具缓存，数据库每轮仍为独立project/空卷。固定镜像层可缓存并记录，不清全局镜像。每job准备10分钟、执行12分钟（预留1分钟退出取证）、总预算25分钟；CI浏览器仍30秒、零重试、单worker；本地完整preflight另要求所有用例不超过27秒，留3秒余量，不把本地余量阈值当远端业务失败条件。单一参数见 [CI配置](configs/README.md#ci-profilejson)。
 
 默认只接受干净提交；提交前先完整暂存目标切片，再用 `npm run verify:ci -- --candidate` 验证暂存tree。候选通过不等于某个新提交已通过，正式推送前还需验证最终commit。源码在不含源仓库Git配置/凭据的临时Git副本运行，报告绑定commit/tree/配方与实际资源。证据在 `.local/logs/ci-verify-<随机ID>/`，按job/轮次保存，正常/失败/超时都定向回收本轮工具容器、缓存卷和数据库资源并检查零残留。主机强杀/断电不保证自动回收，不能按端口杀进程或清共享库。
 
@@ -68,6 +68,18 @@ npm run verify:ci
 Windows长命令以控制管道绑定WSL进程组，超时不只结束wsl.exe；实际父子进程回收由Windows专用测试验证，Linux明确不运行这个专有分支。
 
 共用入口阶段22本地候选验收通过：完整source/race，完整19/19及额外新DB19/19，最慢20.54s/21.76s、实际资源与零残留已核对。首次图形工具准备4m48（SDK层已有缓存），不称全部工具无缓存下载。新入口GitHub仍须在推送后核对同一SHA，不以旧3e65411全绿代替。
+
+### 非特权 Linux 属主回归
+
+8ffe6aa的云端源码/race与19/19已通过，但root SDK生成文件令普通runner删除临时目录时EACCES，两个job最终失败；不能把业务通过写成CI全绿。Windows/NTFS未覆盖这个属主限制，见 [ADR-0026](docs/decisions/0026-ci-runner-ownership.md)。
+
+工具准备后可在本轮独立Linux卷、普通UID1001父进程上复跑真实job（原仓库属主/开发卷不改）：
+
+```text
+node scripts/test-ci-owner.mjs --candidate --jobs source,playable
+```
+
+历史故障复现用 `--ref 8ffe6aa --jobs source --expect-eacces`；“成功复现EACCES”不是修复通过，也不能产生推送记录。Linux父进程/SDK UID分别实际记录；单独Windows删除成功或root Linux运行不能替代该项。
 
 ### 提交绑定的推送门禁
 

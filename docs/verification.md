@@ -231,6 +231,16 @@ a5963e3已普通推送；[CI39741132203](https://github.com/xiaoyin001/game-shel
 ### 首次正式门禁的跨平台拒绝与修复（阶段24）
 3244040首次正式preflight在source/race通过后，被Linux运行器的两个夹具测试拒绝：hook索引100755而实际文件0644，正确判为脏tree。Windows22项未发现，因为Windows默认不跟踪执行位。已对新写入的夹具真实chmod(0755)，保留原检查，固定Linux SDK容器运行器21通过/Windows专有1跳过，Windows22通过；不能把这些相关回归当作修复后最终SHA全套正式通过，记录仍要由该SHA的完整入口生成。失败未Push，也未删除或改写成通过。
 
+## 普通Linux父进程与属主回归（阶段25，2026-10-23）
+
+8ffe6aa已按授权推送，但[CI39918335777](https://github.com/xiaoyin001/game-shelf/actions/runs/39918335777)两个job最终失败。源码/race、原协议及19/19浏览器（4.3m）均通过；最后普通runner删除root SDK产生的临时副本`.local/logs`/`.local/bin`时EACCES。不是把业务测试失败改写为环境问题，原日志/完整制品保留；也不能把业务通过当CI通过。
+
+[ADR-0026](decisions/0026-ci-runner-ownership.md)改为SDK沿用实际宿主UID/GID及必要socket组；root只初始化本轮私有缓存卷属主，不改原仓库或共享目录。新增实际UID/GID和目录/文件属主/删除测试，记录与门禁实际核对身份。
+
+版本化`test-ci-owner.mjs`在真实Linux卷、普通UID1001/GID1001父进程先复现旧源码/race成功后的EACCES（只算expected-eacces-reproduced）；随后候选tree718744b68d90b9435c1fd9abb62a9af93351a780同环境source/race和完整test:ci成功，真实协议/19例（3.8m）、正常/故障回收通过，SDK实际1001:1001。父容器/卷与job资源零残留，无保留卷，原仓库属主/开发数据未改。Windows运行器23通过/SDK专有1跳过，正式Linux SDK运行器23通过/Windows专有1跳过，身份测试在SDK实际执行。
+
+候选/普通父进程成功不等于最终commit已验收或云端成功；正式新SHA仍须提交后默认完整preflight生成绑定记录，后续Push需重新授权，新SHA远端须实际观察。保留这次CI失败，不自动重跑、不提权整个运行器或忽略清理错误。
+
 ## 未覆盖与限制
 
 无大规模容量、长期压测、跨机公网、TLS/生产安全、触屏移动、AOI 或跨服证据。已有密码验证，但仍仅限可信本机 HTTP，不可直接开放互联网。NPC只有固定角色与预设选项，没有巡逻/战斗/交易或生成式AI。坐标、分数、NPC委托、资源冷却和聊天是临时沙盒，退出/重启重置；只有基础账号经 db 长期保存。
