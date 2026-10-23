@@ -87,6 +87,11 @@ test("工具容器受同一限制且只有playable获得本机socket", () => {
     assert.equal(args[args.indexOf("--user") + 1], "1001:1002");
     assert.equal(args.includes("--group-add"), kind === "playable");
     assert.ok(args.includes("HOME=/ci-cache/home"));
+    assert.ok(
+      args.some((arg) =>
+        arg.endsWith("target=/workspace/node_modules,volume-subpath=node_modules"),
+      ),
+    );
     assert.equal(args[args.indexOf("--cpus") + 1], "2");
     assert.equal(args[args.indexOf("--memory") + 1], String(4 * 1024 ** 3));
     assert.equal(args[args.indexOf("--memory-swap") + 1], String(4 * 1024 ** 3));

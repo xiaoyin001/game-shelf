@@ -16,7 +16,7 @@
 
 第23阶段完成提交绑定防漏检：默认完整preflight才可生成24小时有效的最终commit/tree记录；真实pre-push已安装，缺少干净最终证据会拒绝。正式记录由提交后真实共用入口生成，不用合成样本或候选记录代替；新SHA远端仍待另获授权。
 
-第25阶段修正本次云端属主缺口：8ffe6aa已按授权推送，CI39918335777源码/race及19/19通过，但普通runner清理root SDK生成目录EACCES，两个job最终失败。修复候选已在普通UID1001 Linux父进程复现旧故障并通过真实source/playable，新SDK沿用宿主身份；最终新SHA仍需正式本地记录和另获授权的远端复验。
+第25阶段修正本次云端属主缺口：8ffe6aa已按授权推送，CI39918335777源码/race及19/19通过，但普通runner清理root SDK生成目录EACCES，两个job最终失败。修复候选已在普通UID1001 Linux父进程复现旧故障并通过真实source/playable，新SDK沿用宿主身份；第26阶段的严格本地全量进一步捕获返程几何与无效串行收尾，现已在原限制下通过source/race与两轮19例（607.466s）；最终新SHA仍需提交后正式本地记录和另获授权的远端复验。
 
 ## 阶段记录
 
@@ -240,4 +240,14 @@
 - 修复：读取实际宿主UID/GID（Windows取WSL）与socket组，SDK明确用该身份、playable仅补socket组、HOME属于私有job缓存。短命root初始化仅chown新缓存卷根/home，不挂工作副本、不递归改原仓库/共享目录；实际身份写入报告且门禁核对。新增SDK目录/文件属主及同身份删除测试。
 - 版本化普通父进程入口：test-ci-owner.mjs将源码放本轮Linux卷，用UID1001/GID1001父进程及同一host绝对路径运行真实job；原仓库Git配置/属主、开发数据不改。旧8ffe6aa在该环境先通过源码/race再原样复现EACCES（expected-eacces-reproduced），不是修复通过。
 - 修复候选tree718744b68d90b9435c1fd9abb62a9af93351a780：同样普通Linux父进程的source/race、完整test:ci（真实三依赖/四服务/全部协议/19例、3.8m）及正常/故障回收通过；SDK实际1001:1001，父测试容器/卷及job资源为0，无保留卷。Windows运行器23通过、SDK专有1跳过；正式Linux SDK运行器23通过、Windows专有1跳过，新UID/文件属主测试已实际执行。
-- 完成边界：这不是新commit正式记录或新SHA云端通过。提交后必须默认完整preflight再生成当前HEAD绑定记录；新Push另行授权，不重跑或篡改原失败，不使用sudo rm/忽略清理错误放行。未Push新修复、PR或部署。决策：[ADR-0026](decisions/0026-ci-runner-ownership.md)。
+- 完成边界：本阶段本地提交fbe2df6；默认正式preflight并未放行旧返程路线的18/19，后续见阶段26。不是新SHA云端通过，新Push另行授权，不重跑或篡改原失败，不使用sudo rm/忽略清理错误放行。未Push新修复、PR或部署。决策：[ADR-0026](decisions/0026-ci-runner-ownership.md)。
+
+### 26 · 严格本地门禁捕获并修正路线与收尾预算（2026-10-23）
+
+- 保留全部本地失败：fbe2df6正式全量因NPC原返程18/19失败；跳跃路线候选19/19＋19/19但最后触及660s执行预算，整次仍失败；私有依赖/计时器候选又在3D用例第二个串行b.close到30秒失败（18/19），不能仅根据mailbox日志称GPU崩溃。三次均未Push、未生成有效记录，不以多轮择优或删断言放行。
+- 路线事实：第二晶簇850/600、半径22/高50，玩家半径20。现场874/564略在实体外，但继续西走必撞；原测试依赖Y>=550后恰好停止，轮询/松键余量会走过。保持服务端正确碰撞，第二次采集后实际落地、Space跳跃再返程，原委托/隐私/唯一奖励/旁观分数/密码重登重置断言全保留；新增874/564精确Go碰撞/越障/无穿透/重力落地回归，已过Linux全量race。
+- 收尾：已退出子进程不再残留fallback计时器；超时仍原TERM/KILL，监听/定时器都回收。全部独立浏览器a/b上下文正常并行close，仍传播错误，不强杀/取消真实关闭、不卡在无意义串行等待。新增真实快速子进程退出/超时监听回归，旧WSL进程组覆盖保留。
+- 依赖IO：仅把node_modules放本job原有私有卷子路径，root初始化仍仅本卷根/home/node_modules且不挂工作副本；SDK以实际宿主身份安装。每job新空卷，两轮仍npm ci、无宿主依赖复用；新DB/新四服务与完整test:ci不减，12/25分钟、2CPU/4GiB/无swap、30秒/零重试、27秒本地余量均未放宽。
+- 普通Linux UID1001父进程：私有依赖/计时器版tree3fd650366618a404bb83e9ffae7a8f6c1c76ba8e source/race和完整playable/19例通过，父/SDK缓存/正常故障资源0、无保留卷；之后只补正常上下文并行关闭。Windows运行器25通过/SDK专有1跳过，正式Linux SDK25通过/Windows专有1跳过；SDK身份/目录与文件属主实际验证。
+- 最终候选treeceb50cc63e5fbf17fa439b32d5645b2ddd7c1175默认完整preflight退出0：source实际CGO=1全量race137.990s；playable原完整test:ci＋额外新DB浏览器19/19（3.6m）＋19/19（3.6m），最慢20.213s/20.716s，总运行607.466s（含准备616.552s），低于660s执行预算；缓存卷和正常/故障项目全0，实际UID/GID1000:1000/2CPU/4GiB/无swap。首轮npm ci1.774s、额外轮仍1.132s；固定镜像层已有缓存，每job工具缓存为空，不称全基础层同轮无缓存下载；单次数据不是统计性能/成本比较。
+- 完成边界：提交前只更新本轮事实文档，随后对干净最终commit默认完整preflight重新生成绑定记录；候选/普通父进程不冒称最终commit或新SHA云端通过。旧39918335777失败保留，新Push仍需新授权，无PR/部署。决策：[ADR-0027](decisions/0027-npc-return-route.md)、[ADR-0028](decisions/0028-ci-dependency-io.md)。

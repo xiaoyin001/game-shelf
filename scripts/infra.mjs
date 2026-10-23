@@ -6,6 +6,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
+import { waitForExit } from "./process-exit.mjs";
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 // createInfraSpec 使 CI 只能使用独立 project，不接受可注入 shell 的项目名。
@@ -178,7 +179,7 @@ export async function startInfra() {
     } finally {
       if (keeper && keeper.exitCode === null && keeper.signalCode === null) {
         keeper.stdin.end();
-        await Promise.race([new Promise((done) => keeper.once("exit", done)), delay(3000)]);
+        await waitForExit(keeper, 3000);
         if (keeper.exitCode === null && keeper.signalCode === null) keeper.kill();
       }
     }

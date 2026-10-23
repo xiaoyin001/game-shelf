@@ -1,6 +1,6 @@
 // 文件说明：在同一有界容器内执行正式检查；限制不成立就失败，不按环境缩减测试。
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -53,6 +53,9 @@ if (!process.argv.includes("--bounded")) {
   assert.equal(process.getuid(), Number(process.env.GAME_SHELF_RUN_UID), "运行UID未沿用宿主");
   assert.equal(process.getgid(), Number(process.env.GAME_SHELF_RUN_GID), "运行GID未沿用宿主");
   assert.equal(process.env.HOME, "/ci-cache/home", "HOME必须属于本job私有缓存");
+  const dependencyOwner = statSync("node_modules");
+  assert.equal(dependencyOwner.uid, process.getuid(), "私有依赖目录UID错误");
+  assert.equal(dependencyOwner.gid, process.getgid(), "私有依赖目录GID错误");
   if (kind === "playable") {
     checkCiKernel(os.release());
     assert.match(readFileSync("/proc/cpuinfo", "utf8"), /\bavx\b/, "MongoDB需要AVX");

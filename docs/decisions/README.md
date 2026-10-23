@@ -54,4 +54,8 @@
 
 - [ADR-0026：宿主 UID/GID 与非特权 Linux 父进程](0026-ci-runner-ownership.md)
 
+- [ADR-0027：委托返程使用真实跳跃，不依赖晶簇切线停车](0027-npc-return-route.md)
+
+- [ADR-0028：私有依赖卷与已结束进程的等待计时器回收](0028-ci-dependency-io.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

@@ -56,6 +56,9 @@ test("守灯人委托从交谈、采集到领取奖励，另一旅人只看到�
     await walk(pa, "s", "y", 550);
     await pa.keyboard.press("e");
     await expect(pa.locator("#quest-progress")).toContainText("2 / 2");
+    // 松键余量可能停在晶簇北侧实体边缘；落地后真实跳过，不假定刚好停在切线。
+    await expect(pa.locator("#coordinates")).toHaveAttribute("data-grounded", "true");
+    await pa.keyboard.press("Space");
     await walk(pa, "a", "x", 580, false);
     await expect(pa.locator("#interaction-hint")).toContainText("阿苔");
     await pa.keyboard.press("e");

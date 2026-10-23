@@ -110,8 +110,7 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     await expect(pa.locator("#join-button")).toBeDisabled();
     await expect(pb.locator("#online-count")).toHaveText("1 人在线");
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });
 test("无 WebGL2 时明确失败，不降级成 2D 也不能假进入", async ({ page }) => {

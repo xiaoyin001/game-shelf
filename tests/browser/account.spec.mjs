@@ -22,8 +22,7 @@ test("账号密码注册、错密拒绝且不顶号、正确密码重登", async
     await expect(pb.locator("#status")).toContainText("已连接");
     await expect(pa.locator("#status")).toHaveText("连接已断开");
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });
 

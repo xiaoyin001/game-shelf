@@ -81,6 +81,12 @@ export function toolArgs({ name, image, workspace, id, kind, runner }) {
     "type=bind,source=" + workspace + ",target=/workspace",
     "--mount",
     "type=volume,source=game-shelf-ci-cache-" + id.slice(7, -2) + "-" + kind + ",target=/ci-cache",
+    "--mount",
+    "type=volume,source=game-shelf-ci-cache-" +
+      id.slice(7, -2) +
+      "-" +
+      kind +
+      ",target=/workspace/node_modules,volume-subpath=node_modules",
     "--env",
     "TINI_KILL_PROCESS_GROUP=1",
     "--env",
@@ -273,7 +279,7 @@ function stopOwnedTool(bridge, name, id) {
 }
 export function cacheInitArgs({ name, cache, id, image, runner }) {
   const code =
-    "const fs=require('fs');const [uid,gid]=process.argv.slice(1).map(Number);fs.mkdirSync('/ci-cache/home',{recursive:true});fs.chownSync('/ci-cache/home',uid,gid);fs.chownSync('/ci-cache',uid,gid)";
+    "const fs=require('fs');const [uid,gid]=process.argv.slice(1).map(Number);for(const p of ['/ci-cache/home','/ci-cache/node_modules']){fs.mkdirSync(p,{recursive:true});fs.chownSync(p,uid,gid)}fs.chownSync('/ci-cache',uid,gid)";
   return [
     "run",
     "--rm",

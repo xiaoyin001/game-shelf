@@ -23,7 +23,6 @@ test("键盘权威移动同步到另一旅人", async ({ browser }) => {
       )
       .toBeLessThan(start - 35);
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });

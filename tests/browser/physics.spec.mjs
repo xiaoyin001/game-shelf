@@ -59,8 +59,7 @@ test("空格让真实角色跳起，另一旅人看到高度，按住不空中�
     expect(await coordinate(pa, "z")).toBe(0);
     await expect(pa.locator("#chat-input")).toHaveValue(" ");
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });
 
@@ -124,7 +123,6 @@ test("地面被晶簇阻挡，绕到空地后玩家身体也不能互穿", async
     expect(gap).toBeLessThan(43);
     await pa.screenshot({ path: info.outputPath("player-collision.png"), fullPage: true });
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });

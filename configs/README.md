@@ -25,7 +25,7 @@
 - `prepareMs` / `runMs` / `jobMs`：毫秒，分别600000/720000/1500000；YAML独立step/job期限由运行器测试检查一致。
 - `cleanupReserveMs`：runMs中预留退出/取证时间，当前60000ms，不额外加到12分钟上。
 
-UID/GID不写死在JSON：Linux取调用进程身份，Windows取实际WSL身份；socket组取本机socket的stat值。SDK只用该UID/GID和必要socket组，HOME为本job私有缓存；短命初始化容器只设置新缓存卷根/home的属主，不改工作副本或共享目录。环境/推送报告要求SDK UID/GID与本轮执行身份一致。
+UID/GID不写死在JSON：Linux取调用进程身份，Windows取实际WSL身份；socket组取本机socket的stat值。SDK只用该UID/GID和必要socket组，HOME为本job私有缓存；短命初始化容器只设置新缓存卷根/home/node_modules的属主，不改工作副本或共享目录。node_modules按volume-subpath挂载，不读取宿主依赖，两轮仍各自npm ci；卷在job开始为空、结束定向回收，见[ADR-0028](../docs/decisions/0028-ci-dependency-io.md)。环境/推送报告要求SDK UID/GID与本轮执行身份一致。
 
 数据库资源上限在仅CI使用的Compose覆盖里：Mongo0.5CPU/1GiB、Redis0.5CPU/128MiB、etcd0.5CPU/256MiB；普通开发配置与数据卷不改。实际宿主、容器资源、SDK、系统包和浏览器字节信息写入每轮环境证据，见 [ADR-0023](../docs/decisions/0023-shared-ci-preflight.md) 与 [ADR-0024](../docs/decisions/0024-headless-ci-image.md)。
 

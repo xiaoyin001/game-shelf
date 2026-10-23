@@ -28,7 +28,6 @@ test("世界聊天广播且不解释 HTML", async ({ browser }) => {
     expect(errors).toEqual([]);
     expect(dialogs).toEqual([]);
   } finally {
-    await a.close();
-    await b.close();
+    await Promise.all([a.close(), b.close()]);
   }
 });

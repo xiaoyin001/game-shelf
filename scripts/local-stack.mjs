@@ -5,6 +5,7 @@ import { createWriteStream } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
+import { waitForExit } from "./process-exit.mjs";
 import { root, startInfra, listening, run, captureInfraDiagnostics } from "./infra.mjs";
 const ports = [11000, 11020, 12000, 12001, 12010, 12020, 13010, 13020, 14010, 14020];
 const children = [],
@@ -80,10 +81,10 @@ export async function stopStack() {
   for (const child of children.toReversed()) {
     if (child.exitCode !== null || child.signalCode !== null) continue;
     child.kill("SIGTERM");
-    await Promise.race([new Promise((done) => child.once("exit", done)), delay(5000)]);
+    await waitForExit(child, 5000);
     if (child.exitCode === null && child.signalCode === null) {
       child.kill("SIGKILL");
-      await Promise.race([new Promise((done) => child.once("exit", done)), delay(1000)]);
+      await waitForExit(child, 1000);
     }
   }
   logs.forEach((log) => log.end());
