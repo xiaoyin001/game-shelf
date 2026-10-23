@@ -9,7 +9,11 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [["list"], ["html", { open: "never" }]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }],
+    ["json", { outputFile: ".local/logs/playwright.json" }],
+  ],
   use: {
     baseURL: "http://127.0.0.1:11000",
     // 在有/无独显的本地与 CI 都执行真正的软件 WebGL2，不用 2D 替身。

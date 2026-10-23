@@ -1,4 +1,4 @@
-# 文件说明：验证 master 与开发分支的真实成长记录、源码及联机回归，不自动写回仓库。
+# 文件说明：本地与Actions使用同一有界工具容器；源码和联机分别取证，不自动写回仓库。
 name: ci
 on:
   push:
@@ -10,24 +10,29 @@ permissions:
 jobs:
   source:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22.23.3"
-          cache: npm
-      - name: 安装固定工具依赖
-        run: npm ci
-      - name: 规则、历史、Go 与客户端检查
-        run: make check && npm run check:client && git diff --exit-code
-      - name: 并发数据竞争检查
-        run: go test -race -count=1 ./...
+      - name: 准备共用源码工具
+        timeout-minutes: 10
+        run: npm run verify:ci -- --job source --prepare
+      - name: 完整源码与并发回归
+        timeout-minutes: 12
+        run: npm run verify:ci -- --job source --run
+      - name: 保存源码证据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-evidence
+          path: .local/logs/ci-verify-*/
+          include-hidden-files: true
+          retention-days: 7
   playable:
     runs-on: ubuntu-22.04
     timeout-minutes: 25
@@ -35,27 +40,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22.23.3"
-          cache: npm
-      - name: 安装浏览器工具
+      - name: 准备共用浏览器工具
         timeout-minutes: 10
-        run: npm ci && npx playwright install --with-deps --only-shell chromium
-      - name: 当前真实依赖与浏览器完整回归
+        run: npm run verify:ci -- --job playable --prepare
+      - name: 当前真实依赖与两轮完整回归
         timeout-minutes: 12
-        run: npm run test:ci
-      - name: 保存证据
+        run: npm run verify:ci -- --job playable --run
+      - name: 保存联机证据
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playable-evidence
-          path: |
-            test-results/
-            playwright-report/
-            .local/logs/
+          path: .local/logs/ci-verify-*/
+          include-hidden-files: true
           retention-days: 7

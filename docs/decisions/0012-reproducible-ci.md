@@ -2,6 +2,8 @@
 
 状态：采用（固定镜像、隔离和完整回归继续有效；实际 CI 的内核不兼容与联机 runner 调整见 [ADR-0013](0013-mongodb-kernel-compatibility.md)）。补充 ADR-0011；原历史原因不猜测，最终候选以实际整套运行结果验收。
 
+后续本地临时工具路线与云端原生安装发生偏差，共用有界工具入口由 [ADR-0023](0023-shared-ci-preflight.md) 和 [ADR-0024](0024-headless-ci-image.md) 接续；以下是原阶段的选择与真实当次结果。
+
 ## 背景
 当前只有首次 master CI：source 通过，playable 在 MongoDB 不可达时起服失败。ed586de 增加了真实协议就绪和基础容器日志，但尚未证明干净 Linux 上完整起服与浏览器回归。
 

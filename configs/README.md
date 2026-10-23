@@ -1,12 +1,27 @@
 # 配置说明
 
-`configs/**/*.json` 是各服务启动配置。JSON 不支持注释，字段说明集中写在这里。
+`configs/local/**/*.json` 是各服务启动配置，`configs/ci-profile.json` 是验收运行器配置。JSON 不支持注释，字段说明集中写在这里。
 
 ## 目录
 
 - `configs/local/development.json`：基础设施烟测使用的独立身份与依赖连接配置。
 - `configs/local/login.json`、`gate.json`、`lobby.json`、`db.json`：当前四个本地进程的实际配置，监听均为本机回环地址。
 - 地址、监听与数据库连接使用本机参数；依赖默认仅开放回环端口。
+
+## ci-profile.json
+
+本地 `verify:ci` 与 GitHub共用，不影响普通dev。`version`是报告/配置格式版本；`node`、`go`、`playwright`是精确运行版本，必须同时匹配固定SDK构建配方和锁文件。source保留CGO=1并执行race，playable为CGO=0。
+
+- `cpus`：工具容器CPU额度及CPU亲和个数，当前2；运行时读取cgroup，不以主机核心数代替。
+- `memoryBytes`：工具容器内存上限，字节，当前4GiB；memory与memory+swap同额，实际swap必须0。Docker宿主至少6GiB，给独立数据库留空间。
+- `pids`：每个工具容器进程/线程上限，当前1024。
+- `rounds`：playable必须连续成功的完整轮数，当前2：先完整回归，再在新DB/新四服务重复全部浏览器，不是失败重试；第二轮不重复源码/原始协议/故障注入。每轮DB空卷，工具缓存仅在同job复用。
+- `minBrowserTests`：当前必须通过的最少浏览器用例数19；零跳过、零重试、零全局错误。
+- `maxBrowserMs`：每例实际耗时上限27000ms，另保留Playwright硬上限30000ms，留出至少3秒余量。
+- `prepareMs` / `runMs` / `jobMs`：毫秒，分别600000/720000/1500000；YAML独立step/job期限由运行器测试检查一致。
+- `cleanupReserveMs`：runMs中预留退出/取证时间，当前60000ms，不额外加到12分钟上。
+
+数据库资源上限在仅CI使用的Compose覆盖里：Mongo0.5CPU/1GiB、Redis0.5CPU/128MiB、etcd0.5CPU/256MiB；普通开发配置与数据卷不改。实际宿主、容器资源、SDK、系统包和浏览器字节信息写入每轮环境证据，见 [ADR-0023](../docs/decisions/0023-shared-ci-preflight.md) 与 [ADR-0024](../docs/decisions/0024-headless-ci-image.md)。
 
 ## service
 

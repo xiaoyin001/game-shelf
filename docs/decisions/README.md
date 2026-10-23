@@ -46,4 +46,8 @@
 
 - [ADR-0022：空闲渲染预算与 CI 分层时限](0022-ci-render-budget.md)
 
+- [ADR-0023：共用有界 CI 环境与提交绑定预验收](0023-shared-ci-preflight.md)
+
+- [ADR-0024：冻结 Ubuntu 依赖与唯一 headless shell](0024-headless-ci-image.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

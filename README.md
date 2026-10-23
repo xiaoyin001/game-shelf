@@ -47,21 +47,27 @@ npm run test:all
 - `npm run test:e2e`：独立启动浏览器验收，可附加 `-- --headed`。
 - 普通 `go test ./...` 会明确跳过需起服的测试，不能单独作为可玩通过证据。
 
-### 与 GitHub 相同的 Linux CI
+### 共用有界 CI 预验收
 
-需要 Linux x64/AVX、当前固定数据库组合已验收的内核 **<6.19**、Go **1.25.0**、Node.js **22.23.3** 和支持 `--wait` 的 Docker Compose v2：
+本地和 GitHub 改用同一入口，不再以 `test:all` 或仓库外脚本作为推送充分证据：
 
 ```text
-npm ci
-npx playwright install --with-deps --only-shell chromium
-npm run test:ci
+npm run verify:ci
 ```
 
-此入口执行源码与依赖产物检查、真实基础设施/协议、全部 19 个浏览器用例，以及预期失败后的资源清理回归。CI 使用 [独立覆盖配置](deploy/docker-compose.ci.yml) 固定 MongoDB 8.0.34、Redis 7.4.11-alpine、etcd 3.5.18 的 digest，每轮生成独立 project 与新卷。端口已有监听就失败，不复用或停止未知服务。成功与失败均只回收本轮自建容器、卷和网络，并核对残留为 0；普通 `dev`/`test:all` 不删除开发卷。GitHub playable 总预算25分钟，浏览器工具安装单步10分钟、完整`test:ci`单步12分钟；浏览器每例仍30秒、零重试、单worker，不用延长业务用例掩盖失败。
+需要 Node.js 22+、本机 Linux x64/AVX Docker（至少2CPU、6GiB、cgroup v2），以及支持 `--wait` 的 Compose；Windows入口使用WSL Docker。[共用工具构建配方](deploy/ci-tools.Dockerfile)使用固定digest的SDK/CGO工具，Ubuntu官方冻结快照的图形库/字体，以及锁文件Playwright安装器的唯一headless shell，不改主机系统库。source执行规则/历史/Go/客户端与全量CGO race；playable先完整`test:ci`（真实三依赖/四服务/协议、全部19例及预期故障清理），再在另一新DB/新四服务上额外重复全部19例，任一失败整次失败，不是失败重试；第二轮不冒称再次执行源码/原始协议/故障注入。
 
-容器 health 后还需通过主机侧真实 Go 协议检查，随后才启动业务。浏览器仍使用 Playwright 1.64.1 默认的真实 headless shell，`--only-shell` 只省略未使用的 headed 浏览器下载，不减少测试。单独复跑失败清理用 `npm run test:ci-cleanup`：真实依赖健康后故意让检查工具退出 23，验证原错误、现场及定向回收；不会把故障注入当作正向业务通过。
+每个工具容器实际限制 **2CPU/4GiB/无swap** 并绑定两个CPU；数据库也有资源上限。每job从空npm/Go模块/编译缓存开始，第二轮只复用本job已校验的工具缓存，数据库每轮仍为独立project/空卷。固定镜像层可缓存并记录，不清全局镜像。每job准备10分钟、执行12分钟（预留1分钟退出取证）、总预算25分钟；浏览器仍30秒、零重试、单worker，另检查所有用例不超过27秒，留3秒余量。单一参数见 [CI配置](configs/README.md#ci-profilejson)。
 
-环境与清理结果在 `.local/logs/ci-environment.json`、`ci-cleanup.json`；预期失败证据分别保存在 `ci-failure-infra.log`、`ci-failure-cleanup.json`。隔离配置理由和回退见 [ADR-0012](docs/decisions/0012-reproducible-ci.md)。联机 job 临时使用 Ubuntu 22.04，源码 job 保持 24.04：MongoDB 8.0.34 在实际 GitHub 7.0 内核主动拒绝启动，而官方 Ubuntu 修复 8.0.35 尚未发布。入口记录实际发行版/内核并拒绝超出已验收范围；不关闭数据库保护、不跳过测试。临时方案的弃用期限与恢复较新 runner 的条件见 [ADR-0013](docs/decisions/0013-mongodb-kernel-compatibility.md)。
+默认只接受干净提交；提交前先完整暂存目标切片，再用 `npm run verify:ci -- --candidate` 验证暂存tree。候选通过不等于某个新提交已通过，正式推送前还需验证最终commit。源码在不含源仓库Git配置/凭据的临时Git副本运行，报告绑定commit/tree/配方与实际资源。证据在 `.local/logs/ci-verify-<随机ID>/`，按job/轮次保存，正常/失败/超时都定向回收本轮工具容器、缓存卷和数据库资源并检查零残留。主机强杀/断电不保证自动回收，不能按端口杀进程或清共享库。
+
+本地显式HTTP代理仅用于本任务下载/子进程。有显式HTTP代理时，使用校验过的regctl导出同一固定digest的官方镜像；Windows回环代理另通过主机主动建立的反向通道临时桥接，WSL代理入口仅在回环，回传通道限制网关源IP和一次性令牌；不重启daemon、不改系统代理/防火墙、不接受带凭据的代理。首次冷准备包含SDK与真实浏览器下载。完整官方Playwright基底因891.7MiB下载超10分钟已放弃，改为仅安装实际运行的headless shell，见 [ADR-0024](docs/decisions/0024-headless-ci-image.md)；准备失败也属于阻止推送的失败，不拿旧私有工具镜像冒充可重建。
+
+`test:ci`保留为镜像内部/合格Linux环境的底层回归入口，不单独证明资源/期限门禁通过。三依赖仍由 [独立配置](deploy/docker-compose.ci.yml) 固定digest；health后再做真实Go协议检查，端口占用拒绝复用/接管，不自动停止试玩。只回收本轮资源，普通dev数据保留。当前工具容器仍共享宿主内核，Mongo组合继续要求 **<6.19**，容器不能复刻Azure内核/网络/宿主负载；最终必须观察同一SHA的GitHub结果。宿主22.04退役和迁移要求见 [ADR-0013](docs/decisions/0013-mongodb-kernel-compatibility.md)，本次取舍见 [ADR-0023](docs/decisions/0023-shared-ci-preflight.md)。
+
+Windows长命令以控制管道绑定WSL进程组，超时不只结束wsl.exe；实际父子进程回收由Windows专用测试验证，Linux明确不运行这个专有分支。
+
+共用入口本地候选验收通过：完整source/race，完整19/19及额外新DB19/19，最慢20.54s/21.76s、实际资源与零残留已核对。首次图形工具准备4m48（SDK层已有缓存），不称为全部工具无缓存下载。新入口GitHub尚未验收；提交绑定的Git pre-push防漏检将在下一完整切片实现，尚未安装，不冒称已生效。
 
 截图/trace 在 `test-results/`，HTML 报告在 `playwright-report/`，均不提交。若异常强杀留下 `.local/stack.lock`，必须先确认原运行器已退出，再移除过期锁；不要按端口杀进程。
 
@@ -89,13 +95,13 @@ npm run test:ci
 
 ## AI 与成长历史
 
-当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。账号密码与 3D 阶段已独立提交并通过本地真实服务，真实双人 3D 截图已查看；随后密码输入改为 6–32 位 ASCII，Windows/Linux 最新真实服务/协议与浏览器各 11/11 通过，Go race 与清理通过，见 [ADR-0016](docs/decisions/0016-password-input-policy.md)。最新跳跃/碰撞阶段已通过 Windows/Linux 真实服务/协议与各 14/14 浏览器、Go race 及清理，角色首帧与短暂高度采用实际只读观察验收。上述4个提交已普通推送至 a5963e3；[CI 39741132203](https://github.com/xiaoyin001/game-shelf/actions/runs/39741132203) 的 source 成功、playable 仅采集用例在收尾时超过30s，其余13项及真实协议通过。采集原页重进/碰撞等待已按 [ADR-0018](docs/decisions/0018-browser-gather-ci.md) 在 Windows 与双CPU Linux 各14/14验证；修复尚未补推，不能把本地结果冒称云端通过。
+当前实际结果见 [最终验收](docs/verification.md)，阶段提交索引见 [成长历史](docs/history.json)。GitHub Actions 已配置 master 和开发分支检查。基线 3ea3baf 的 [CI 39616755008](https://github.com/xiaoyin001/game-shelf/actions/runs/39616755008) 已核对 source、playable 与提交检查汇总全部成功。账号密码与 3D 阶段已独立提交并通过本地真实服务，真实双人 3D 截图已查看；随后密码输入改为 6–32 位 ASCII，Windows/Linux 最新真实服务/协议与浏览器各 11/11 通过，Go race 与清理通过，见 [ADR-0016](docs/decisions/0016-password-input-policy.md)。最新跳跃/碰撞阶段已通过 Windows/Linux 真实服务/协议与各 14/14 浏览器、Go race 及清理，角色首帧与短暂高度采用实际只读观察验收。上述4个提交已普通推送至 a5963e3；[CI 39741132203](https://github.com/xiaoyin001/game-shelf/actions/runs/39741132203) 的 source 成功、playable 仅采集用例在收尾时超过30s，其余13项及真实协议通过。采集原页重进/碰撞等待已按 [ADR-0018](docs/decisions/0018-browser-gather-ci.md) 在 Windows 与双CPU Linux 各14/14验证；这些是当次本地结果；后续已推送并完成云端复验，见本节最后的3e65411记录。
 
 NPC 阶段已在独立 Linux 网络命名空间与空依赖上完成真实四服务、独立协议、全部 **17/17** 浏览器及 Go race 回归；Windows 源码/客户端检查通过，原生 Windows 全套联机未重跑。包含两位实体角色、选项对话、营灯委托与唯一奖励，详见 [ADR-0019](docs/decisions/0019-npc-interactions.md)。最后 race 发现的 protobuf 标量 presence 问题已用官方补丁修复并整套复验，见 [ADR-0020](docs/decisions/0020-protobuf-scalar-presence.md)。上述是该阶段本地验收记录；随后已按授权推送至516a117并正常重启试玩，远端未全部通过，详见下面CI修复记录。角色为预设对话，无巡逻、生成式 AI 或长期任务存档。
 
 低台阶迈步阶段已通过 Windows 源码/客户端检查、Linux 隔离真实四服务与全部 **18/18** 浏览器、独立协议回归和全量 Go race；原17项保持不变。当前每级步高18，脚底到真实顶面、走离自然落下，详见 [ADR-0021](docs/decisions/0021-authoritative-step-up.md)。原生Windows完整联机未跑。516a117已按授权推送，云端source成功、playable超时取消；正常重建重启本地四服务加载新规则，不更改账号数据。
 
-最新CI修复见 [ADR-0022](docs/decisions/0022-ci-render-budget.md)：原版在双CPU真实环境复现17/18、NPC超30s；修复后双CPU真实四服务/协议及 **19/19（3.9m）**、独立服务回归和Go race通过，30s/零重试不变。新增独立重生验证，保留完整委托和presence整页重进。GitHub原运行未通过，新修复尚未补推/云端复验；新的冷安装、完整test:ci故障注入与原生Windows全套未跑，不能用本地结果冒称云端成功。
+最新CI修复见 [ADR-0022](docs/decisions/0022-ci-render-budget.md)：原版在双CPU真实环境复现17/18、NPC超30s；修复后双CPU真实四服务/协议及 **19/19（3.9m）**、独立服务回归和Go race通过，30s/零重试不变。新增独立重生验证，保留完整委托和presence整页重进。后续3e65411已按授权推送，[CI39792750622](https://github.com/xiaoyin001/game-shelf/actions/runs/39792750622)的source/race和playable全部SUCCESS，云端19/19（3.0m）、正常/故障容器/卷/网络均0，制品已完整核对。这是原执行方式下该次提交的结果，不代表本阶段共用入口已通过；原生Windows新版全套仍未跑。
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 

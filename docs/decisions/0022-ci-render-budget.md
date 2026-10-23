@@ -2,6 +2,8 @@
 
 状态：采用（2026-10-22，双CPU真实依赖/四服务/19项浏览器、独立协议与全量Go race通过；尚未补推/云端复验）。修正 [ADR-0015](0015-browser-3d.md) 的恒定30fps策略和 [ADR-0019](0019-npc-interactions.md) 的长委托浏览器流程，保留真实3D、权威玩法及 [ADR-0018](0018-browser-gather-ci.md) 的30秒/零重试原则。
 
+后续3e65411已按授权推送，CI39792750622的source/race及playable全部成功（19/19、正常/故障零残留）。本次云端结果不替代新入口验收；共用环境/期限执行方式由 [ADR-0023](0023-shared-ci-preflight.md) 接续，渲染与玩法决策继续有效。
+
 ## 背景与实际证据
 提交516a117的 [CI39767562153](https://github.com/xiaoyin001/game-shelf/actions/runs/39767562153) source（含race）成功，真实依赖/全部协议通过，浏览器16/18通过。NPC委托与presence超30s，playable最终cancelled；GitHub annotation明确为“The job has exceeded the maximum execution time of 15m0s”。不是账号或物理断言失败的证据。
 

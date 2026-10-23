@@ -55,7 +55,14 @@ process.exit(r.status??1);
       encoding: "utf8",
       timeout: 240000,
       maxBuffer: 8 * 1024 * 1024,
-      env: { ...process.env, GAME_SHELF_CI: "1", PATH: temp + ":" + process.env.PATH },
+      env: {
+        ...process.env,
+        GAME_SHELF_CI: "1",
+        ...(process.env.GAME_SHELF_CI_ID
+          ? { GAME_SHELF_CI_ID: process.env.GAME_SHELF_CI_ID + "-failure" }
+          : {}),
+        PATH: temp + ":" + process.env.PATH,
+      },
     },
   );
   const output = (result.stdout || "") + (result.stderr || "");

@@ -1,5 +1,5 @@
 // 文件说明：本地 Linux 与 GitHub 共用的冷启动验证入口，不以本地通过代替远端结果。
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import { checkCiKernel } from "./ci-platform.mjs";
@@ -20,7 +20,16 @@ writeFileSync(
       arch: process.arch,
       node: process.versions.node,
       go: go.stdout.trim(),
-      memory_bytes: os.totalmem(),
+      memory_host_bytes: os.totalmem(),
+      cpus_available: os.availableParallelism(),
+      cgroup: Object.fromEntries(
+        ["cpu.max", "memory.max", "memory.swap.max"].map((name) => [
+          name,
+          existsSync("/sys/fs/cgroup/" + name)
+            ? readFileSync("/sys/fs/cgroup/" + name, "utf8").trim()
+            : null,
+        ]),
+      ),
       started_at: new Date().toISOString(),
     },
     null,

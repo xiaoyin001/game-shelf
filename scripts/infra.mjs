@@ -23,7 +23,7 @@ export function cleanupArgs(spec, created) {
   return [...spec.args, "down", "--volumes", "--remove-orphans", "--timeout", "10"];
 }
 const ciMode = process.env.GAME_SHELF_CI === "1";
-const spec = createInfraSpec(ciMode);
+const spec = createInfraSpec(ciMode, ciMode ? process.env.GAME_SHELF_CI_ID : undefined);
 let diagnosticCommand = null;
 let snapshotSaved = false;
 

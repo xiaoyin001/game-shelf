@@ -18,6 +18,7 @@
     "test:services": "node scripts/test-services.mjs",
     "test:runner": "node --test tests/runner/*.test.mjs",
     "test:all": "node --test tests/runner/*.test.mjs && node scripts/verify.mjs",
+    "verify:ci": "node scripts/ci-verify.mjs",
     "test:ci": "node scripts/ci.mjs",
     "test:ci-cleanup": "node scripts/test-ci-cleanup.mjs",
     "test:e2e": "node scripts/verify.mjs --browser-only",
