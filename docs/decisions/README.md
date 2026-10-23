@@ -50,4 +50,6 @@
 
 - [ADR-0024：冻结 Ubuntu 依赖与唯一 headless shell](0024-headless-ci-image.md)
 
+- [ADR-0025：提交绑定的 pre-push 防漏检门禁](0025-push-verification-gate.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

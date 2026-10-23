@@ -15,9 +15,13 @@
 - `cpus`：工具容器CPU额度及CPU亲和个数，当前2；运行时读取cgroup，不以主机核心数代替。
 - `memoryBytes`：工具容器内存上限，字节，当前4GiB；memory与memory+swap同额，实际swap必须0。Docker宿主至少6GiB，给独立数据库留空间。
 - `pids`：每个工具容器进程/线程上限，当前1024。
-- `rounds`：playable必须连续成功的完整轮数，当前2：先完整回归，再在新DB/新四服务重复全部浏览器，不是失败重试；第二轮不重复源码/原始协议/故障注入。每轮DB空卷，工具缓存仅在同job复用。
+- `rounds`：本地默认完整preflight必须成功的浏览器轮数，当前2：先完整回归，再在新DB/新四服务重复全部浏览器，不是失败重试；第二轮不重复源码/原始协议/故障注入。每轮DB空卷，工具缓存仅在同job复用。
+- `ciRounds`：CI/单job完整回归轮数，当前1，执行全部原test:ci；单job不能生成推送记录。避免把本地额外压力轮重复放到远端挤占时限。
+- `browserTimeoutMs`：CI/单job真实浏览器硬上限30000ms，匹配Playwright；本地完整preflight另用maxBrowserMs留余量。
+- `receiptMaxAgeMs`：提交绑定记录有效期，当前86400000ms（24小时），不表示环境24小时必然稳定。
+- `pushBranches`：门禁允许的工作流覆盖分支模式；与YAML由运行器测试核对，不允许main、标签或删除被普通门禁隐式放行。
 - `minBrowserTests`：当前必须通过的最少浏览器用例数19；零跳过、零重试、零全局错误。
-- `maxBrowserMs`：每例实际耗时上限27000ms，另保留Playwright硬上限30000ms，留出至少3秒余量。
+- `maxBrowserMs`：本地完整preflight每例实际耗时上限27000ms，另保留Playwright硬上限30000ms，留出至少3秒余量；不是把CI业务硬上限偷偷降到27秒。
 - `prepareMs` / `runMs` / `jobMs`：毫秒，分别600000/720000/1500000；YAML独立step/job期限由运行器测试检查一致。
 - `cleanupReserveMs`：runMs中预留退出/取证时间，当前60000ms，不额外加到12分钟上。
 

@@ -9,6 +9,30 @@ export const digest = (value) => createHash("sha256").update(value).digest("hex"
 export function toolRecipeHash(recipe, packageJson, packageLock) {
   return digest([recipe, packageJson, packageLock].join("\0"));
 }
+export function verificationPolicy(jobs, prepareOnly = false) {
+  const preflight = jobs.length === 2 && !prepareOnly;
+  return {
+    scope: prepareOnly ? "prepare" : preflight ? "preflight" : "job",
+    rounds: preflight ? profile.rounds : profile.ciRounds,
+    maxBrowserMs: preflight ? profile.maxBrowserMs : profile.browserTimeoutMs,
+  };
+}
+export function commandPlan(kind, scope = "full") {
+  assert.ok(["source", "playable"].includes(kind));
+  assert.ok(["full", "browser-repeat"].includes(scope));
+  const install = ["npm", ["ci", "--no-audit", "--no-fund"]];
+  if (kind === "source") {
+    assert.equal(scope, "full");
+    return [
+      install,
+      ["npm", ["run", "check"]],
+      ["npm", ["run", "check:client"]],
+      ["go", ["test", "-race", "-count=1", "./..."]],
+      ["git", ["diff", "--exit-code"]],
+    ];
+  }
+  return [install, ["npm", ["run", scope === "full" ? "test:ci" : "test:e2e"]]];
+}
 export function cpuList(text) {
   const cpus = [];
   for (const part of text.trim().split(",")) {
@@ -25,7 +49,8 @@ export function checkLimits(cpuMax, memoryMax, memorySwapMax) {
   assert.equal(Number(memoryMax.trim()), profile.memoryBytes, "没有实际限制到配置的内存");
   assert.equal(Number(memorySwapMax.trim()), 0, "不允许依赖额外swap通过");
 }
-export function browserResult(report) {
+export function browserResult(report, maxDuration = profile.maxBrowserMs) {
+  assert.ok(maxDuration > 0 && maxDuration <= profile.browserTimeoutMs);
   const stats = report.stats;
   assert.ok(stats?.expected >= profile.minBrowserTests, "浏览器用例缺失");
   for (const name of ["unexpected", "flaky", "skipped"])
@@ -43,8 +68,8 @@ export function browserResult(report) {
           assert.ok(
             Number.isFinite(result.duration) &&
               result.duration >= 0 &&
-              result.duration <= profile.maxBrowserMs,
-            "用例缺少3秒余量：" + spec.title,
+              result.duration <= maxDuration,
+            "用例超过本轮耗时预算：" + spec.title,
           );
           tests.push({ title: spec.title, duration_ms: result.duration });
         }
@@ -54,7 +79,13 @@ export function browserResult(report) {
   };
   visit(report.suites);
   assert.equal(tests.length, stats.expected, "报告计数不一致");
-  return { passed: tests.length, slowest: tests.sort((a, b) => b.duration_ms - a.duration_ms)[0] };
+  return {
+    passed: tests.length,
+    failed: 0,
+    skipped: 0,
+    retries: 0,
+    slowest: tests.sort((a, b) => b.duration_ms - a.duration_ms)[0],
+  };
 }
 export function ownedProjects(id) {
   if (!/^verify-[a-f0-9]{32}-[12]$/.test(id)) throw new Error("拒绝未知资源scope");

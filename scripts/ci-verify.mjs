@@ -2,14 +2,24 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { readFile, writeFile, mkdir, mkdtemp, cp, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdir, mkdtemp, cp, rm, open, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { profile, digest, toolRecipeHash, browserResult, ownedProjects } from "./ci-profile.mjs";
+import {
+  profile,
+  digest,
+  toolRecipeHash,
+  browserResult,
+  ownedProjects,
+  verificationPolicy,
+} from "./ci-profile.mjs";
 import { taskNetwork } from "./ci-network.mjs";
 import { clientImages } from "./ci-images.mjs";
 import { listening } from "./infra.mjs";
+import { gitIdentity, createSnapshot } from "./ci-git.mjs";
+import { invalidateProof, recordProof } from "./push-proof.mjs";
+export { gitIdentity, createSnapshot };
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ownerLabel = "io.game-shelf.verify.id";
 export async function guardPorts(
@@ -30,38 +40,6 @@ function sync(file, args, cwd = root) {
   if (r.error || r.status !== 0)
     throw r.error || new Error(file + " exited " + r.status + ": " + r.stderr);
   return r.stdout.trim();
-}
-export function gitIdentity(candidate = false, repository = root) {
-  const git = (args) => sync("git", args, repository);
-  assert.equal(git(["diff", "--name-only"]), "", "存在未暂存改动，先完整暂存候选切片");
-  assert.equal(
-    git(["ls-files", "--others", "--exclude-standard"]),
-    "",
-    "存在未跟踪文件，拒绝遗漏源码",
-  );
-  if (!candidate)
-    assert.equal(git(["diff", "--cached", "--name-only"]), "", "正式验证只接受干净提交");
-  return {
-    mode: candidate ? "candidate" : "commit",
-    commit: git(["rev-parse", "HEAD"]),
-    tree: git(["write-tree"]),
-  };
-}
-export function createSnapshot(repository, workspace, identity) {
-  sync("git", [
-    "-c",
-    "init.templateDir=",
-    "clone",
-    "--quiet",
-    "--local",
-    "--no-hardlinks",
-    "--no-checkout",
-    repository,
-    workspace,
-  ]);
-  sync("git", ["update-ref", "--no-deref", "HEAD", identity.commit], workspace);
-  sync("git", ["read-tree", identity.tree], workspace);
-  sync("git", ["checkout-index", "--all", "--force"], workspace);
 }
 export function toolArgs({ name, image, workspace, id, kind }) {
   assert.match(id, /^verify-[a-f0-9]{32}-[12]$/);
@@ -358,7 +336,7 @@ async function prepare(bridge, kind, folder, recipe, recipeHash, inputs, signal)
     await rm(context, { recursive: true, force: true });
   }
 }
-async function runJob(bridge, kind, workspace, folder, runId, image, signal) {
+async function runJob(bridge, kind, workspace, folder, runId, image, signal, policy) {
   const cache = "game-shelf-ci-cache-" + runId + "-" + kind;
   assert.equal(
     bridge.read(["volume", "ls", "-q", "--filter", "name=^" + cache + "$"]),
@@ -368,7 +346,7 @@ async function runJob(bridge, kind, workspace, folder, runId, image, signal) {
   bridge.read(["volume", "create", "--label", ownerLabel + "=" + runId + "/" + kind, cache]);
   let result, failure;
   try {
-    result = await runRounds(bridge, kind, workspace, folder, runId, image, signal);
+    result = await runRounds(bridge, kind, workspace, folder, runId, image, signal, policy);
   } catch (error) {
     failure = error;
   } finally {
@@ -397,10 +375,10 @@ async function runJob(bridge, kind, workspace, folder, runId, image, signal) {
   if (failure) throw failure;
   return { ...result, cache_volumes: 0 };
 }
-async function runRounds(bridge, kind, workspace, folder, runId, image, signal) {
+async function runRounds(bridge, kind, workspace, folder, runId, image, signal, policy) {
   const started = Date.now();
   const rounds = [];
-  for (let round = 1; round <= (kind === "playable" ? profile.rounds : 1); round++) {
+  for (let round = 1; round <= (kind === "playable" ? policy.rounds : 1); round++) {
     const id = "verify-" + runId + "-" + round;
     const projects = kind === "playable" ? ownedProjects(id) : [];
     for (const project of projects) empty(counts(bridge, project));
@@ -412,6 +390,7 @@ async function runRounds(bridge, kind, workspace, folder, runId, image, signal) 
     const result = {
       round,
       cold_tool_cache: round === 1,
+      ...(kind === "playable" ? { duration_limit_ms: policy.maxBrowserMs } : {}),
       status: "running",
       projects,
       started_at: new Date().toISOString(),
@@ -436,6 +415,7 @@ async function runRounds(bridge, kind, workspace, folder, runId, image, signal) 
       if (kind === "playable") {
         result.browser = browserResult(
           JSON.parse(await readFile(join(workspace, ".local/logs/playwright.json"), "utf8")),
+          policy.maxBrowserMs,
         );
         for (const file of round === 1
           ? ["ci-cleanup.json", "ci-failure-cleanup.json"]
@@ -521,7 +501,7 @@ async function runRounds(bridge, kind, workspace, folder, runId, image, signal) 
   }
   return { kind, status: "passed", rounds, duration_ms: Date.now() - started };
 }
-export async function verify({
+async function verifyRun({
   jobs = ["source", "playable"],
   candidate = false,
   prepareOnly = false,
@@ -529,13 +509,18 @@ export async function verify({
   signal,
 } = {}) {
   assert.ok(jobs.length && jobs.every((job) => ["source", "playable"].includes(job)));
+  assert.equal(new Set(jobs).size, jobs.length, "不接受重复job");
   assert.ok(!(prepareOnly && runOnly));
+  assert.ok(!runOnly || jobs.length === 1, "分步run只用于单job，正式推送不得省略准备");
+  const policy = verificationPolicy(jobs, prepareOnly);
+  const preflight = policy.scope === "preflight";
   const identity = gitIdentity(candidate);
   const runId = randomUUID().replaceAll("-", "");
   const folder = join(root, ".local/logs/ci-verify-" + runId);
   await mkdir(folder, { recursive: true });
   const report = {
     version: 1,
+    scope: policy.scope,
     id: runId,
     ...identity,
     profile_hash: digest(JSON.stringify(profile)),
@@ -604,7 +589,16 @@ export async function verify({
       report.host.task_proxy = bridge.proxy_enabled;
       const job = prepareOnly
         ? { kind, status: "prepared" }
-        : await runJob(bridge, kind, join(temp, "repo"), folder, runId, prepared.image, signal);
+        : await runJob(
+            bridge,
+            kind,
+            join(temp, "repo"),
+            folder,
+            runId,
+            prepared.image,
+            signal,
+            policy,
+          );
       if (!prepareOnly)
         assert.ok(
           Date.now() - runStarted <= profile.runMs - profile.cleanupReserveMs,
@@ -637,10 +631,48 @@ export async function verify({
       await save();
     }
   }
+  const path = join(folder, "report.json");
+  if (preflight && !candidate) {
+    try {
+      await recordProof(report, path);
+      console.log("最终提交验收记录已生成；这不替代本次Push授权。");
+    } catch (error) {
+      report.status = "failed";
+      report.error = error.stack;
+      await save();
+      throw error;
+    }
+  }
   console.log(
     "CI验证" + report.status + "：" + report.mode + " " + report.commit + " tree=" + report.tree,
   );
-  return { report, path: join(folder, "report.json") };
+  return { report, path };
+}
+export async function verify(options = {}) {
+  await mkdir(join(root, ".local"), { recursive: true });
+  const path = join(root, ".local/ci-verification.lock");
+  let lock;
+  try {
+    lock = await open(path, "wx");
+  } catch (error) {
+    if (error.code === "EEXIST")
+      throw new Error("本仓库验收锁已存在，先核实所属PID，不自动清理旧锁");
+    throw error;
+  }
+  try {
+    await lock.writeFile(
+      JSON.stringify({
+        pid: process.pid,
+        platform: process.platform,
+        started_at: new Date().toISOString(),
+      }) + "\n",
+    );
+    await invalidateProof();
+    return await verifyRun(options);
+  } finally {
+    await lock.close();
+    await unlink(path);
+  }
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);

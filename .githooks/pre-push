@@ -1,0 +1,3 @@
+#!/bin/sh
+# 文件说明：只校验实际待推送refs与本仓库最终提交验收，不自动Push或重跑测试。
+exec node scripts/prepush-guard.mjs "$@"

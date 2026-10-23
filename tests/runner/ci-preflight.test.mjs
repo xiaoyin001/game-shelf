@@ -9,6 +9,7 @@ import { createServer } from "node:net";
 import {
   profile,
   toolRecipeHash,
+  verificationPolicy,
   cpuList,
   checkLimits,
   browserResult,
@@ -21,6 +22,20 @@ import {
   createSnapshot,
   execute,
 } from "../../scripts/ci-verify.mjs";
+
+test("本地推送比CI单job增加浏览器复验与余量，不削减远端原回归", () => {
+  assert.deepEqual(verificationPolicy(["source", "playable"]), {
+    scope: "preflight",
+    rounds: 2,
+    maxBrowserMs: 27000,
+  });
+  assert.deepEqual(verificationPolicy(["playable"]), {
+    scope: "job",
+    rounds: 1,
+    maxBrowserMs: 30000,
+  });
+  assert.equal(verificationPolicy(["source", "playable"], true).scope, "prepare");
+});
 
 test("资源读取拒绝不限额、swap及不足的真实配额", () => {
   assert.deepEqual(cpuList("0-1,4,6-7"), [0, 1, 4, 6, 7]);
@@ -79,6 +94,10 @@ function sample() {
 }
 test("全绿但临近30秒、缺例、重试、跳过或报告错误均不合格", () => {
   assert.equal(browserResult(sample()).passed, 19);
+  const ci = sample();
+  ci.suites[0].specs[0].tests[0].results[0].duration = 29000;
+  assert.throws(() => browserResult(ci));
+  assert.equal(browserResult(ci, profile.browserTimeoutMs).passed, 19);
   for (const mutate of [
     (r) => {
       r.suites[0].specs[0].tests[0].results[0].duration = 27001;

@@ -49,15 +49,15 @@ npm run test:all
 
 ### 共用有界 CI 预验收
 
-本地和 GitHub 改用同一入口，不再以 `test:all` 或仓库外脚本作为推送充分证据：
+本地和 GitHub 共用运行器、SDK及资源配置；本地完整preflight额外加一轮浏览器/余量检查，GitHub单job保留全部原回归一次。不再以 `test:all` 或仓库外脚本作为推送充分证据：
 
 ```text
 npm run verify:ci
 ```
 
-需要 Node.js 22+、本机 Linux x64/AVX Docker（至少2CPU、6GiB、cgroup v2），以及支持 `--wait` 的 Compose；Windows入口使用WSL Docker。[共用工具构建配方](deploy/ci-tools.Dockerfile)使用固定digest的SDK/CGO工具，Ubuntu官方冻结快照的图形库/字体，以及锁文件Playwright安装器的唯一headless shell，不改主机系统库。source执行规则/历史/Go/客户端与全量CGO race；playable先完整`test:ci`（真实三依赖/四服务/协议、全部19例及预期故障清理），再在另一新DB/新四服务上额外重复全部19例，任一失败整次失败，不是失败重试；第二轮不冒称再次执行源码/原始协议/故障注入。
+需要 Node.js 22+、本机 Linux x64/AVX Docker（至少2CPU、6GiB、cgroup v2），以及支持 `--wait` 的 Compose；Windows入口使用WSL Docker。[共用工具构建配方](deploy/ci-tools.Dockerfile)使用固定digest的SDK/CGO工具，Ubuntu官方冻结快照的图形库/字体，以及锁文件Playwright安装器的唯一headless shell，不改主机系统库。source执行规则/历史/Go/客户端与全量CGO race；playable完整`test:ci`包括真实三依赖/四服务/协议、全部19例及预期故障清理。本地默认完整preflight再在另一新DB/新四服务上额外重复全部19例，任一失败整次失败，不是失败重试；额外轮不冒称再次执行源码/原始协议/故障注入。
 
-每个工具容器实际限制 **2CPU/4GiB/无swap** 并绑定两个CPU；数据库也有资源上限。每job从空npm/Go模块/编译缓存开始，第二轮只复用本job已校验的工具缓存，数据库每轮仍为独立project/空卷。固定镜像层可缓存并记录，不清全局镜像。每job准备10分钟、执行12分钟（预留1分钟退出取证）、总预算25分钟；浏览器仍30秒、零重试、单worker，另检查所有用例不超过27秒，留3秒余量。单一参数见 [CI配置](configs/README.md#ci-profilejson)。
+每个工具容器实际限制 **2CPU/4GiB/无swap** 并绑定两个CPU；数据库也有资源上限。每job从空npm/Go模块/编译缓存开始，第二轮只复用本job已校验的工具缓存，数据库每轮仍为独立project/空卷。固定镜像层可缓存并记录，不清全局镜像。每job准备10分钟、执行12分钟（预留1分钟退出取证）、总预算25分钟；CI浏览器仍30秒、零重试、单worker；本地完整preflight另要求所有用例不超过27秒，留3秒余量，不把本地余量阈值当远端业务失败条件。单一参数见 [CI配置](configs/README.md#ci-profilejson)。
 
 默认只接受干净提交；提交前先完整暂存目标切片，再用 `npm run verify:ci -- --candidate` 验证暂存tree。候选通过不等于某个新提交已通过，正式推送前还需验证最终commit。源码在不含源仓库Git配置/凭据的临时Git副本运行，报告绑定commit/tree/配方与实际资源。证据在 `.local/logs/ci-verify-<随机ID>/`，按job/轮次保存，正常/失败/超时都定向回收本轮工具容器、缓存卷和数据库资源并检查零残留。主机强杀/断电不保证自动回收，不能按端口杀进程或清共享库。
 
@@ -67,7 +67,21 @@ npm run verify:ci
 
 Windows长命令以控制管道绑定WSL进程组，超时不只结束wsl.exe；实际父子进程回收由Windows专用测试验证，Linux明确不运行这个专有分支。
 
-共用入口本地候选验收通过：完整source/race，完整19/19及额外新DB19/19，最慢20.54s/21.76s、实际资源与零残留已核对。首次图形工具准备4m48（SDK层已有缓存），不称为全部工具无缓存下载。新入口GitHub尚未验收；提交绑定的Git pre-push防漏检将在下一完整切片实现，尚未安装，不冒称已生效。
+共用入口阶段22本地候选验收通过：完整source/race，完整19/19及额外新DB19/19，最慢20.54s/21.76s、实际资源与零残留已核对。首次图形工具准备4m48（SDK层已有缓存），不称全部工具无缓存下载。新入口GitHub仍须在推送后核对同一SHA，不以旧3e65411全绿代替。
+
+### 提交绑定的推送门禁
+
+每个克隆首次显式安装本仓库hook（只改local配置，已有其他hook拒绝覆盖）：
+
+```text
+node scripts/install-hooks.mjs
+```
+
+提交前候选验收通过不能放行；创建最终提交、确认工作树干净后运行`npm run verify:ci`。只有默认完整preflight全部通过并回收成功才自动生成 `.local/push-verification.json`：绑定最终commit/tree、仓库、配置/配方、完整报告SHA256和时间，24小时有效。`node scripts/prepush-guard.mjs --check`只读检查该记录，不触发Push。
+
+任何新的验收尝试先失效旧记录；candidate、准备、单job、失败或旧SHA都不能恢复有效记录，历史报告保留。pre-push快速核对实际待推送refs，不隐式跑长测试：只接受已验收HEAD、相同仓库、CI覆盖分支及可确认快进；删除/标签/强推等不是普通门禁授权范围。门禁是防漏检，不是第三方签名或防恶意绕过的安全边界，也不能替代**每次owner授权、PR/部署单独授权和同SHA远端复验**。具体见 [ADR-0025](docs/decisions/0025-push-verification-gate.md)。
+
+`.local/ci-verification.lock`记录本次验收PID/平台。运行中或旧锁未确认时拒绝推送；异常强杀后先核实所属进程已结束再处理过期锁，不自动清理未知任务或按端口杀进程。
 
 截图/trace 在 `test-results/`，HTML 报告在 `playwright-report/`，均不提交。若异常强杀留下 `.local/stack.lock`，必须先确认原运行器已退出，再移除过期锁；不要按端口杀进程。
 

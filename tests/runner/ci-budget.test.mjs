@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { profile } from "../../scripts/ci-profile.mjs";
+import { profile, commandPlan } from "../../scripts/ci-profile.mjs";
 
 test("两个CI job都经共用运行器，分层期限与本地配置一致", () => {
   const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
@@ -32,7 +32,10 @@ test("两个CI job都经共用运行器，分层期限与本地配置一致", ()
     assert.match(section, /persist-credentials: false/);
   }
   assert.equal(profile.rounds, 2);
+  assert.equal(profile.ciRounds, 1);
   assert.equal(profile.maxBrowserMs, 27000);
+  assert.equal(profile.browserTimeoutMs, 30000);
+  assert.deepEqual(JSON.parse(workflow.match(/branches: (\[[^\n]+\])/)[1]), profile.pushBranches);
   const browser = readFileSync("playwright.config.mjs", "utf8");
   assert.match(browser, /timeout: 30000/);
   assert.match(browser, /retries: 0/);
@@ -56,7 +59,7 @@ test("工具基线均固定digest并匹配当前Go、Node与Playwright", () => {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(pkg.devDependencies["@playwright/test"], profile.playwright);
   assert.ok(readFileSync("go.mod", "utf8").includes("go " + profile.go.slice(2)));
-  const entry = readFileSync("scripts/ci-in-container.mjs", "utf8");
-  assert.match(entry, /"-race"/);
-  assert.match(entry, /"test:ci"/);
+  assert.ok(commandPlan("source").some(([file, args]) => file === "go" && args.includes("-race")));
+  assert.deepEqual(commandPlan("playable").at(-1), ["npm", ["run", "test:ci"]]);
+  assert.deepEqual(commandPlan("playable", "browser-repeat").at(-1), ["npm", ["run", "test:e2e"]]);
 });

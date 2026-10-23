@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import os from "node:os";
-import { profile, cpuList, checkLimits } from "./ci-profile.mjs";
+import { profile, cpuList, checkLimits, commandPlan } from "./ci-profile.mjs";
 import { checkCiKernel } from "./ci-platform.mjs";
 const kind = process.argv[2];
 assert.ok(["source", "playable"].includes(kind), "未知CI job");
@@ -85,19 +85,7 @@ if (!process.argv.includes("--bounded")) {
     writeFileSync(".local/logs/ci-tool-result.json", JSON.stringify(result, null, 2) + "\n");
   save();
   try {
-    const commands =
-      kind === "source"
-        ? [
-            ["npm", ["ci", "--no-audit", "--no-fund"]],
-            ["npm", ["run", "check"]],
-            ["npm", ["run", "check:client"]],
-            ["go", ["test", "-race", "-count=1", "./..."]],
-            ["git", ["diff", "--exit-code"]],
-          ]
-        : [
-            ["npm", ["ci", "--no-audit", "--no-fund"]],
-            ["npm", ["run", scope === "full" ? "test:ci" : "test:e2e"]],
-          ];
+    const commands = commandPlan(kind, scope);
     for (const [file, args] of commands) {
       const started = Date.now();
       await command(file, args);

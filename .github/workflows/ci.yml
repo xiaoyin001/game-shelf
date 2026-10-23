@@ -47,7 +47,7 @@ jobs:
       - name: 准备共用浏览器工具
         timeout-minutes: 10
         run: npm run verify:ci -- --job playable --prepare
-      - name: 当前真实依赖与两轮完整回归
+      - name: 当前真实依赖与完整回归
         timeout-minutes: 12
         run: npm run verify:ci -- --job playable --run
       - name: 保存联机证据
