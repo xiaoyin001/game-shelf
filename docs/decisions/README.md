@@ -60,4 +60,6 @@
 
 - [ADR-0029：玩法取证保持真实视窗，不为整页截图临时改变布局](0029-browser-viewport-evidence.md)
 
+- [ADR-0030：普通快进 Push 的持续授权与跨会话仓库规则](0030-standing-push-consent.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

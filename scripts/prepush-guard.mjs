@@ -4,7 +4,9 @@ const args = process.argv.slice(2);
 try {
   if (args.length === 1 && args[0] === "--check") {
     const proof = await checkProof();
-    console.log("当前提交验收有效：" + proof.commit + "；仍需单独Push授权。");
+    console.log(
+      "当前提交验收有效：" + proof.commit + "；授权范围遵循AGENTS.md，门禁不授予额外权限。",
+    );
   } else {
     if (args.length !== 2) throw new Error("pre-push需要Git提供的remote参数");
     let text = "";
@@ -19,7 +21,7 @@ try {
   console.error(
     "拒绝推送：" +
       error.message +
-      "\n请先在干净最终提交执行 npm run verify:ci；不要用候选/旧报告代替，也不要绕过本次owner授权。",
+      "\n请先在干净最终提交执行 npm run verify:ci；不要用候选/旧报告代替，远端操作不得超出AGENTS.md中的owner授权。",
   );
   process.exitCode = 1;
 }

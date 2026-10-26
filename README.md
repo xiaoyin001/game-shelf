@@ -91,7 +91,7 @@ node scripts/install-hooks.mjs
 
 提交前候选验收通过不能放行；创建最终提交、确认工作树干净后运行`npm run verify:ci`。只有默认完整preflight全部通过并回收成功才自动生成 `.local/push-verification.json`：绑定最终commit/tree、仓库、配置/配方、完整报告SHA256和时间，24小时有效。`node scripts/prepush-guard.mjs --check`只读检查该记录，不触发Push。
 
-任何新的验收尝试先失效旧记录；candidate、准备、单job、失败或旧SHA都不能恢复有效记录，历史报告保留。pre-push快速核对实际待推送refs，不隐式跑长测试：只接受已验收HEAD、相同仓库、CI覆盖分支及可确认快进；删除/标签/强推等不是普通门禁授权范围。门禁是防漏检，不是第三方签名或防恶意绕过的安全边界，也不能替代**每次owner授权、PR/部署单独授权和同SHA远端复验**。具体见 [ADR-0025](docs/decisions/0025-push-verification-gate.md)。
+任何新的验收尝试先失效旧记录；candidate、准备、单job、失败或旧SHA都不能恢复有效记录，历史报告保留。pre-push快速核对实际待推送refs，不隐式跑长测试：只接受已验收HEAD、相同仓库、CI覆盖分支及可确认快进；删除/标签/强推等不是普通门禁授权范围。门禁是防漏检，不是第三方签名或防恶意绕过的安全边界，也不授予额外远端权限。owner已于2026-10-26持续明确授权本仓库任务相关、完整验收通过的**普通快进Push至origin/master**，后续读取本仓库规则的会话无需逐次询问；仍展示提交/仓库/目标/结果并核对同SHA CI。强推、删除/标签、其他仓库/分支、PR、远端配置、远端CI重跑/取消和部署另行授权，撤回/超范围则停止。技术门禁见 [ADR-0025](docs/decisions/0025-push-verification-gate.md)，授权更新见 [ADR-0030](docs/decisions/0030-standing-push-consent.md)；不声称同步到无关仓库。
 
 `.local/ci-verification.lock`记录本次验收PID/平台。运行中或旧锁未确认时拒绝推送；异常强杀后先核实所属进程已结束再处理过期锁，不自动清理未知任务或按端口杀进程。
 
@@ -131,4 +131,4 @@ NPC 阶段已在独立 Linux 网络命名空间与空依赖上完成真实四服
 
 先读 [AGENTS.md](AGENTS.md)、[产品目标](docs/playable-mvp.md)、[技术决策](docs/decisions/README.md) 与 [成长记录](docs/progress.md)。每次决定记录原因、候选、代价与验证；替换新增记录，保留旧理由与迁移/回退。
 
-开发只在功能分支，master 接收完整通过后的快进交付，不使用 main。每个阶段测试通过立即 commit，不积攒到最后才拆分；旧实现仅作验收参照。没有常驻 AI 代理、自动付费调用或远端发布；Push、PR、远端配置与部署分别授权。
+开发只在功能分支，master 接收完整通过后的快进交付，不使用 main。每个阶段测试通过立即 commit，不积攒到最后才拆分；旧实现仅作验收参照。没有常驻 AI 代理、自动付费调用或部署；本仓库普通快进Push按AGENTS.md的持续明确授权执行，PR、其他远端写入和部署仍单独授权。

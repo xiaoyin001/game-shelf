@@ -11,4 +11,4 @@ description: 准备或创建本地阶段提交，以及交付 master 前使用�
 5. 正文说明当前变更、原因、实际验证与边界，不写未来能力已经可用；时间使用真实当前时间。
 6. commit 后核对结果与剩余工作区。master 仅在完整回归通过后快进。
 7. 提交后在干净最终HEAD执行 `npm run verify:ci`；只有默认完整preflight通过才自动生成24小时有效的提交/tree/报告绑定记录。确认本仓库hook已安装（`node scripts/install-hooks.mjs`，不覆盖其他hook）且 `node scripts/prepush-guard.mjs --check` 有效；新提交/源码变化/失败尝试使旧证据不能放行，不手写报告或 `--no-verify` 绕过。
-8. Push 前另展示最终完整提交列表、仓库、目标 origin/master 与本次验证，取得明确授权；门禁不代替授权或同SHA远端CI复验，不自动创建 PR。
+8. Push 前展示最终完整提交列表、仓库、目标 origin/master 与本次验证；owner 已持续明确授权本仓库任务相关且完整验收通过的普通快进 Push，后续会话无需逐次询问，范围和撤回条件见 AGENTS.md。强推、删除/标签、其他仓库/分支、PR、远端配置、远端 CI 重跑/取消和部署仍需单独授权；门禁不授予额外权限或替代同SHA远端复验。

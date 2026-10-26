@@ -38,6 +38,26 @@ test("跨 AI 入口、阶段记录与技能齐全", async () => {
   assert.match(rules, /不创建或使用.*main/);
   assert.match(rules, /每次 Push/);
 });
+test("普通Push持续授权跨会话留在仓库，范围与完整验收仍有界", async () => {
+  const rules = await readFile(join(root, "AGENTS.md"), "utf8");
+  for (const text of [
+    "持续授权",
+    "后续读取本仓库规则的会话无需逐次询问",
+    "https://github.com/xiaoyin001/game-shelf.git",
+    "origin/master",
+    "强推",
+    "删除远端分支或标签",
+    "PR",
+    "远端配置",
+    "远端 CI 重跑/取消",
+    "部署仍需单独授权",
+    "撤回授权",
+    "npm run verify:ci",
+    "不用 `--no-verify`",
+    "本规则不自动同步到无关仓库",
+  ])
+    assert.ok(rules.includes(text), "缺少授权边界：" + text);
+});
 test("相对 Markdown 链接在当前版本确实存在", async () => {
   for (const file of await markdown(root)) {
     const body = await readFile(file, "utf8");

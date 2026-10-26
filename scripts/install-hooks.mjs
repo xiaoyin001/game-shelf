@@ -26,7 +26,9 @@ export function installHooks(repository = root) {
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {
     installHooks();
-    console.log("本仓库pre-push已安装；未改全局或远端配置。仍需每次Push明确授权。");
+    console.log(
+      "本仓库pre-push已安装；未改全局或远端配置。授权范围遵循AGENTS.md，门禁不授予额外权限。",
+    );
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;

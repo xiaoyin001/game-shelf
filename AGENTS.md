@@ -21,8 +21,9 @@
 
 ## 安全与交付
 - 不覆盖无关修改；清理已有数据、目录或历史需要明确授权。备份与凭据不进入仓库。
-- 本地 commit 自主完成；申请 Push 前在干净最终 HEAD 执行 `npm run verify:ci`，确认 `node scripts/prepush-guard.mjs --check` 有效且本仓库 pre-push 已安装。候选 tree、test:all、单 job、旧 SHA 或过期记录均不算推送验收，不用 `--no-verify` 绕过缺失证据；已有其他 hook 不覆盖。
-- 每次 Push 前展示最终提交、仓库、目标分支与验证结果，取得明确授权。门禁通过不等于授权或远端成功；推送后核对同一 SHA 的 CI。PR、远端配置和部署另行授权。
+- 本地 commit 自主完成；Push 前在干净最终 HEAD 执行 `npm run verify:ci`，确认 `node scripts/prepush-guard.mjs --check` 有效且本仓库 pre-push 已安装。候选 tree、test:all、单 job、旧 SHA 或过期记录均不算推送验收，不用 `--no-verify` 绕过缺失证据；已有其他 hook 不覆盖。
+- owner 已于 2026-10-26 明确持续授权本仓库任务相关、完整验收通过的普通快进 Push，目标仅为 `https://github.com/xiaoyin001/game-shelf.git` 的 `origin/master`；后续读取本仓库规则的会话无需逐次询问。每次 Push 前仍展示最终提交、仓库、目标分支与验证结果，推送后核对同一 SHA 的 CI；门禁不授予额外权限。
+- 强推、删除远端分支或标签、创建/更新标签、其他仓库/目标分支、PR、远端配置、远端 CI 重跑/取消和部署仍需单独授权。owner 撤回授权、任务范围不明、非快进或更高优先级限制时停止；本规则不自动同步到无关仓库。详见 [ADR-0030](docs/decisions/0030-standing-push-consent.md)。
 - 不自动调用付费模型，不把当前 AI 会话能力宣称为常驻后台代理。
 - 只操作本任务的服务；端口被占用则核实并报告，不按端口杀进程，不清共享数据库。
 - 测试失败继续修复，不能删测试或用静态检查冒充运行验收；旧版通过不是新版结果。
