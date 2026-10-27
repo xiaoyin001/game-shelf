@@ -15,6 +15,7 @@ export class WorldView {
     this.players = new Map();
     this.nodes = new Map();
     this.clue = null;
+    this.campProjection = null;
     this.yaw = 0;
     this.pitch = 0.65;
     this.distance = 560;
@@ -431,18 +432,99 @@ export class WorldView {
     return { group, crystal, material, ring };
   }
 
+  disposeProjection(group) {
+    this.scene.remove(group);
+    const geometries = new Set(),
+      materials = new Set();
+    group.traverse((object) => {
+      if (object.isMesh) geometries.add(object.geometry);
+      if (object.material) materials.add(object.material);
+    });
+    for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) {
+      material.map?.dispose();
+      material.dispose();
+    }
+  }
+
+  // 展台是无碰撞的装饰投影，一次只呈现当前选中旅人的服务器确认布置。
+  setCamp(display) {
+    const key = display ? JSON.stringify(display) : "";
+    if (this.campProjection?.key === key) return;
+    if (this.campProjection) this.disposeProjection(this.campProjection.group);
+    this.campProjection = null;
+    if (!display) return;
+    const group = new THREE.Group();
+    group.name = "camp-projection:" + display.owner_id;
+    for (const placed of display.slots || []) {
+      const slot = this.layout.camp.slots.find((item) => item.id === placed.slot_id);
+      if (!slot) continue;
+      const item = new THREE.Group();
+      item.position.set(slot.x, 0, slot.y);
+      item.userData.decorationID = placed.decoration_id;
+      const gold = color(0xe9ce8b),
+        teal = color(0x87c9c3);
+      if (placed.decoration_id === "bell-lantern") {
+        this.addMesh(new THREE.CylinderGeometry(5, 9, 13, 8), gold, 0, 14, 0, item);
+        this.addMesh(new THREE.TorusGeometry(5, 1, 5, 12), teal, 0, 26, 0, item);
+        this.addMesh(
+          new THREE.SphereGeometry(3, 8, 6),
+          new THREE.MeshBasicMaterial({ color: 0xfff0b9 }),
+          0,
+          7,
+          0,
+          item,
+        );
+      } else if (placed.decoration_id === "lake-vase") {
+        this.addMesh(new THREE.CylinderGeometry(6, 8, 13, 9), teal, 0, 9, 0, item);
+        this.addMesh(new THREE.CylinderGeometry(1, 1, 15, 5), gold, 0, 23, 0, item);
+        this.addMesh(new THREE.OctahedronGeometry(7), color(0xd6a8bd), 0, 32, 0, item);
+      } else if (placed.decoration_id === "wind-chime") {
+        this.addMesh(new THREE.BoxGeometry(24, 3, 4), gold, 0, 34, 0, item);
+        for (let i = -1; i <= 1; i++) {
+          this.addMesh(new THREE.CylinderGeometry(0.7, 0.7, 12, 4), gold, i * 8, 27, 0, item);
+          this.addMesh(new THREE.OctahedronGeometry(5), teal, i * 8, 16 - Math.abs(i) * 3, 0, item);
+        }
+      } else {
+        gold.dispose();
+        teal.dispose();
+        continue;
+      }
+      const base = new THREE.Mesh(
+        new THREE.RingGeometry(11, 13, 20),
+        new THREE.MeshBasicMaterial({
+          color: 0xb9edcc,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.7,
+        }),
+      );
+      base.rotation.x = -Math.PI / 2;
+      base.position.y = 0.5;
+      item.add(base);
+      item.traverse((object) => {
+        if (object.isMesh) {
+          object.castShadow = false;
+          object.receiveShadow = false;
+        }
+      });
+      group.add(item);
+    }
+    if (group.children.length) {
+      const label = this.label(display.name + " · 微光展台", "#d6ffdc");
+      label.position.set(this.layout.camp.x, 54, this.layout.camp.y);
+      group.add(label);
+    }
+    this.scene.add(group);
+    this.campProjection = { key, owner: display.owner_id, group };
+    this.activityUntil = performance.now() + 750;
+  }
+
   // 线索是无碰撞的私人提示；切换账号/步骤时及时释放本提示的GPU资源。
   setTrail(trail) {
     if (this.clue?.key === (trail ? trail.id + ":" + trail.step : "")) return;
     if (this.clue) {
-      this.scene.remove(this.clue.group);
-      this.clue.group.traverse((object) => {
-        if (object.isMesh) object.geometry.dispose();
-        if (object.material) {
-          object.material.map?.dispose();
-          object.material.dispose();
-        }
-      });
+      this.disposeProjection(this.clue.group);
       this.clue = null;
     }
     if (!trail) return;
@@ -551,6 +633,11 @@ export class WorldView {
         !!me && me.group.position.distanceTo(this.clue.group.position) <= 180;
       this.clue.marker.rotation.y = now / 1400;
     }
+    const projections =
+      this.campProjection?.group.children.filter((item) => item.userData.decorationID) || [];
+    this.canvas.dataset.campOwner = this.campProjection?.owner || "";
+    this.canvas.dataset.campCount = String(projections.length);
+    this.canvas.dataset.campKinds = projections.map((item) => item.userData.decorationID).join(",");
     this.canvas.dataset.clueVisible = String(!!this.clue?.group.visible);
     this.canvas.dataset.clueId = this.clue?.key || "";
     if (me) {

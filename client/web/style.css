@@ -378,6 +378,70 @@ input:focus {
   display: block;
   color: var(--muted);
 }
+.journal-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+}
+.journal-tabs button {
+  flex: 1;
+  border: 0;
+  border-radius: 5px;
+  padding: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+}
+.journal-tabs button[aria-selected="true"] {
+  color: var(--mint);
+  background: #adf2cb17;
+}
+.camp-display p,
+.camp-display label {
+  font-size: 11px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.camp-note,
+#camp-location {
+  color: var(--muted);
+}
+#camp-summary,
+#camp-placed {
+  color: var(--mint);
+}
+.camp-display select {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 4px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #10232b;
+  font-size: 11px;
+}
+.camp-slot {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 62px;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+.camp-slot button {
+  padding: 8px 3px;
+  border: 1px solid #adf2cb66;
+  border-radius: 6px;
+  color: var(--mint);
+  background: #adf2cb17;
+  font-size: 11px;
+}
+.camp-slot select:disabled,
+.camp-slot button:disabled {
+  opacity: 0.5;
+}
 .field-book p {
   font-size: 12px;
   line-height: 1.8;
@@ -682,7 +746,9 @@ button:focus-visible {
   }
   .chat,
   .camp-npcs,
-  .field-book {
+  .field-book,
+  .camp-display,
+  .journal-tabs {
     grid-column: 1/-1;
   }
   .version,

@@ -139,6 +139,10 @@ func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now t
 		if err := w.gather(p, now); err != "" {
 			return failure(err)
 		}
+	case "decorate":
+		if err := w.decorate(ctx, p, req.SlotID, req.DecorationID); err != "" {
+			return failure(err)
+		}
 	case "explore":
 		if err := w.explore(ctx, p); err != "" {
 			return failure(err)
@@ -226,6 +230,7 @@ func (w *World) snapshot(now time.Time) *contracts.WorldState {
 	for _, p := range w.players {
 		copy := p.state
 		state.Players = append(state.Players, &copy)
+		state.Camps = append(state.Camps, &contracts.CampDisplay{OwnerID: p.state.ID, Name: p.state.Name, Slots: fieldbook.Clone(p.journal).Camp})
 	}
 	for _, n := range w.nodes {
 		copy := n
@@ -235,6 +240,7 @@ func (w *World) snapshot(now time.Time) *contracts.WorldState {
 		copy := c
 		state.Chats = append(state.Chats, &copy)
 	}
+	sort.Slice(state.Camps, func(i, j int) bool { return state.Camps[i].OwnerID < state.Camps[j].OwnerID })
 	sort.Slice(state.Players, func(i, j int) bool { return state.Players[i].ID < state.Players[j].ID })
 	return state
 }

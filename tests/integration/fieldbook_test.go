@@ -122,6 +122,7 @@ func TestLiveFieldBookStoriesPersistenceAndPrivacy(t *testing.T) {
 	if !final.Book.Collections[2].Found || findPlayer(t, final.State, identity.UserID).Score != 0 {
 		t.Fatal("collection reset or mixed with score", final)
 	}
+	verifyLiveCamp(t, fresh, peer, identity.UserID, account)
 }
 func TestLiveFieldBookMongoCASAndCorruption(t *testing.T) {
 	live(t)
@@ -173,7 +174,7 @@ func TestLiveFieldBookMongoCASAndCorruption(t *testing.T) {
 }
 func TestLiveFieldBookRejectsForgedState(t *testing.T) {
 	live(t)
-	for _, field := range []string{"book", "found", "active", "step", "revision", "journal"} {
+	for _, field := range []string{"book", "found", "active", "step", "revision", "journal", "owner_id", "slots", "unlocked"} {
 		conn := auth(t, bookLogin(t, name(), true))
 		send(t, conn, "explore", map[string]any{field: 999})
 		closed(t, conn)

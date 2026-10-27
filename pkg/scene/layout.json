@@ -1,7 +1,17 @@
 {
-  "version": "mosslight-book-1",
+  "version": "mosslight-camp-1",
   "width": 1200,
   "height": 800,
+  "camp": {
+    "x": 730,
+    "y": 530,
+    "range": 110,
+    "slots": [
+      { "id": "left", "name": "左台", "x": 700, "y": 530 },
+      { "id": "center", "name": "中台", "x": 730, "y": 530 },
+      { "id": "right", "name": "右台", "x": 760, "y": 530 }
+    ]
+  },
   "entities": [
     {
       "id": "tree-0",

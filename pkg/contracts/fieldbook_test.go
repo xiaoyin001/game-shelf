@@ -9,7 +9,8 @@ import (
 
 func TestFieldBookProtobuf(t *testing.T) {
 	messages := []proto.Message{
-		&BookRequest{UserID: "account", Journal: &Journal{Revision: 3, Found: []string{"bell"}, Active: "letter", Step: 1}},
+		&BookRequest{UserID: "account", Journal: &Journal{Revision: 3, Found: []string{"bell"}, Active: "letter", Step: 1, Camp: []*CampSlot{{SlotID: "left", DecorationID: "bell-lantern"}}}},
+		&WorldResp{State: &WorldState{Camps: []*CampDisplay{{OwnerID: "account", Name: "旅人", Slots: []*CampSlot{{SlotID: "left", DecorationID: "bell-lantern"}}}}}, Book: &FieldBook{Decorations: []*Decoration{{ID: "bell-lantern", Name: "归途铃灯", Unlocked: true}}}},
 		&WorldResp{Book: &FieldBook{Collections: []*Collection{{ID: "bell", Found: true, Story: "故事"}, {ID: "letter"}}, Trail: &Trail{ID: "letter", X: 790, Y: 460, Z: 0, Step: 1, Total: 2}}},
 	}
 	for _, original := range messages {

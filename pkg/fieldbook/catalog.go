@@ -51,7 +51,7 @@ func Current(j *contracts.Journal) *contracts.Trail {
 	return nil
 }
 func View(j *contracts.Journal) *contracts.FieldBook {
-	book := &contracts.FieldBook{Trail: Current(j)}
+	book := &contracts.FieldBook{Trail: Current(j), Camp: Clone(j).Camp, Decorations: Decorations(j)}
 	for i, e := range Entries() {
 		found := i < len(j.Found)
 		c := &contracts.Collection{ID: e.ID, Name: e.Name, Found: found}
@@ -68,12 +68,21 @@ func Clone(j *contracts.Journal) *contracts.Journal {
 	}
 	copy := *j
 	copy.Found = append([]string(nil), j.Found...)
+	copy.Camp = nil
+	for _, slot := range j.Camp {
+		if slot == nil {
+			copy.Camp = append(copy.Camp, nil)
+			continue
+		}
+		value := *slot
+		copy.Camp = append(copy.Camp, &value)
+	}
 	return &copy
 }
 
 // Validate 拒绝未知内容、重复/乱序收藏与损坏步骤，不把坏档当空档覆盖。
 func Validate(j *contracts.Journal) error {
-	if j == nil || j.Revision < 0 || j.Revision > 1000000 || len(j.Found) > len(Entries()) {
+	if j == nil || j.Revision < 0 || j.Revision > MaxRevision || len(j.Found) > len(Entries()) {
 		return errors.New("invalid_field_book")
 	}
 	entries := Entries()
@@ -89,5 +98,5 @@ func Validate(j *contracts.Journal) error {
 	} else if j.Active != Next(j) || j.Step < 0 || j.Step > 1 {
 		return errors.New("invalid_field_book")
 	}
-	return nil
+	return validateCamp(j)
 }

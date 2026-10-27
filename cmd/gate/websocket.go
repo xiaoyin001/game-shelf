@@ -20,14 +20,16 @@ import (
 )
 
 type browserCommand struct {
-	Version  int     `json:"version"`
-	Type     string  `json:"type"`
-	Token    string  `json:"token,omitempty"`
-	DX       float64 `json:"dx,omitempty"`
-	DY       float64 `json:"dy,omitempty"`
-	Text     string  `json:"text,omitempty"`
-	NPCID    string  `json:"npc_id,omitempty"`
-	ChoiceID string  `json:"choice_id,omitempty"`
+	Version      int     `json:"version"`
+	Type         string  `json:"type"`
+	Token        string  `json:"token,omitempty"`
+	DX           float64 `json:"dx,omitempty"`
+	DY           float64 `json:"dy,omitempty"`
+	Text         string  `json:"text,omitempty"`
+	NPCID        string  `json:"npc_id,omitempty"`
+	ChoiceID     string  `json:"choice_id,omitempty"`
+	SlotID       string  `json:"slot_id,omitempty"`
+	DecorationID string  `json:"decoration_id,omitempty"`
 }
 type browserEvent struct {
 	Version int                    `json:"version"`
@@ -138,11 +140,11 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" && cmd.Type != "jump" && cmd.Type != "interact" && cmd.Type != "choose" && cmd.Type != "explore" {
+			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" && cmd.Type != "jump" && cmd.Type != "interact" && cmd.Type != "choose" && cmd.Type != "explore" && cmd.Type != "decorate" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}
-			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, NPCID: cmd.NPCID, ChoiceID: cmd.ChoiceID})
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, NPCID: cmd.NPCID, ChoiceID: cmd.ChoiceID, SlotID: cmd.SlotID, DecorationID: cmd.DecorationID})
 			if err != nil {
 				return
 			}

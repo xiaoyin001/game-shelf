@@ -41,6 +41,22 @@ type NPC struct {
 	Range float64 `json:"range"`
 }
 
+// DisplaySlot是无碰撞微光投影的位置，不属于实体家具。
+type DisplaySlot struct {
+	ID   string  `json:"id"`
+	Name string  `json:"name"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+}
+
+// Camp 定义共享展台中心、交互距离和无碰撞投影槽位。
+type Camp struct {
+	X     float64       `json:"x"`
+	Y     float64       `json:"y"`
+	Range float64       `json:"range"`
+	Slots []DisplaySlot `json:"slots"`
+}
+
 // Layout 是客户端绘制与服务器碰撞共用的公开场景版本。
 type Layout struct {
 	Version  string   `json:"version"`
@@ -49,6 +65,7 @@ type Layout struct {
 	Entities []Entity `json:"entities"`
 	Nodes    []Node   `json:"nodes"`
 	NPCs     []NPC    `json:"npcs"`
+	Camp     Camp     `json:"camp"`
 }
 
 // Default 每次解码独立副本，调用者不能修改其他世界或公开布局。

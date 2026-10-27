@@ -42,6 +42,14 @@ func TestCanonicalLayout(t *testing.T) {
 		}
 		seenNPC[n.ID] = true
 	}
+	if layout.Camp.X != 730 || layout.Camp.Y != 530 || layout.Camp.Range != 110 || len(layout.Camp.Slots) != 3 {
+		t.Fatal("invalid camp display")
+	}
+	for i, slot := range layout.Camp.Slots {
+		if slot.ID != []string{"left", "center", "right"}[i] || slot.Name == "" || slot.X != 700+float64(i)*30 || slot.Y != 530 {
+			t.Fatal("camp slot drift", slot)
+		}
+	}
 	copy := Default()
 	copy.Entities[0].X = -999
 	if Default().Entities[0].X == -999 {

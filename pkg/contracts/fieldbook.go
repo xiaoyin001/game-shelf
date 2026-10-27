@@ -12,10 +12,11 @@ const (
 
 // Journal 只存有限探索状态；Revision是保存时的预期版本，成功后递增。
 type Journal struct {
-	Revision int64    `protobuf:"varint,1,opt,name=revision,proto3" json:"revision" bson:"revision"`
-	Found    []string `protobuf:"bytes,2,rep,name=found,proto3" json:"found" bson:"found"`
-	Active   string   `protobuf:"bytes,3,opt,name=active,proto3" json:"active" bson:"active"`
-	Step     int32    `protobuf:"varint,4,opt,name=step,proto3" json:"step" bson:"step"`
+	Revision int64       `protobuf:"varint,1,opt,name=revision,proto3" json:"revision" bson:"revision"`
+	Found    []string    `protobuf:"bytes,2,rep,name=found,proto3" json:"found" bson:"found"`
+	Active   string      `protobuf:"bytes,3,opt,name=active,proto3" json:"active" bson:"active"`
+	Step     int32       `protobuf:"varint,4,opt,name=step,proto3" json:"step" bson:"step"`
+	Camp     []*CampSlot `protobuf:"bytes,5,rep,name=camp,proto3" json:"camp" bson:"camp,omitempty"`
 }
 
 func (m *Journal) Reset()         { *m = Journal{} }
@@ -45,6 +46,8 @@ func (*BookReply) ProtoMessage()    {}
 type FieldBook struct {
 	Collections []*Collection `protobuf:"bytes,1,rep,name=collections,proto3" json:"collections"`
 	Trail       *Trail        `protobuf:"bytes,2,opt,name=trail,proto3" json:"trail,omitempty"`
+	Decorations []*Decoration `protobuf:"bytes,3,rep,name=decorations,proto3" json:"decorations"`
+	Camp        []*CampSlot   `protobuf:"bytes,4,rep,name=camp,proto3" json:"camp"`
 }
 
 func (m *FieldBook) Reset()         { *m = FieldBook{} }

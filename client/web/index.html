@@ -46,7 +46,7 @@
               width="1200"
               height="800"
               tabindex="0"
-              aria-label="3D 游戏世界，WASD 移动并自动迈上矮台阶，空格跳跃，右键环绕，滚轮缩放，E 交谈或采集"
+              aria-label="3D 游戏世界，WASD 移动并自动迈上矮台阶，空格跳跃，右键环绕，滚轮缩放，E 交谈或采集，F 调查私人线索"
             ></canvas>
             <div class="map-label">
               MOSSLIGHT 3D <span id="camera-readout">右键环绕 · 滚轮缩放</span>
@@ -113,7 +113,7 @@
             <span id="coordinates">坐标 —</span
             ><span
               >WASD 移动 / 迈步 <em>·</em> 空格跳跃 <em>·</em> 右键环绕 <em>·</em> 滚轮缩放
-              <em>·</em> R 复位 <em>·</em> E 交谈 / 采集</span
+              <em>·</em> R 复位 <em>·</em> E 交谈 / 采集 <em>·</em> F 调查</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
         </section>
@@ -130,7 +130,33 @@
             <div class="score-value"><strong id="score">0</strong><span>分微光</span></div>
             <p class="muted">微光分数与营灯委托离开后重置；旧物收藏与寻宝线索随账号保存。</p>
           </section>
-          <section id="field-book" class="card field-book" aria-label="个人收藏与寻宝线索" hidden>
+          <div id="journal-tabs" class="journal-tabs" role="tablist" aria-label="个人旅程" hidden>
+            <button
+              id="book-tab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="field-book"
+            >
+              收藏线索
+            </button>
+            <button
+              id="camp-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="camp-panel"
+            >
+              微光展台
+            </button>
+          </div>
+          <section
+            id="field-book"
+            class="card field-book"
+            role="tabpanel"
+            aria-labelledby="book-tab"
+            hidden
+          >
             <div class="section-title">
               <h2>原野收藏册</h2>
               <span id="collection-count">0 / 3</span>
@@ -143,6 +169,28 @@
             </details>
             <div id="collections"></div>
             <p class="muted">线索与收藏已由服务器保存。只属于你的发现，不用争抢。</p>
+          </section>
+          <section
+            id="camp-panel"
+            class="card camp-display"
+            role="tabpanel"
+            aria-labelledby="camp-tab"
+            hidden
+          >
+            <div class="section-title">
+              <h2>营地微光展台</h2>
+              <span>收藏解锁</span>
+            </div>
+            <p class="camp-note">三处固定槽位，摆放旧物唤起的微光投影。只作装饰，不阻挡通行。</p>
+            <label for="camp-owner">查看谁的展台</label>
+            <select id="camp-owner"></select>
+            <p id="camp-summary" role="status"></p>
+            <p id="camp-placed"></p>
+            <p id="camp-location"></p>
+            <div id="camp-controls"></div>
+            <p class="muted">
+              摆件可免费移动或收起，不消耗微光。布置随账号保存；每次只观看一位在线旅人的投影。
+            </p>
           </section>
           <section class="card camp-npcs" aria-label="营地人物与委托">
             <div class="section-title">

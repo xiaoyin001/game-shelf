@@ -1,8 +1,10 @@
 // 文件说明：管理账号与真实联机输入，把权威快照交给 3D 视图，不在客户端决定奖励或坐标。
 import { WorldView } from "./view3d.js";
+import { CampPanel } from "./camp.js";
 const $ = (id) => document.getElementById(id);
 const canvas = $("world");
 let view = null;
+let campPanel = null;
 let rendererFailure = "";
 let dialogNPC = "";
 let dialogDismissed = false;
@@ -34,6 +36,9 @@ const errorMessages = {
   invalid_npc_choice: "这个对话选项不可用，请重新交谈。",
   quest_not_ready: "先接取委托，再成功采集两次晶簇，回来领取奖励。",
   progress_unavailable: "收藏存档暂时无法确认，请稍后重试或重新登录；不会用空档覆盖进度。",
+  invalid_camp_slot: "这个展台槽位不可用，请刷新场景。",
+  decoration_locked: "尚未解锁这款摆件，先跟随线索寻找对应的旧物。",
+  camp_out_of_range: "请走到营地微光展台（730 / 530）附近，站稳后再布置。",
   no_active_trail: "先与阿苔或林哨交谈，领取下一条旧物线索。",
   clue_out_of_range: "走近当前线索并站稳再调查；高处的旧物需要跳上去。",
   session_replaced_or_expired: "会话已结束，请重新进入。",
@@ -246,7 +251,7 @@ document.addEventListener("keydown", (event) => {
     closeDialog();
     return;
   }
-  if (dialogNPC || /INPUT|TEXTAREA|BUTTON/.test(event.target.tagName)) return;
+  if (dialogNPC || /INPUT|TEXTAREA|BUTTON|SELECT/.test(event.target.tagName)) return;
   const key = event.key.toLowerCase();
   if (movementKeys.has(key)) {
     event.preventDefault();
@@ -309,9 +314,10 @@ function updateBook(book) {
   if (stamp === bookStamp) return;
   const previous = fieldBook?.collections?.filter((entry) => entry.found).length || 0;
   fieldBook = book;
+  campPanel?.updateBook(book);
   bookStamp = stamp;
   view?.setTrail(book?.trail || null);
-  $("field-book").hidden = !book;
+  $("field-book").hidden = !book || !!campPanel?.open;
   $("clue-inspect").hidden = true;
   if (!book) {
     $("collections").replaceChildren();
@@ -354,7 +360,7 @@ function updateBook(book) {
     notice(
       "新收藏已保存：" +
         book.collections.findLast((entry) => entry.found).name +
-        "。可以在收藏册里读它的故事。",
+        "。故事已收入收藏册，也解锁了一款营地摆件。",
     );
 }
 $("clue-inspect").addEventListener("click", () => {
@@ -439,6 +445,7 @@ function closeDialog(focus = true) {
 $("npc-talk").addEventListener("click", talkToNPC);
 $("npc-close").addEventListener("click", () => closeDialog());
 function updateUI() {
+  campPanel?.updateState(state, selfID);
   const players = state.players || [],
     me = players.find((p) => p.id === selfID);
   $("online-count").textContent = players.length + " 人在线";
@@ -508,6 +515,7 @@ try {
   if (!response.ok) throw new Error("场景加载失败");
   const layout = await response.json();
   view = new WorldView(canvas, fail3D, layout);
+  campPanel = new CampPanel(view, (data) => send("decorate", data));
   $("npc-list").replaceChildren(
     ...layout.npcs.map((npc) => {
       const li = document.createElement("li"),

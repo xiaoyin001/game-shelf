@@ -64,4 +64,6 @@
 
 - [ADR-0031：两步寻宝与账号级持久收藏册](0031-persistent-field-book.md)
 
+- [ADR-0032：收藏解锁的固定槽位微光展台](0032-collection-camp-display.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

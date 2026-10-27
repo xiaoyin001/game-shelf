@@ -11,15 +11,17 @@ const (
 
 // WorldReq 的身份由 gate 填充，不能从浏览器请求透传。
 type WorldReq struct {
-	UserID    string  `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id"`
-	SessionID string  `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id"`
-	Action    string  `protobuf:"bytes,3,opt,name=action,proto3" json:"action"`
-	Name      string  `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
-	DX        float64 `protobuf:"fixed64,5,opt,name=dx,proto3" json:"dx"`
-	DY        float64 `protobuf:"fixed64,6,opt,name=dy,proto3" json:"dy"`
-	Text      string  `protobuf:"bytes,7,opt,name=text,proto3" json:"text"`
-	NPCID     string  `protobuf:"bytes,8,opt,name=npc_id,json=npcId,proto3" json:"npc_id"`
-	ChoiceID  string  `protobuf:"bytes,9,opt,name=choice_id,json=choiceId,proto3" json:"choice_id"`
+	UserID       string  `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id"`
+	SessionID    string  `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id"`
+	Action       string  `protobuf:"bytes,3,opt,name=action,proto3" json:"action"`
+	Name         string  `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
+	DX           float64 `protobuf:"fixed64,5,opt,name=dx,proto3" json:"dx"`
+	DY           float64 `protobuf:"fixed64,6,opt,name=dy,proto3" json:"dy"`
+	Text         string  `protobuf:"bytes,7,opt,name=text,proto3" json:"text"`
+	NPCID        string  `protobuf:"bytes,8,opt,name=npc_id,json=npcId,proto3" json:"npc_id"`
+	ChoiceID     string  `protobuf:"bytes,9,opt,name=choice_id,json=choiceId,proto3" json:"choice_id"`
+	SlotID       string  `protobuf:"bytes,10,opt,name=slot_id,json=slotId,proto3" json:"slot_id"`
+	DecorationID string  `protobuf:"bytes,11,opt,name=decoration_id,json=decorationId,proto3" json:"decoration_id"`
 }
 
 func (m *WorldReq) Reset()         { *m = WorldReq{} }
@@ -48,6 +50,7 @@ type WorldState struct {
 	Players      []*WorldPlayer `protobuf:"bytes,4,rep,name=players,proto3" json:"players"`
 	Chats        []*WorldChat   `protobuf:"bytes,6,rep,name=chats,proto3" json:"chats"`
 	Nodes        []*WorldNode   `protobuf:"bytes,5,rep,name=nodes,proto3" json:"nodes"`
+	Camps        []*CampDisplay `protobuf:"bytes,8,rep,name=camps,proto3" json:"camps"`
 }
 
 func (m *WorldState) Reset()         { *m = WorldState{} }

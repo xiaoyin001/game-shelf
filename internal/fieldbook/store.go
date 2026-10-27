@@ -45,7 +45,7 @@ func (s *Store) Load(ctx context.Context, userID string) (*contracts.Journal, er
 	if err != nil {
 		return nil, err
 	}
-	if doc.Schema != 1 {
+	if doc.Schema != 1 && doc.Schema != 2 {
 		return nil, errors.New("unsupported_field_book_schema")
 	}
 	if err := content.Validate(&doc.Journal); err != nil {
@@ -62,9 +62,12 @@ func (s *Store) Save(ctx context.Context, userID string, next *contracts.Journal
 	if err := content.Validate(next); err != nil {
 		return nil, err
 	}
+	if next.Revision >= content.MaxRevision {
+		return nil, errors.New("field_book_revision_exhausted")
+	}
 	saved := content.Clone(next)
 	saved.Revision++
-	result, err := s.collection.ReplaceOne(ctx, bson.M{"_id": userID, "schema": 1, "revision": next.Revision}, document{ID: userID, Schema: 1, Journal: *saved}, options.Replace().SetUpsert(next.Revision == 0))
+	result, err := s.collection.ReplaceOne(ctx, bson.M{"_id": userID, "schema": bson.M{"$in": []int{1, 2}}, "revision": next.Revision}, document{ID: userID, Schema: 2, Journal: *saved}, options.Replace().SetUpsert(next.Revision == 0))
 	if mongo.IsDuplicateKeyError(err) {
 		return nil, ErrConflict
 	}
