@@ -78,4 +78,6 @@
 
 - [ADR-0038：私有长回合与浏览器回归重叠](0038-overlap-private-round-validation.md)
 
+- [ADR-0039：WebGL2帧完成背压](0039-gpu-frame-backpressure.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

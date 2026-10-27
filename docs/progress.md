@@ -368,3 +368,13 @@
 - Windows check/check:client/workflow通过，运行器31通过、SDK专属1跳过；Linux独立副本 `.local/pair-check-e9a975d2645249f8a166e6315bdb1a18` 的check/check:client/test:all/test:services/全量Go race均通过，运行器30通过/2项环境专属跳过。全部25/25浏览器（3.7m、最慢17.5秒），长层180.532秒/三个真实回合原保存/重登/练习不写断言全部通过，与浏览器真实重叠；另一全量协议轮194.307秒通过。仍2CPU/4GiB/无swap、30秒/零重试/单worker和27秒/原总预算，不作统计性能或冷工具横评。
 - 证据 `.local/logs/overlap-full.out.log`，任务e9a975d2为passed，四个本轮容器0；旧试玩仍正常停机、数据卷保留。本轮沿用prepared镜像/缓存、SDK UID0，不冒称最终默认门禁/普通UID回收证明。
 - 阶段提交时仍待修复后新干净HEAD完整verify:ci和同SHA云端结果，未合master/Push/PR/部署。功能/存储边界沿用阶段36；最终交付不能拿本阶段或第一轮代替完整两轮正式证明。
+
+### 38 · 云端超时取证与GPU完成背压（2026-10-28，本地修复完成）
+
+- 91d0b85最终干净HEAD默认verify:ci报告b2356d79为passed：source/CGO race156.277秒、playable622.198秒，两轮25/25、最慢18.714/17.918秒，实际UID/GID1000:1000、2CPU/4GiB/无swap，正常/故障/第二轮project与缓存0。真实hook接受当前refs后已普通快进Push origin/master；这是真实本地成功，不抹去后续远端失败。
+- 同SHA[CI40534173405](https://github.com/xiaoyin001/game-shelf/actions/runs/40534173405)source成功，真实三个180秒通过，但浏览器23/25（7.7m），3D30秒触及时限（含收尾35秒）、合作30秒。原失败保留，未重跑/取消远端任务，未PR/远端部署；不拿本地通过冒称云端已通过。
+- 仓库凭据仅用于本仓库既有CI只读取证，不写日志/仓库。取得job原始日志、范围读取两失败例的完整trace/上下文/失败图共6条并逐项CRC通过；25MB整份制品下载未完成，稀疏ZIP不称完整。trace：3D第二账号fill8.301秒、截图4.069/4.110秒、loseContext和断言后关闭触及时限；合作100分/贡献已完成，截图6.804秒后关闭超时，不根据mailbox/DBus认定唯一原因。
+- 先写[ADR-0039](decisions/0039-gpu-frame-backpressure.md)，只把JS计时投递改为WebGL2真实fenceSync背压：非阻塞timeout0回收完成帧、每窗口最多两帧在途，未完成不再堆积命令，完成后继续原30/12fps目标。提交后flush，pagehide/上下文丢失释放fence；不阻塞gl.finish、不降像素/画质/阴影/几何、不删截图或拆弱原断言。
+- Windows check/check:client/workflow通过；Linux独立 `.local/pair-check-240d57a973b744a2b9a45aa5b27551be` 完整check/check:client/test:all/test:services/全量Go race通过，运行器30通过/2项专属跳过。原25/25（2.3m、最慢13.0秒，3D9.3秒/合作13.0秒），新增真实GPU在途/峰值≤2，原idle真实新绘制/0 HUD变更/12fps上限/镜头活动/GL深度/实际失去上下文和全部原回归保留。两轮各三个完整180秒，原保存/重登/练习拒绝均通过；另定向5/5通过。
+- 证据 `.local/logs/gpu-full.out.log`、任务240d57a9 passed；实际3D与合作截图已查看，场景/角色/手持/阴影保持。本轮工具2CPU/4GiB/无swap、SDK UID0/已有prepared镜像与缓存，所有本轮容器0；单轮前后差异不是统计性能因果或云端已修好证明，未新增本修复版额外180秒浏览器长观察，不沿用旧181.338秒改称新版结果。
+- 为新最终门禁正常暂停本任务已创建的新试玩982948及本仓库依赖，只stop保留卷，未按端口杀进程。修复在fix/ci-playable-failure独立分支，阶段提交时尚无该修复最终HEAD默认完整verify:ci/新SHA云端结果；仍待完整门禁再普通快进Push，不复用91d0b85记录。

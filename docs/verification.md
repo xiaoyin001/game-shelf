@@ -2,6 +2,15 @@
 
 初始报告日期：2026-10-21，后续阶段各自标注日期。本报告对应本次重建分支的最终源码与交付检查，不复用旧仓库运行结果。Git 成长结构见 [阶段索引](history.json)，当次验证事实见 [成长记录](progress.md)。
 
+## 2026-10-28 · 第38阶段：本地正式通过后的真实云端失败与GPU背压修复
+
+- 91d0b85干净HEAD默认verify:ci报告b2356d79为passed：source/CGO race156.277秒，playable622.198秒含两轮25/25、最慢18.714/17.918秒，真实UID1000/2CPU/4GiB/无swap，正常/故障/第二轮及缓存资源0。真实hook已检查refs，普通快进Push origin/master成功。
+- 随后同SHA[CI40534173405](https://github.com/xiaoyin001/game-shelf/actions/runs/40534173405)source成功，真实三回合180秒通过，浏览器23/25（7.7m）：3D与合作均触及30秒；无云端全绿结论。只读取日志/制品，未重跑/取消。两个完整trace/上下文/失败图共6条范围提取并CRC通过，不称25MB整份制品已完整下载。
+- trace确认3D第二账号fill8.301秒、两张截图4.069/4.110秒，实际丢失上下文及断言后context.close触及时限；合作已完成100分/共享贡献，截图6.804秒后关闭未完成。不是配对/物理断言失败，也不凭mailbox推断唯一根因。
+- [ADR-0039](decisions/0039-gpu-frame-backpressure.md)只引入真实WebGL2帧fence背压，每窗口≤2帧在途，非阻塞观察完成；原30/12fps目标、分辨率、几何/材质/阴影、截图、30秒/零重试/单worker/27秒与总预算不变，不冻结可绘制场景。
+- 修复后Windows check/check:client/workflow、Linux独立240d57a9完整check/check:client/test:all/test:services/全量Go race均通过，25/25（2.3m、最慢13秒），GPU在途/峰值≤2和全部原真实绘制/物理/失去上下文/完整合作断言保留。两轮三个真实180秒和保存/重登/练习不写原断言通过，截图已查看；定向5/5。日志 `.local/logs/gpu-full.out.log`、任务240d57a9 passed，本轮容器0。
+- 本节为阶段提交时状态：已有prepared镜像/缓存/SDK UID0不是新最终HEAD正式门禁；未新增该修复版长浏览器观察、未作统计性能横评或声学验收。新试玩本任务进程经正常标记暂停、依赖只stop留卷，为新完整门禁腾位；fix/ci-playable-failure仍须新干净HEAD默认verify:ci、hook与同SHA云端，不沿用91d0b85证明。
+
 ## 2026-10-27 · 第37阶段：正式总预算拒绝与私有长回合重叠修复
 
 - b421bc7默认干净HEAD报告 `.local/logs/ci-verify-0951ba0973f44510853dd162591da158/report.json` 为failed：source/全量CGO race143.185秒通过，完整playable首轮558.769秒、真实协议194.374秒、25/25（3.7m）及故障清理通过，额外新DB轮8/25后总执行期限到达。未生成有效推送记录，未Push，不能以首轮或阶段25/25放行。

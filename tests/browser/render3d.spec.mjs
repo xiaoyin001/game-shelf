@@ -64,6 +64,9 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
         mutations,
       };
     });
+    expect(Number(await canvas.getAttribute("data-gpu-queue-peak"))).toBeGreaterThan(0);
+    expect(Number(await canvas.getAttribute("data-gpu-queue-peak"))).toBeLessThanOrEqual(2);
+    expect(Number(await canvas.getAttribute("data-gpu-in-flight"))).toBeLessThanOrEqual(2);
     expect(idle.frames).toBeGreaterThan(0);
     expect(idle.mutations).toBe(0);
     expect(idle.frames).toBeLessThanOrEqual(Math.ceil((idle.elapsed * 12) / 1000) + 1);

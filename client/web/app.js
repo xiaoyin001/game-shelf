@@ -406,7 +406,7 @@ let lastRender = 0;
 function render(now) {
   try {
     const delay = view && !view.failed ? view.frameDelay(now, state) : 1000 / 12;
-    if (now - lastRender < delay) {
+    if (now - lastRender < delay || (view && !view.failed && !view.frameReady())) {
       requestAnimationFrame(render);
       return;
     }

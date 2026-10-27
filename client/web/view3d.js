@@ -29,6 +29,10 @@ export class WorldView {
     const gl = this.renderer.getContext();
     if (!(gl instanceof WebGL2RenderingContext)) throw new Error("需要 WebGL2 支持");
     canvas.dataset.renderer = "webgl2";
+    this.gl = gl;
+    this.frameFences = [];
+    this.frameQueuePeak = 0;
+    window.addEventListener("pagehide", () => this.releaseFrames());
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -74,8 +78,27 @@ export class WorldView {
     canvas.addEventListener("webglcontextlost", (event) => {
       event.preventDefault();
       this.failed = true;
+      this.releaseFrames();
       onFailure("3D 上下文已丢失，请刷新页面；不会使用 2D 替代。");
     });
+  }
+
+  // 非阻塞检查GPU已完成的帧，保留原绘制目标但不继续堆积未完成命令。
+  frameReady() {
+    const gl = this.gl;
+    if (gl.isContextLost()) return false;
+    while (this.frameFences.length) {
+      const status = gl.clientWaitSync(this.frameFences[0], 0, 0);
+      if (status === gl.TIMEOUT_EXPIRED) break;
+      if (status === gl.WAIT_FAILED) throw new Error("GPU帧同步失败");
+      gl.deleteSync(this.frameFences.shift());
+    }
+    this.setCanvasData("gpuInFlight", this.frameFences.length);
+    return this.frameFences.length < 2;
+  }
+  releaseFrames() {
+    for (const fence of this.frameFences) this.gl.deleteSync(fence);
+    this.frameFences.length = 0;
   }
 
   resize() {
@@ -782,6 +805,13 @@ export class WorldView {
       this.lastShadow = now;
     }
     this.renderer.render(this.scene, this.camera);
+    const fence = this.gl.fenceSync(this.gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (!fence) throw new Error("无法追踪GPU帧完成");
+    this.frameFences.push(fence);
+    this.gl.flush();
+    this.frameQueuePeak = Math.max(this.frameQueuePeak, this.frameFences.length);
+    this.setCanvasData("gpuInFlight", this.frameFences.length);
+    this.setCanvasData("gpuQueuePeak", this.frameQueuePeak);
     this.canvas.dataset.renderCount = String(++this.renderedFrames);
     if (me) this.avatarBatches.body.getMatrixAt(me.bodyIndex, this.avatarProbe);
     this.setCanvasData("selfHeight", me ? (this.avatarProbe.elements[13] - 25).toFixed(2) : "");

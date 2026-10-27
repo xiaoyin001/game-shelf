@@ -2,9 +2,9 @@
 
 同仓提供 Go 服务端和浏览器 3D 游戏。当前按 owner 确认，将旧轻探索主循环重构为 180 秒搬运配对挑战：先单人，再双人房间与独立排行榜；保留账号、3D 权威物理和旧存档。代码和 AI 规范从空仓库逐段实现、验证、提交，过程见 [成长记录](docs/progress.md)，不是拆分旧大提交伪造的开发历史。
 
-## 当前开发验收状态（2026-10-27）
+## 阶段提交时的开发验收状态（2026-10-28）
 
-单人、双人合作与持久成绩/两类每日榜/个人最佳均已实现：服务器裁定180秒和资格，正常完赛由lobby提交、db以不可变回合ID幂等保存；练习/提前退出不入榜。阶段隔离已实跑25例浏览器、单人/双人/练习各完整180秒及全量Go race；额外双浏览器连续181.338秒确认100分保存、双人榜/个人最佳、双方重新准备开局和密码重登。该阶段结果不是正式推送证明；干净最终HEAD还须默认完整verify:ci和同SHA云端核对。旧试玩已按owner本次明确授权正常停机，账号/旧存档及数据卷保留，下方命令启动当前构建。产品边界见[目标](docs/playable-mvp.md)，决策见[单人](docs/decisions/0035-timed-pair-challenge.md)、[双人](docs/decisions/0036-cooperative-rooms.md)和[成绩/榜单](docs/decisions/0037-authoritative-leaderboards.md)，阶段提交时的实际状态见[验收](docs/verification.md)。
+单人、双人合作与持久成绩/两类每日榜/个人最佳均已实现：服务器裁定180秒和资格，正常完赛由lobby提交、db以不可变回合ID幂等保存；练习/提前退出不入榜。阶段隔离已实跑25例浏览器、单人/双人/练习各完整180秒及全量Go race；额外双浏览器连续181.338秒确认100分保存、双人榜/个人最佳、双方重新准备开局和密码重登。91d0b85随后默认完整verify:ci两轮25/25通过并已普通推送，但[同SHA云端](https://github.com/xiaoyin001/game-shelf/actions/runs/40534173405)仍23/25、3D与合作超时，不能称全绿。当前[GPU帧背压修复](docs/decisions/0039-gpu-frame-backpressure.md)保留全部画质/FPS目标/截图/断言，隔离全套25/25（最慢13秒）通过；阶段提交时新最终HEAD仍须默认完整verify:ci和同SHA云端核对。旧试玩已按owner本次明确授权正常停机，账号/旧存档及数据卷保留，下方命令启动当前构建。产品边界见[目标](docs/playable-mvp.md)，决策见[单人](docs/decisions/0035-timed-pair-challenge.md)、[双人](docs/decisions/0036-cooperative-rooms.md)和[成绩/榜单](docs/decisions/0037-authoritative-leaderboards.md)，阶段提交时的实际状态见[验收](docs/verification.md)。
 
 ### 旧版历史，不代表新玩法验收
 
