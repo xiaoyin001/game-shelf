@@ -4,7 +4,7 @@
 
 ## 当前开发验收状态（2026-10-27）
 
-`feat/timed-pair-workshop` 已完成独立单人切片：固定180秒、搬运配对/连击、清盘补盘、结算与重开。Windows源码/客户端检查、Linux隔离真实四服务/两个完整180秒协议回合、20/20浏览器及全量Go race通过，另连续浏览器观察181.009秒确认结算/重开。双人房间与持久榜单尚未实现；尚未完成本阶段最终HEAD默认verify:ci，未合入master、未Push/PR/部署。现有 **http://127.0.0.1:11000** 仍是原轻探索试玩，进程和数据未动，不把它称为新玩法。产品边界见[目标](docs/playable-mvp.md)，决策见[ADR-0035](docs/decisions/0035-timed-pair-challenge.md)，证据见[实际验收](docs/verification.md)。
+`feat/timed-pair-workshop` 已完成独立单人切片：固定180秒、搬运配对/连击、清盘补盘、结算与重开。Windows源码/客户端检查、Linux隔离真实四服务/两个完整180秒协议回合、20/20浏览器及全量Go race通过，另连续浏览器观察181.009秒确认结算/重开。双人房间与持久榜单尚未实现；业务提交8cc34cb的默认verify:ci已在原试玩/依赖端口保护处拒绝（jobs未运行），尚无正式完整证明，未合入master、未Push/PR/部署。现有 **http://127.0.0.1:11000** 仍是原轻探索试玩，进程和数据未动，不把它称为新玩法。产品边界见[目标](docs/playable-mvp.md)，决策见[ADR-0035](docs/decisions/0035-timed-pair-challenge.md)，证据见[实际验收](docs/verification.md)。
 
 ### 旧版历史，不代表新玩法验收
 

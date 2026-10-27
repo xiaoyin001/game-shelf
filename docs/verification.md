@@ -13,6 +13,10 @@
 - 保留修复前失败：副本遗漏删除、空局面异常、收到首帧才计时的177.601秒失败，以及e1dda轮19/20的聊天收尾超时（第二页fill15.961秒）。不据一次前后结果认定唯一性能根因；未放宽规则/资源/时限。详情见[阶段34](progress.md)。
 - **尚未完成本阶段干净最终HEAD默认verify:ci，未合入master、未Push/PR/部署，无新SHA云端结果**。下方旧49e4822正式失败原样保留。现有试玩看护2438752及四服务仍在原PID，11000仍是mosslight-camp-1，未改其配置/账号/存档，不能把旧站称为新玩法试玩。
 
+### 单人业务提交后的真实门禁尝试
+
+业务提交 `8cc34cb044a0afa5b86f11540258d2921f84538e` 的干净HEAD已执行默认 `npm run verify:ci`。报告 `.local/logs/ci-verify-1ffa1ee8f04343c6a90222950036ff36/report.json` 为failed、jobs为空：入口发现原试玩及依赖的13个监听端口，在创建/接管服务前拒绝。没有运行source/playable/额外轮，不能把隔离阶段通过算成正式通过。遵守owner“现有试玩不动”要求，没有停这些进程或清依赖；真实pre-push --check拒绝、证据为invalidated，既有.githooks/pre-push仍有效。文档补记不生成推送证明；下一最终HEAD仍须在允许的空闲环境完整验收，未Push/PR/部署。
+
 ## 2026-10-27 · 旧轻探索交付结论：功能可本机试玩，推送验收未通过
 
 - 最终业务提交 `49e48229826ce0ed181d754acbb1baca6b6a0408` 的干净HEAD默认完整verify:ci，报告 `.local/logs/ci-verify-fbf1cb02f8dd4408b0dbe68eb60cf6ea/report.json` 为 **failed**。source/CGO全量race196.616秒、真实依赖/四服务/全部协议45.645秒通过，但Linux浏览器 **20/21**（5.5m），展台流程触及30秒，报告33.7秒含收尾；额外新DB轮未执行。
