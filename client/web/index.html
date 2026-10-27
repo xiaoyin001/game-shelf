@@ -103,7 +103,7 @@
         </section>
         <aside class="sidebar">
           <section id="challenge" class="card challenge" data-phase="lobby">
-            <p class="eyebrow">PAIR & CARRY · 单人挑战</p>
+            <p id="mode-label" class="eyebrow">PAIR & CARRY · 单人挑战</p>
             <h2 id="player-name">尚未出发</h2>
             <div class="score-row">
               <div><strong id="score">0</strong><small>分</small></div>
@@ -111,10 +111,39 @@
             </div>
             <p id="round-rules" class="muted">180 秒 · 同日相同关卡</p>
             <div id="challenge-controls" hidden>
-              <button id="start-solo" type="button" class="primary">开始单人挑战 · 180 秒</button
-              ><button id="quit-round" type="button" class="quiet" hidden>
-                退出本局，返回大厅
-              </button>
+              <div id="mode-entry">
+                <button id="start-solo" type="button" class="primary">开始单人挑战 · 180 秒</button>
+                <button id="create-room" type="button" class="primary">创建双人房间</button>
+                <form id="join-room-form" class="join-room-form">
+                  <label class="sr-only" for="room-code-input">房间码</label>
+                  <input
+                    id="room-code-input"
+                    maxlength="6"
+                    minlength="6"
+                    required
+                    placeholder="六位房间码"
+                    autocomplete="off"
+                  />
+                  <button type="submit">加入房间</button>
+                </form>
+              </div>
+              <button id="quit-round" type="button" class="quiet" hidden>退出本局，返回大厅</button>
+            </div>
+            <div id="room-panel" class="room-panel" hidden>
+              <details id="room-lobby" open>
+                <summary id="room-heading">双人房间</summary>
+                <p>房间码 <strong id="room-code"></strong></p>
+                <ul id="room-members"></ul>
+                <div class="room-actions">
+                  <button id="ready-room" type="button" aria-pressed="false">准备</button>
+                  <button id="start-duo" type="button">开始双人挑战</button>
+                </div>
+              </details>
+              <p id="room-state" role="status"></p>
+              <div id="teammate-hand"></div>
+              <p id="room-help" class="muted">
+                各自三件，共享五格台面与连击。短断线20秒内用原账号登录可恢复；主动退出转练习。
+              </p>
             </div>
             <label class="sound-switch"
               ><input id="sound" type="checkbox" checked /> 配对音效</label
@@ -144,7 +173,7 @@
               <div id="result" class="result" hidden>
                 <h3>挑战结束</h3>
                 <p id="result-summary"></p>
-                <p class="muted">当前单人切片仅显示本轮成绩，尚不写入排行榜。</p>
+                <p id="result-note" class="muted">当前阶段仅显示本轮成绩，尚不写入排行榜。</p>
                 <button id="again" type="button" class="primary" hidden>再来一局</button>
               </div>
             </div>

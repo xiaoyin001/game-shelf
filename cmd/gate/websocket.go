@@ -20,22 +20,26 @@ import (
 )
 
 type browserCommand struct {
-	Version int     `json:"version"`
-	Type    string  `json:"type"`
-	Token   string  `json:"token,omitempty"`
-	DX      float64 `json:"dx,omitempty"`
-	DY      float64 `json:"dy,omitempty"`
-	Text    string  `json:"text,omitempty"`
-	ItemID  string  `json:"item_id,omitempty"`
-	RoundID string  `json:"round_id,omitempty"`
+	Version  int     `json:"version"`
+	Type     string  `json:"type"`
+	Token    string  `json:"token,omitempty"`
+	DX       float64 `json:"dx,omitempty"`
+	DY       float64 `json:"dy,omitempty"`
+	Text     string  `json:"text,omitempty"`
+	ItemID   string  `json:"item_id,omitempty"`
+	RoundID  string  `json:"round_id,omitempty"`
+	RoomCode string  `json:"room_code,omitempty"`
+	Ready    bool    `json:"ready,omitempty"`
+	RoomID   string  `json:"room_id,omitempty"`
 }
 type browserEvent struct {
-	Version   int                   `json:"version"`
-	Type      string                `json:"type"`
-	UserID    string                `json:"user_id,omitempty"`
-	Error     string                `json:"error,omitempty"`
-	State     *contracts.WorldState `json:"state,omitempty"`
-	Challenge *contracts.Challenge  `json:"challenge,omitempty"`
+	Version   int                      `json:"version"`
+	Type      string                   `json:"type"`
+	UserID    string                   `json:"user_id,omitempty"`
+	Error     string                   `json:"error,omitempty"`
+	State     *contracts.WorldState    `json:"state,omitempty"`
+	Challenge *contracts.Challenge     `json:"challenge,omitempty"`
+	Room      *contracts.ChallengeRoom `json:"room,omitempty"`
 }
 type webSession struct {
 	online session.OnlineSession
@@ -94,7 +98,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 	defer s.leaveBrowser(active, conn)
-	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Challenge: resp.Challenge}) {
+	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Challenge: resp.Challenge, Room: resp.Room}) {
 		return
 	}
 
@@ -136,11 +140,11 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" && cmd.Type != "start_solo" && cmd.Type != "pick" && cmd.Type != "put" && cmd.Type != "return" && cmd.Type != "leave_round" {
+			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" && cmd.Type != "start_solo" && cmd.Type != "pick" && cmd.Type != "put" && cmd.Type != "return" && cmd.Type != "leave_round" && cmd.Type != "create_room" && cmd.Type != "join_room" && cmd.Type != "set_ready" && cmd.Type != "start_duo" && cmd.Type != "rematch" && cmd.Type != "leave_world" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}
-			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, ItemID: cmd.ItemID, RoundID: cmd.RoundID})
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, ItemID: cmd.ItemID, RoundID: cmd.RoundID, RoomCode: cmd.RoomCode, Ready: cmd.Ready, RoomID: cmd.RoomID})
 			if err != nil {
 				return
 			}
@@ -148,8 +152,11 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error}) {
 					return
 				}
+			} else if cmd.Type == "leave_world" {
+				s.writeBrowser(runCtx, conn, browserEvent{Type: "left"})
+				return
 			} else if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" {
-				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge}) {
+				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge, Room: reply.Room}) {
 					return
 				}
 			}
@@ -163,7 +170,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error})
 				return
 			}
-			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge}) {
+			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge, Room: reply.Room}) {
 				return
 			}
 		}

@@ -3,7 +3,6 @@ package world
 
 import (
 	"context"
-	"game-shelf/internal/challenge"
 	"game-shelf/pkg/contracts"
 	"game-shelf/pkg/scene"
 	"sort"
@@ -27,15 +26,10 @@ type player struct {
 	lastMove time.Time
 	lastChat time.Time
 	vz       float64
-	round    *challenge.Round
+	roomID   string
 }
 
-func (p *player) scope() string {
-	if p.round != nil {
-		return p.round.ID()
-	}
-	return ""
-}
+func (p *player) scope() string { return p.roomID }
 
 type chatEntry struct {
 	value contracts.WorldChat
@@ -51,11 +45,14 @@ type World struct {
 	nodes       []contracts.WorldNode
 	layout      scene.Layout
 	lastPhysics time.Time
+	rooms       map[string]*room
+	codes       map[string]string
+	memberships map[string]string
 }
 
 // New 不读取或覆盖旧 field_books，保留账号和原有 Mongo 数据。
 func New() *World {
-	w := &World{players: make(map[string]*player), layout: scene.Default()}
+	w := &World{players: make(map[string]*player), layout: scene.Default(), rooms: make(map[string]*room), codes: make(map[string]string), memberships: make(map[string]string)}
 	for _, n := range w.layout.Nodes {
 		w.nodes = append(w.nodes, contracts.WorldNode{ID: n.ID, X: n.X, Y: n.Y})
 	}
@@ -66,26 +63,16 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 	return w.ApplyContext(context.Background(), req, now)
 }
 
-// ApplyContext 使用 gate 提供的会话身份，客户端不能传入分数、时钟或坐标。
+// ApplyContext 使用 gate 提供的会话身份，房间和局面修改与Tick使用同一把锁。
 func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now time.Time) *contracts.WorldResp {
 	if ctx.Err() != nil {
 		return failure("world_unavailable")
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	for id, p := range w.players {
-		if now.Sub(p.lastSeen) > playerTTL {
-			delete(w.players, id)
-		}
-	}
+	w.tick(now)
 	if req.UserID == "" || req.SessionID == "" {
 		return failure("unauthenticated")
-	}
-	w.advance(now)
-	for _, p := range w.players {
-		if p.round != nil {
-			p.round.Advance(now)
-		}
 	}
 	if req.Action == "enter" {
 		name := strings.TrimSpace(req.Name)
@@ -93,20 +80,21 @@ func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now t
 			return failure("invalid_name")
 		}
 		if p := w.players[req.UserID]; p != nil {
-			if p.session != req.SessionID {
-				p.session = req.SessionID
-			}
+			p.session = req.SessionID
 			p.lastSeen = now
 			return w.response(p, now)
 		}
 		if len(w.players) >= 100 {
 			return failure("world_full")
 		}
-		x, y, ok := w.spawn(req.UserID)
-		if !ok {
-			return failure("world_full")
+		p := &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, Grounded: true}, session: req.SessionID, lastSeen: now, lastMove: now}
+		if !w.restoreRoom(p, now) {
+			x, y, ok := w.spawn(req.UserID)
+			if !ok {
+				return failure("world_full")
+			}
+			p.state.X, p.state.Y = x, y
 		}
-		p := &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y, Grounded: true}, session: req.SessionID, lastSeen: now, lastMove: now}
 		w.players[req.UserID] = p
 		return w.response(p, now)
 	}
@@ -127,43 +115,31 @@ func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now t
 		}
 		p.vz = jumpSpeed
 		p.state.Grounded = false
-	case "start_solo":
-		if p.round != nil && p.round.Phase() == "running" {
-			return failure("already_in_round")
+	case "start_solo", "create_room", "join_room", "set_ready", "start_duo", "rematch", "leave_round":
+		if err := w.roomAction(p, req, now); err != "" {
+			return failure(err)
 		}
-		p.round = challenge.New(p.state.ID, p.state.Name, now, w.layout.Workshop)
-		p.state.X = w.layout.Workshop.SpawnX
-		p.state.Y = w.layout.Workshop.SpawnY
-		p.state.Z = 0
-		p.state.Grounded = true
-		p.vz = 0
-		p.lastMove = now
 	case "pick", "put", "return":
-		if p.round == nil {
+		r := w.rooms[p.roomID]
+		if r == nil || r.round == nil {
 			return failure("no_round")
 		}
 		pose := p.state
 		pose.Grounded = pose.Grounded && w.supported(p)
-		if err := p.round.Apply(req.Action, req.RoundID, req.ItemID, pose, now); err != "" {
+		if err := r.round.Apply(req.Action, req.RoundID, req.ItemID, pose, now); err != "" {
 			return failure(err)
-		}
-	case "leave_round":
-		if p.round != nil {
-			x, y, ok := w.spawn(p.state.ID)
-			if !ok {
-				return failure("world_full")
-			}
-			p.round.Abandon()
-			p.round = nil
-			p.state.X, p.state.Y, p.state.Z = x, y, 0
-			p.state.Grounded, p.vz, p.lastMove = true, 0, now
 		}
 	case "chat":
 		if err := w.chat(p, req.Text, now); err != "" {
 			return failure(err)
 		}
+	case "leave_world":
+		if err := w.leaveRoom(p, req.RoomID, now); err != "" {
+			return failure(err)
+		}
+		delete(w.players, p.state.ID)
 	case "leave":
-		delete(w.players, req.UserID)
+		w.disconnect(p, now)
 	default:
 		return failure("unknown_action")
 	}
@@ -171,7 +147,8 @@ func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now t
 }
 
 // spawn 检查静态实体与同作用域身体；局内玩家不占用大厅出生格。
-func (w *World) spawn(userID string) (float64, float64, bool) {
+func (w *World) spawn(userID string) (float64, float64, bool) { return w.spawnIn(userID, "", 560, 400) }
+func (w *World) spawnIn(userID, scope string, centerX, centerY float64) (float64, float64, bool) {
 	offset := func(i int) float64 {
 		if i%2 == 1 {
 			return float64((i+1)/2) * 40
@@ -180,11 +157,11 @@ func (w *World) spawn(userID string) (float64, float64, bool) {
 	}
 	for row := 0; row < 19; row++ {
 		for col := 0; col < 29; col++ {
-			x, y := 560+offset(col), 400+offset(row)
+			x, y := centerX+offset(col), centerY+offset(row)
 			if x < 20 || x > width-20 || y < 20 || y > height-20 {
 				continue
 			}
-			probe := &player{state: contracts.WorldPlayer{ID: userID, X: x, Y: y}}
+			probe := &player{state: contracts.WorldPlayer{ID: userID, X: x, Y: y}, roomID: scope}
 			if !w.blocked(probe, x, y) {
 				return x, y, true
 			}
@@ -234,8 +211,11 @@ func (w *World) response(p *player, now time.Time) *contracts.WorldResp {
 	}
 	sort.Slice(state.Players, func(i, j int) bool { return state.Players[i].ID < state.Players[j].ID })
 	resp := &contracts.WorldResp{State: state}
-	if p.round != nil {
-		resp.Challenge = p.round.Snapshot()
+	if r := w.rooms[p.roomID]; r != nil {
+		resp.Room = r.snapshot(now)
+		if r.round != nil {
+			resp.Challenge = r.round.Snapshot()
+		}
 	}
 	return resp
 }

@@ -1,77 +1,12 @@
 // 文件说明：通过真实表单、键盘和道具按钮验证单人搬运配对，不修改游戏状态或时钟。
 import { test, expect } from "@playwright/test";
 import { join, unique } from "./helpers.mjs";
-const coordinate = async (page, axis) =>
-  Number(await page.locator("#coordinates").getAttribute("data-" + axis));
-async function walk(page, x, y) {
-  await page.locator("#world").focus();
-  for (const [axis, target, positive, negative] of [
-    ["x", x, "d", "a"],
-    ["y", y, "s", "w"],
-  ]) {
-    const delta = target - (await coordinate(page, axis));
-    if (Math.abs(delta) < 18) continue;
-    const sign = Math.sign(delta),
-      key = sign > 0 ? positive : negative;
-    await page.keyboard.down(key);
-    try {
-      await expect
-        .poll(async () => ((await coordinate(page, axis)) - target) * sign, { intervals: [25] })
-        .toBeGreaterThan(-14);
-    } finally {
-      await page.keyboard.up(key);
-    }
-  }
-}
+import { coordinate, walk, ground, pick, put } from "./challenge-helpers.mjs";
 async function start(page, label) {
   await join(page, unique(label));
   await page.locator("#start-solo").click();
   await expect(page.locator("#challenge")).toHaveAttribute("data-phase", "running");
   await expect(page.locator("#board-items button")).toHaveCount(16);
-}
-async function ground(page) {
-  return page.locator("#board-items button").evaluateAll((bs) =>
-    bs.map((b) => ({
-      ...b.dataset,
-      x: Number(b.dataset.x),
-      y: Number(b.dataset.y),
-      z: Number(b.dataset.z),
-    })),
-  );
-}
-async function pick(page, item, keyboard = false) {
-  const x = await coordinate(page, "x"),
-    y = await coordinate(page, "y");
-  const length = Math.hypot(item.x - x, item.y - y);
-  const ratio = length > 40 ? (length - 40) / length : 0;
-  await walk(page, x + (item.x - x) * ratio, y + (item.y - y) * ratio);
-  // 只点击对应真实道具；数据属性来自公开权威快照，不是坐标写入后门。
-  await page.locator(".rules").evaluate((e) => {
-    e.open = false;
-  });
-  const details = page.locator("details").filter({ has: page.locator("#board-items") });
-  await details.evaluate((e) => {
-    e.open = true;
-  });
-  if (keyboard) await page.keyboard.press("e");
-  else await page.locator('#board-items button[data-item-id="' + item.itemId + '"]').click();
-  await expect(page.locator('#hand button[data-item-id="' + item.itemId + '"]')).toHaveCount(1);
-}
-async function put(page, item, keyboard = false) {
-  await walk(page, 700, 350);
-  if (keyboard) {
-    const slot = Number(
-      await page
-        .locator('#hand button[data-item-id="' + item.itemId + '"]')
-        .getAttribute("data-slot"),
-    );
-    await page.keyboard.press(String(slot + 1));
-    await page.keyboard.press("f");
-  } else {
-    await page.locator('#hand button[data-item-id="' + item.itemId + '"]').click();
-    await page.locator("#put-item").click();
-  }
-  await expect(page.locator('#hand button[data-item-id="' + item.itemId + '"]')).toHaveCount(0);
 }
 test("真实3D取物投送成对，计分、微光与时间均由服务器确认", async ({ page }, info) => {
   const errors = [];

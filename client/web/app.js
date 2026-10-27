@@ -9,6 +9,7 @@ let view = null,
 let socket = null,
   state = null,
   round = null,
+  room = null,
   selfID = "",
   connected = false,
   chatID = 0;
@@ -35,6 +36,17 @@ const errorMessages = {
   rate_limited: "请求过于频繁，连接已关闭。",
   already_in_round: "本局尚未结束，先完成挑战或退出。",
   no_round: "请先开始挑战。",
+  already_in_room: "请先离开当前房间，再切换模式。",
+  rooms_full: "房间暂时已满，请稍后重试。",
+  room_unavailable: "房间码无效或房间已关闭。",
+  room_full: "房间已有两名成员。",
+  room_locked: "本局已经锁定成员，不能中途加入或更换。",
+  stale_room: "房间已更新，请重新操作。",
+  no_room: "请先创建或加入双人房间。",
+  host_only: "只有房主可以开始或重开。",
+  both_ready_required: "需要两名成员在线且都已准备。",
+  round_not_finished: "本局尚未结束。",
+  reconnect_pending: "请先等原成员重连确认或窗口结束。",
   stale_round: "局面已更新，请重新操作。",
   round_finished: "时间已到，本局已结算。",
   item_blocked: "先取走它上面的道具。",
@@ -75,6 +87,7 @@ function disconnected(text) {
   $("register-button").disabled = !view || view.failed;
   state = null;
   round = null;
+  room = null;
   selfID = "";
   playersStamp = selfStamp = "";
   $("online-count").textContent = "0 人在线";
@@ -182,6 +195,10 @@ $("login-form").addEventListener("submit", async (event) => {
         notice(errorMessages[event.error] || "请求未完成：" + event.error);
         return;
       }
+      if (event.type === "left") {
+        current.close();
+        return;
+      }
       if (event.type === "ready") {
         selfID = event.user_id;
         connected = true;
@@ -207,12 +224,15 @@ $("login-form").addEventListener("submit", async (event) => {
         }
         state = event.state;
         round = event.challenge || null;
+        room = event.room || null;
         updateUI();
       }
     });
     current.addEventListener("close", () => {
       if (socket === current)
-        disconnected("连接已断开；若同账号通过验证后在别处进入，旧连接会被顶替。可重新登录。");
+        disconnected(
+          "连接已断开；双人原成员20秒内用原账号重新登录可回房，计时不停。正确密码可顶替旧会话。",
+        );
     });
     current.addEventListener("error", () => {
       if (socket === current) notice("暂时无法连接网关，请确认服务已经启动。");
@@ -222,7 +242,13 @@ $("login-form").addEventListener("submit", async (event) => {
   }
 });
 $("leave-button").addEventListener("click", () => {
-  if (socket) socket.close();
+  if (
+    room?.mode === "duo" &&
+    round?.phase === "running" &&
+    !window.confirm("主动离开将使本局转为练习，确定离开世界？")
+  )
+    return;
+  send("leave_world", { room_id: room?.id || "" });
 });
 $("chat-form").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -316,7 +342,7 @@ function updateUI() {
     Object.assign($("coordinates").dataset, { x: me.x, y: me.y, z: me.z, grounded: me.grounded });
   }
   view.setChallenge(round);
-  panel.update(round, state, selfID);
+  panel.update(round, state, selfID, room);
   const chats = state.chats || [],
     latest = chats.at(-1)?.id || 0;
   if (latest !== chatID) {

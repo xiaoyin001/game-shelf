@@ -7,7 +7,7 @@ import (
 )
 
 func TestProto3ScalarPresenceAndZeroEncoding(t *testing.T) {
-	for _, message := range []proto.Message{&WorldReq{}, &WorldResp{}, &WorldPlayer{}, &Challenge{}, &ChallengeMember{}, &ChallengeItem{}} {
+	for _, message := range []proto.Message{&WorldReq{}, &WorldResp{}, &WorldPlayer{}, &Challenge{}, &ChallengeMember{}, &ChallengeItem{}, &ChallengeRoom{}, &RoomMember{}} {
 		descriptor := proto.MessageReflect(message).Descriptor()
 		t.Run(string(descriptor.Name()), func(t *testing.T) {
 			for i := 0; i < descriptor.Fields().Len(); i++ {
@@ -39,7 +39,7 @@ func TestWorldProtobufRoundTrip(t *testing.T) {
 	if err := proto.Unmarshal(data, &output); err != nil || !proto.Equal(input, &output) {
 		t.Fatal("state mismatch", err, &output)
 	}
-	req := &WorldReq{Action: "put", ItemID: "1-a", RoundID: "round"}
+	req := &WorldReq{Action: "set_ready", ItemID: "1-a", RoundID: "round", RoomID: "room", RoomCode: "ABC234", Ready: true}
 	data, err = proto.Marshal(req)
 	if err != nil {
 		t.Fatal(err)

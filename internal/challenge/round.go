@@ -33,17 +33,39 @@ type Round struct {
 
 // New 创建服务器生成身份与 UTC 日种子的单人局，不从客户端读取计分参数。
 func New(id, name string, now time.Time, area scene.Workshop) *Round {
+	return newRound("solo", []*contracts.ChallengeMember{{ID: id, Name: name}}, now, area)
+}
+
+// NewCoop 只接受两名不同的已认证成员，名册在开局时复制锁定。
+func NewCoop(a, b contracts.WorldPlayer, now time.Time, area scene.Workshop) *Round {
+	if a.ID == "" || b.ID == "" || a.ID == b.ID {
+		panic("双人局必须有两名不同成员")
+	}
+	return newRound("duo", []*contracts.ChallengeMember{{ID: a.ID, Name: a.Name}, {ID: b.ID, Name: b.Name}}, now, area)
+}
+func newRound(mode string, members []*contracts.ChallengeMember, now time.Time, area scene.Workshop) *Round {
 	var token [16]byte
 	if _, err := rand.Read(token[:]); err != nil {
 		panic(err)
 	}
 	r := &Round{area: area, deadline: now.Add(Duration), state: contracts.Challenge{
-		ID: hex.EncodeToString(token[:]), Mode: "solo", Day: now.UTC().Format("2006-01-02"), Rules: Rules,
-		Phase: "running", StartMS: now.UnixMilli(), EndMS: now.Add(Duration).UnixMilli(), Multiplier: 10, Board: 1, RemainingMS: Duration.Milliseconds(),
-		Members: []*contracts.ChallengeMember{{ID: id, Name: name}},
+		ID: hex.EncodeToString(token[:]), Mode: mode, Day: now.UTC().Format("2006-01-02"), Rules: Rules,
+		Phase: "running", StartMS: now.UnixMilli(), EndMS: now.Add(Duration).UnixMilli(), Multiplier: 10, Board: 1, RemainingMS: Duration.Milliseconds(), Members: members,
 	}}
 	r.populate()
 	return r
+}
+
+// ReleaseHeld 只在成员放弃席位时使用，将尚未消除的手持归还原位，避免剩余玩家死盘。
+func (r *Round) ReleaseHeld(id string) {
+	for _, i := range r.state.Items {
+		if i.Place == "hand" && i.OwnerID == id {
+			i.Place = "ground"
+			i.OwnerID = ""
+			i.Slot = 0
+		}
+	}
+	r.resetCombo()
 }
 
 func (r *Round) populate() {

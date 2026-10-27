@@ -19,8 +19,11 @@ type WorldReq struct {
 	DY        float64 `protobuf:"fixed64,6,opt,name=dy,proto3" json:"dy"`
 	Text      string  `protobuf:"bytes,7,opt,name=text,proto3" json:"text"`
 	// 旧 NPC/展台字段号 8–11 停用，不复用。
-	ItemID  string `protobuf:"bytes,12,opt,name=item_id,proto3" json:"item_id"`
-	RoundID string `protobuf:"bytes,13,opt,name=round_id,proto3" json:"round_id"`
+	ItemID   string `protobuf:"bytes,12,opt,name=item_id,proto3" json:"item_id"`
+	RoundID  string `protobuf:"bytes,13,opt,name=round_id,proto3" json:"round_id"`
+	RoomCode string `protobuf:"bytes,14,opt,name=room_code,proto3" json:"room_code"`
+	Ready    bool   `protobuf:"varint,15,opt,name=ready,proto3" json:"ready"`
+	RoomID   string `protobuf:"bytes,16,opt,name=room_id,proto3" json:"room_id"`
 }
 
 func (m *WorldReq) Reset()         { *m = WorldReq{} }
@@ -32,7 +35,8 @@ type WorldResp struct {
 	Error string      `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	State *WorldState `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	// 旧 Quest/Dialog/Book 字段号 3–5 停用，不复用。
-	Challenge *Challenge `protobuf:"bytes,6,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	Challenge *Challenge     `protobuf:"bytes,6,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	Room      *ChallengeRoom `protobuf:"bytes,7,opt,name=room,proto3" json:"room,omitempty"`
 }
 
 func (m *WorldResp) Reset()         { *m = WorldResp{} }

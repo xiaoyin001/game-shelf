@@ -1,13 +1,7 @@
 // 文件说明：呈现权威局面与可选择的手持操作；本地倒计时不提交成绩。
+import { RoomPanel } from "./rooms.js";
 const $ = (id) => document.getElementById(id);
-export const itemNames = {
-  mushroom: ["🍄", "绯伞菇"],
-  pinecone: ["◆", "松果"],
-  crystal: ["✦", "蓝晶"],
-  berry: ["●", "紫莓"],
-  leaf: ["❧", "绿叶"],
-  shell: ["◕", "金贝"],
-};
+import { itemNames } from "./items.js";
 const label = (item) => itemNames[item.kind]?.join(" ") || item.kind;
 const text = (id, value) => {
   const e = $(id),
@@ -29,14 +23,17 @@ export class ChallengePanel {
     this.stamp = "";
     this.boardStamp = "";
     this.previous = null;
+    this.rooms = new RoomPanel(send, () => this.unlockAudio());
     $("start-solo").addEventListener("click", () => {
       this.unlockAudio();
       send("start_solo");
     });
-    $("again").addEventListener("click", () => send("start_solo"));
+    $("again").addEventListener("click", () =>
+      this.room?.mode === "duo" ? send("rematch", { room_id: this.room.id }) : send("start_solo"),
+    );
     $("quit-round").addEventListener("click", () => {
       if (this.round?.phase !== "running" || window.confirm("退出会放弃本局成绩，确定返回大厅？"))
-        send("leave_round");
+        send("leave_round", { room_id: this.room?.id || "" });
     });
     $("pick-item").addEventListener("click", () => this.key("e"));
     $("put-item").addEventListener("click", () => this.key("f"));
@@ -93,7 +90,9 @@ export class ChallengePanel {
       round_id: this.round.id,
     });
   }
-  update(round, state, id) {
+  update(round, state, id, room = null) {
+    this.room = room;
+    this.rooms.update(room, round, id);
     this.round = round;
     this.selfID = id;
     this.me = state?.players?.find((p) => p.id === id);
@@ -105,11 +104,32 @@ export class ChallengePanel {
       finished = round?.phase === "finished";
     prop("challenge-controls", "hidden", !id);
     prop("start-solo", "hidden", !!round);
-    prop("quit-round", "hidden", !round);
+    prop("quit-round", "hidden", !room);
+    text("quit-round", room?.phase === "waiting" ? "离开房间" : "退出本局，返回大厅");
+    text(
+      "mode-label",
+      room?.mode === "duo" ? "PAIR & CARRY · 双人合作" : "PAIR & CARRY · 单人挑战",
+    );
+    text("again", room?.mode === "duo" ? "返回准备，再来一局" : "再来一局");
+    prop(
+      "again",
+      "disabled",
+      room?.mode === "duo" && (room.host_id !== id || room.eligibility === "reconnecting"),
+    );
+    text(
+      "result-note",
+      room?.eligibility === "practice"
+        ? "练习局，不提交正式双人榜。"
+        : room?.eligibility === "reconnecting"
+          ? "等待原成员在重连窗口内恢复，成绩尚未确认。"
+          : "当前阶段仅显示本轮成绩，持久榜单尚未开放。",
+    );
     prop("round-panel", "hidden", !round);
     prop("result", "hidden", !finished);
     prop("again", "hidden", !finished);
-    data("challenge", "phase", round?.phase || "lobby");
+    data("challenge", "phase", round?.phase || room?.phase || "lobby");
+    data("challenge", "roomId", room?.id || "");
+    data("challenge", "eligibility", room?.eligibility || "");
     data("challenge", "roundId", round?.id || "");
     text("score", round?.score || 0);
     text("timer", round ? Math.max(0, Math.ceil(round.remaining_ms / 1000)) : "180");
