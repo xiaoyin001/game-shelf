@@ -14,8 +14,6 @@ export class WorldView {
     this.onFailure = onFailure;
     this.players = new Map();
     this.nodes = new Map();
-    this.clue = null;
-    this.campProjection = null;
     this.yaw = 0;
     this.pitch = 0.65;
     this.distance = 560;
@@ -33,7 +31,7 @@ export class WorldView {
     canvas.dataset.renderer = "webgl2";
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     // 静态景物不逐帧重画阴影；角色变化最多每 100ms 刷新一次，保留真实深度与投影。
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.shadowMap.needsUpdate = true;
@@ -56,10 +54,12 @@ export class WorldView {
     sun.shadow.normalBias = 0.7;
     this.scene.add(sun, sun.target);
     this.makeLandscape();
+    this.makeCrystals();
     this.makeAvatarBatches();
+    this.makePairing();
     this.npcs = layout.npcs.map((npc) => {
       const entry = this.makePlayer(
-        { ...npc, z: 0, name: npc.role + " · " + npc.name + " [E]" },
+        { ...npc, z: 0, name: npc.role + " · " + npc.name },
         false,
         true,
       );
@@ -385,6 +385,7 @@ export class WorldView {
       const count = capacity * (kind === "limb" ? 4 : kind === "eye" ? 2 : 1);
       const mesh = new THREE.InstancedMesh(geometry, material, count);
       mesh.count = 0;
+      mesh.setColorAt(0, new THREE.Color(0xffffff));
       mesh.castShadow = mesh.receiveShadow = kind !== "ring";
       // 动态角色不能按上一帧的静态包围球裁掉；实际实例仍受GPU视锥/深度裁剪。
       mesh.frustumCulled = false;
@@ -451,27 +452,24 @@ export class WorldView {
     }
   }
 
-  makeNode(node) {
-    const group = new THREE.Group();
-    group.position.set(node.x, 0, node.y);
-    group.name = node.id;
-    const material = new THREE.MeshPhongMaterial({
-      color: 0xa5f0c4,
-      emissive: 0x397c60,
-      emissiveIntensity: 0.7,
-      shininess: 60,
-      flatShading: true,
-    });
-    const crystal = this.addMesh(new THREE.OctahedronGeometry(15, 0), material, 0, 27, 0, group);
-    crystal.scale.y = 1.45;
-    for (const [x, z, s] of [
-      [-14, 4, 0.6],
-      [12, 7, 0.55],
-    ]) {
-      const shard = this.addMesh(crystal.geometry, material, x, 14, z, group);
-      shard.scale.set(s, s * 1.5, s);
-    }
-    const ring = new THREE.Mesh(
+  // 背景晶簇不再冷却，以相同立体几何和材质合批；实体仍来自唯一场景。
+  makeCrystals() {
+    const nodes = this.layout.nodes;
+    this.crystals = new THREE.InstancedMesh(
+      new THREE.OctahedronGeometry(15, 0),
+      new THREE.MeshPhongMaterial({
+        color: 0xa5f0c4,
+        emissive: 0x397c60,
+        emissiveIntensity: 0.7,
+        shininess: 60,
+        flatShading: true,
+      }),
+      nodes.length * 3,
+    );
+    this.crystals.castShadow = true;
+    this.crystals.receiveShadow = true;
+    this.crystals.frustumCulled = false;
+    const rings = new THREE.InstancedMesh(
       new THREE.RingGeometry(23, 26, 28),
       new THREE.MeshBasicMaterial({
         color: 0xbdfbd6,
@@ -479,129 +477,230 @@ export class WorldView {
         transparent: true,
         opacity: 0.45,
       }),
+      nodes.length,
+    );
+    const d = new THREE.Object3D();
+    d.rotation.x = -Math.PI / 2;
+    nodes.forEach((n, i) => {
+      d.position.set(n.x, 0.6, n.y);
+      d.updateMatrix();
+      rings.setMatrixAt(i, d.matrix);
+    });
+    this.scene.add(this.crystals, rings);
+    this.crystalDummy = new THREE.Object3D();
+    this.drawCrystals(0);
+    this.setCanvasData("crystalInstances", this.crystals.count);
+    this.setCanvasData("crystalBatches", 2);
+  }
+
+  drawCrystals(now) {
+    const d = this.crystalDummy;
+    this.layout.nodes.forEach((n, index) => {
+      for (const [offset, x, y, z, s] of [
+        [0, 0, 27 + Math.sin(now / 650 + n.x) * 2, 0, 1],
+        [1, -14, 14, 4, 0.6],
+        [2, 12, 14, 7, 0.55],
+      ]) {
+        d.position.set(n.x + x, y, n.y + z);
+        d.rotation.set(0, offset === 0 ? now / 1600 : 0, 0);
+        d.scale.set(s, s * (offset === 0 ? 1.45 : 1.5), s);
+        d.updateMatrix();
+        this.crystals.setMatrixAt(index * 3 + offset, d.matrix);
+      }
+    });
+    this.crystals.instanceMatrix.needsUpdate = true;
+  }
+
+  // 异步预热不修改规则；完成前不允许表单开始进入，失败仍显式阻止游戏。
+  async prepare() {
+    this.drawAvatars();
+    this.camera.lookAt(this.target);
+    await this.renderer.compileAsync(this.scene, this.camera);
+  }
+
+  // 六类真实立体几何分批绘制，背包/台面/地面共享同一权威物品。
+  makePairing() {
+    this.pairBatches = new Map();
+    const definitions = {
+      mushroom: [new THREE.SphereGeometry(10, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0xe47568],
+      pinecone: [new THREE.DodecahedronGeometry(8), 0xb18454],
+      crystal: [new THREE.OctahedronGeometry(10), 0x81dce9],
+      berry: [new THREE.SphereGeometry(9, 8, 6), 0xbf8de0],
+      leaf: [new THREE.OctahedronGeometry(10), 0xa6dc75],
+      shell: [new THREE.ConeGeometry(11, 15, 7), 0xe5c36c],
+    };
+    for (const [kind, [geometry, tint]] of Object.entries(definitions)) {
+      const mesh = new THREE.InstancedMesh(geometry, color(tint), 16);
+      mesh.count = 0;
+      mesh.setColorAt(0, new THREE.Color(0xffffff));
+      mesh.frustumCulled = false;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.pairBatches.set(kind, mesh);
+      this.scene.add(mesh);
+    }
+    const a = this.layout.workshop;
+    this.addMesh(new THREE.BoxGeometry(88, 6, 38), color(0xbba06c), a.x, 12, a.y);
+    const ring = this.addMesh(
+      new THREE.RingGeometry(a.range - 2, a.range, 48),
+      new THREE.MeshBasicMaterial({
+        color: 0xe9ce8b,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.4,
+      }),
+      a.x,
+      0.4,
+      a.y,
     );
     ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.6;
-    group.add(ring);
-    this.scene.add(group);
-    return { group, crystal, material, ring };
-  }
-
-  disposeProjection(group) {
-    this.scene.remove(group);
-    const geometries = new Set(),
-      materials = new Set();
-    group.traverse((object) => {
-      if (object.isMesh) geometries.add(object.geometry);
-      if (object.material) materials.add(object.material);
-    });
-    for (const geometry of geometries) geometry.dispose();
-    for (const material of materials) {
-      material.map?.dispose();
-      material.dispose();
-    }
-  }
-
-  // 展台是无碰撞的装饰投影，一次只呈现当前选中旅人的服务器确认布置。
-  setCamp(display) {
-    const key = display ? JSON.stringify(display) : "";
-    if (this.campProjection?.key === key) return;
-    if (this.campProjection) this.disposeProjection(this.campProjection.group);
-    this.campProjection = null;
-    if (!display) return;
-    const group = new THREE.Group();
-    group.name = "camp-projection:" + display.owner_id;
-    for (const placed of display.slots || []) {
-      const slot = this.layout.camp.slots.find((item) => item.id === placed.slot_id);
-      if (!slot) continue;
-      const item = new THREE.Group();
-      item.position.set(slot.x, 0, slot.y);
-      item.userData.decorationID = placed.decoration_id;
-      const gold = color(0xe9ce8b),
-        teal = color(0x87c9c3);
-      if (placed.decoration_id === "bell-lantern") {
-        this.addMesh(new THREE.CylinderGeometry(5, 9, 13, 8), gold, 0, 14, 0, item);
-        this.addMesh(new THREE.TorusGeometry(5, 1, 5, 12), teal, 0, 26, 0, item);
-        this.addMesh(
-          new THREE.SphereGeometry(3, 8, 6),
-          new THREE.MeshBasicMaterial({ color: 0xfff0b9 }),
-          0,
-          7,
-          0,
-          item,
-        );
-      } else if (placed.decoration_id === "lake-vase") {
-        this.addMesh(new THREE.CylinderGeometry(6, 8, 13, 9), teal, 0, 9, 0, item);
-        this.addMesh(new THREE.CylinderGeometry(1, 1, 15, 5), gold, 0, 23, 0, item);
-        this.addMesh(new THREE.OctahedronGeometry(7), color(0xd6a8bd), 0, 32, 0, item);
-      } else if (placed.decoration_id === "wind-chime") {
-        this.addMesh(new THREE.BoxGeometry(24, 3, 4), gold, 0, 34, 0, item);
-        for (let i = -1; i <= 1; i++) {
-          this.addMesh(new THREE.CylinderGeometry(0.7, 0.7, 12, 4), gold, i * 8, 27, 0, item);
-          this.addMesh(new THREE.OctahedronGeometry(5), teal, i * 8, 16 - Math.abs(i) * 3, 0, item);
-        }
-      } else {
-        gold.dispose();
-        teal.dispose();
-        continue;
-      }
-      const base = new THREE.Mesh(
-        new THREE.RingGeometry(11, 13, 20),
-        new THREE.MeshBasicMaterial({
-          color: 0xb9edcc,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.7,
-        }),
-      );
-      base.rotation.x = -Math.PI / 2;
-      base.position.y = 0.5;
-      item.add(base);
-      item.traverse((object) => {
-        if (object.isMesh) {
-          object.castShadow = false;
-          object.receiveShadow = false;
-        }
-      });
-      group.add(item);
-    }
-    if (group.children.length) {
-      const label = this.label(display.name + " · 微光展台", "#d6ffdc");
-      label.position.set(this.layout.camp.x, 54, this.layout.camp.y);
-      group.add(label);
-    }
-    this.scene.add(group);
-    this.campProjection = { key, owner: display.owner_id, group };
-    this.activityUntil = performance.now() + 750;
-  }
-
-  // 线索是无碰撞的私人提示；切换账号/步骤时及时释放本提示的GPU资源。
-  setTrail(trail) {
-    if (this.clue?.key === (trail ? trail.id + ":" + trail.step : "")) return;
-    if (this.clue) {
-      this.disposeProjection(this.clue.group);
-      this.clue = null;
-    }
-    if (!trail) return;
-    const group = new THREE.Group();
-    group.name = "private-clue:" + trail.id;
-    group.position.set(trail.x, trail.z, trail.y);
-    const marker = this.addMesh(
-      new THREE.OctahedronGeometry(9),
-      new THREE.MeshBasicMaterial({ color: 0xffdc93 }),
-      0,
-      17,
-      0,
-      group,
+    ring.castShadow = false;
+    const label = this.label("配对台 · F 投送", "#ffe4a6");
+    label.position.set(a.x, 56, a.y);
+    this.scene.add(label);
+    const spots = new THREE.InstancedMesh(
+      new THREE.RingGeometry(15, 17, 20),
+      new THREE.MeshBasicMaterial({
+        color: 0xb9dfc3,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.5,
+      }),
+      a.spots.length,
     );
-    marker.castShadow = false;
-    const label = this.label("叶纹线索 · F 调查", "#ffe4a6");
-    label.position.y = 42;
-    group.add(label);
-    group.visible = false;
-    this.scene.add(group);
-    this.clue = { group, marker, key: trail.id + ":" + trail.step };
-    this.activityUntil = performance.now() + 750;
+    const dummy = new THREE.Object3D();
+    dummy.rotation.x = -Math.PI / 2;
+    a.spots.forEach((p, i) => {
+      dummy.position.set(p.x, 0.3, p.y);
+      dummy.updateMatrix();
+      spots.setMatrixAt(i, dummy.matrix);
+    });
+    this.scene.add(spots);
+    this.pairFlash = this.addMesh(
+      new THREE.TorusGeometry(28, 2, 5, 30),
+      new THREE.MeshBasicMaterial({ color: 0xffe2a2, transparent: true }),
+      a.x,
+      24,
+      a.y,
+    );
+    this.pairFlash.rotation.x = -Math.PI / 2;
+    this.pairFlash.castShadow = false;
+    this.pairFlash.visible = false;
+    this.itemDummy = new THREE.Object3D();
+    this.itemTint = new THREE.Color();
+    this.pairGhosts = [];
+  }
+
+  setChallenge(round) {
+    if (round && this.challenge?.id === round.id && round.pairs > this.challenge.pairs) {
+      const live = new Set(round.items.map((i) => i.id));
+      for (const item of this.challenge.items.filter((i) => !live.has(i.id)).slice(-6)) {
+        const source = this.pairBatches.get(item.kind);
+        if (!source) continue;
+        const mesh = new THREE.Mesh(
+          source.geometry,
+          new THREE.MeshBasicMaterial({ color: source.material.color, transparent: true }),
+        );
+        const start = new THREE.Vector3();
+        if (item.place === "hand" && this.players.has(item.owner_id)) {
+          const owner = this.players.get(item.owner_id).group;
+          owner.updateMatrixWorld(true);
+          start.set((item.slot - 1) * 20, 70, -8).applyMatrix4(owner.matrixWorld);
+        } else start.set(this.layout.workshop.x - 30 + item.slot * 15, 23, this.layout.workshop.y);
+        this.scene.add(mesh);
+        this.pairGhosts.push({ mesh, start, at: performance.now() });
+      }
+    }
+    while (this.pairGhosts.length > 8 || (!round && this.pairGhosts.length)) {
+      const { mesh } = this.pairGhosts.shift();
+      this.scene.remove(mesh);
+      mesh.material.dispose();
+    }
+    const stamp = JSON.stringify(round?.items || []);
+    if (this.pairStamp !== stamp) {
+      this.pairStamp = stamp;
+      this.shadowDirty = true;
+      this.activityUntil = performance.now() + 750;
+    }
+    this.challenge = round;
+  }
+
+  pairEffect(multiplier) {
+    this.flashUntil = performance.now() + 650;
+    this.flashMultiplier = multiplier;
+    this.activityUntil = this.flashUntil;
+    this.setCanvasData("feedbackPairs", this.challenge?.pairs || 0);
+  }
+
+  drawPairing(now) {
+    const counts = new Map([...this.pairBatches.keys()].map((k) => [k, 0]));
+    const a = this.layout.workshop,
+      dummy = this.itemDummy;
+    let hand = 0,
+      tray = 0,
+      ground = 0;
+    for (const i of this.challenge?.items || []) {
+      const mesh = this.pairBatches.get(i.kind);
+      if (!mesh) continue;
+      dummy.rotation.set(0, now / 3000, 0);
+      dummy.scale.setScalar(1);
+      if (i.kind === "pinecone") dummy.scale.set(0.85, 1.35, 0.85);
+      if (i.kind === "leaf") {
+        dummy.scale.set(0.7, 1.25, 0.28);
+        dummy.rotation.z = 0.65;
+      }
+      if (i.place === "hand") {
+        const owner = this.players.get(i.owner_id);
+        if (!owner) continue;
+        owner.group.updateMatrixWorld(true);
+        dummy.position.set((i.slot - 1) * 20, 70, -8).applyMatrix4(owner.group.matrixWorld);
+        hand++;
+      } else if (i.place === "tray") {
+        dummy.position.set(a.x - 30 + i.slot * 15, 23, a.y);
+        dummy.scale.multiplyScalar(0.65);
+        tray++;
+      } else {
+        dummy.position.set(i.x, i.z + 9, i.y);
+        ground++;
+      }
+      dummy.updateMatrix();
+      const index = counts.get(i.kind);
+      mesh.setMatrixAt(index, dummy.matrix);
+      this.itemTint.setHex(i.blocked ? 0x666666 : 0xffffff);
+      mesh.setColorAt(index, this.itemTint);
+      counts.set(i.kind, index + 1);
+    }
+    for (const [kind, mesh] of this.pairBatches) {
+      mesh.count = counts.get(kind);
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+    this.pairGhosts = this.pairGhosts.filter((ghost) => {
+      const p = Math.max(0, (now - ghost.at) / 450);
+      if (p >= 1) {
+        this.scene.remove(ghost.mesh);
+        ghost.mesh.material.dispose();
+        return false;
+      }
+      ghost.mesh.position.lerpVectors(ghost.start, new THREE.Vector3(a.x, 23, a.y), p * p);
+      ghost.mesh.scale.setScalar(Math.max(0.01, 1 - p * 0.95));
+      ghost.mesh.rotation.y = p * 6;
+      ghost.mesh.material.opacity = 1 - p * 0.5;
+      return true;
+    });
+    const progress = 1 - ((this.flashUntil || 0) - now) / 650;
+    this.pairFlash.visible = progress >= 0 && progress < 1;
+    if (this.pairFlash.visible) {
+      this.pairFlash.scale.setScalar(0.5 + progress * 2.2);
+      this.pairFlash.material.opacity = 1 - progress;
+    }
+    this.setCanvasData("groundItems", ground);
+    this.setCanvasData("heldItems", hand);
+    this.setCanvasData("trayItems", tray);
+    this.setCanvasData(
+      "itemBatches",
+      [...this.pairBatches.values()].filter((m) => m.count > 0).length,
+    );
   }
 
   // 只比较角色空间状态，不因每次10Hz轮询的新对象而把静止场景误判成活动。
@@ -659,39 +758,10 @@ export class WorldView {
         this.players.delete(id);
         this.shadowDirty = true;
       }
-    for (const node of state?.nodes || []) {
-      let entry = this.nodes.get(node.id);
-      if (!entry) {
-        entry = this.makeNode(node);
-        this.nodes.set(node.id, entry);
-        this.shadowDirty = true;
-      }
-      const ready = node.ready_at_ms <= (state?.time_ms || 0);
-      entry.material.color.setHex(ready ? 0xa5f0c4 : 0x3b5851);
-      entry.material.emissiveIntensity = ready ? 0.7 : 0;
-      entry.ring.material.opacity = ready ? 0.45 : 0.12;
-      entry.crystal.rotation.y = now / 1600;
-      // 冷却只改变颜色/发光，不把仍有实体的晶簇缩小成看不见的空气墙。
-      entry.crystal.position.y = 27 + (ready ? Math.sin(now / 650 + node.x) * 2 : 0);
-      entry.crystal.scale.set(1, 1.45, 1);
-    }
+    this.drawCrystals(now);
     this.drawAvatars();
     const me = this.players.get(selfID);
-    if (this.clue) {
-      this.clue.group.visible =
-        !!me && me.group.position.distanceTo(this.clue.group.position) <= 180;
-      this.clue.marker.rotation.y = now / 1400;
-    }
-    const projections =
-      this.campProjection?.group.children.filter((item) => item.userData.decorationID) || [];
-    this.setCanvasData("campOwner", this.campProjection?.owner || "");
-    this.setCanvasData("campCount", projections.length);
-    this.setCanvasData(
-      "campKinds",
-      projections.map((item) => item.userData.decorationID).join(","),
-    );
-    this.setCanvasData("clueVisible", !!this.clue?.group.visible);
-    this.setCanvasData("clueId", this.clue?.key || "");
+    this.drawPairing(now);
     if (me) {
       const follow = me.group.position.clone();
       follow.y += 16;

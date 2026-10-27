@@ -37,7 +37,7 @@ func (w *World) intervals(p *player, x, y float64, visit func(float64, float64))
 		}
 	}
 	for id, other := range w.players {
-		if id != p.state.ID && math.Hypot(x-other.state.X, y-other.state.Y) < 2*playerRadius-epsilon {
+		if id != p.state.ID && other.scope() == p.scope() && math.Hypot(x-other.state.X, y-other.state.Y) < 2*playerRadius-epsilon {
 			visit(other.state.Z, other.state.Z+playerHeight)
 		}
 	}
@@ -155,7 +155,7 @@ func (w *World) walk(p *player, x, y float64) bool {
 		}
 		// 玩家身体不能因迈上旁边的矮物体而被当成可跨越的一级台阶。
 		for id, other := range w.players {
-			if id != p.state.ID && math.Hypot(x-other.state.X, y-other.state.Y) < 2*playerRadius-epsilon && p.state.Z < other.state.Z+playerHeight-epsilon && p.state.Z+playerHeight > other.state.Z+epsilon {
+			if id != p.state.ID && other.scope() == p.scope() && math.Hypot(x-other.state.X, y-other.state.Y) < 2*playerRadius-epsilon && p.state.Z < other.state.Z+playerHeight-epsilon && p.state.Z+playerHeight > other.state.Z+epsilon {
 				return false
 			}
 		}

@@ -25,13 +25,14 @@ test("常用窗口密码表单不裁切，窄屏可进入且不横向溢出", as
   await page.getByRole("button", { name: "注册并进入原野" }).click();
   await expect(page.locator("#status")).toContainText("已连接");
   await expect(page.locator("#world")).toBeVisible();
-  await page.getByRole("tab", { name: "微光展台", exact: true }).click();
-  await expect(page.getByLabel("查看谁的展台")).toBeVisible();
-  await expect(page.getByLabel("左台摆件")).toBeVisible();
+  await page.getByRole("button", { name: "开始单人挑战 · 180 秒" }).click();
+  await expect(page.locator("#challenge")).toHaveAttribute("data-phase", "running");
+  await expect(page.locator("#hand button")).toHaveCount(3);
+  await expect(page.locator("#tray button")).toHaveCount(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  const camp = await page.locator("#camp-panel").boundingBox();
+  const camp = await page.locator("#challenge").boundingBox();
   expect(camp.x).toBeGreaterThanOrEqual(0);
   expect(camp.x + camp.width).toBeLessThanOrEqual(390);
 });

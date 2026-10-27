@@ -169,14 +169,16 @@ func TestMixedPhysicsNeverInterpenetrates(t *testing.T) {
 	}
 }
 
-func TestJumpHeightAffectsGatherAndBounds(t *testing.T) {
+func TestJumpHeightAffectsPickupAndBounds(t *testing.T) {
 	now := time.Unix(1000, 0)
 	w := emptyPhysics(now)
 	p := w.players["a"]
-	p.state.Z = 90
+	started := command(w, "a", "a", "start_solo", now)
+	item := started.Challenge.Items[0]
+	p.state.X, p.state.Y, p.state.Z = item.X, item.Y, 90
 	p.state.Grounded = false
-	if command(w, "a", "a", "gather", now).Error != "no_resource_in_range" {
-		t.Fatal("height ignored by gathering")
+	if w.Apply(&contracts.WorldReq{UserID: "a", SessionID: "a", Action: "pick", RoundID: started.Challenge.ID, ItemID: item.ID}, now).Error != "item_out_of_range" {
+		t.Fatal("height or airborne state ignored by pickup")
 	}
 	p.state.Z = 0
 	p.state.Grounded = true

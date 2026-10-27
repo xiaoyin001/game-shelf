@@ -20,8 +20,8 @@ func TestLiveWalkOverLowStoneObservedByPeer(t *testing.T) {
 		t.Fatal("missing canonical low stone")
 	}
 	// 旁观者离开通道，不能把玩家身体的阻挡误当成石头阻挡。
-	walkNPC(t, b, second.UserID, 680, 320)
-	walkNPC(t, a, first.UserID, 560, rock.Y+12)
+	walkWaypoint(t, b, second.UserID, 680, 320)
+	walkWaypoint(t, a, first.UserID, 560, rock.Y+12)
 	stood := false
 	for range 15 {
 		send(t, a, "input", map[string]any{"dx": 1})

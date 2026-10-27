@@ -8,7 +8,7 @@ description: 每个实现阶段完成与提交前，选择并执行当前阶段�
 - 当前 `npm run check` / `make check` 已包含规则、成长历史与 Go 格式检查、测试、vet 与构建；`make fmt` 负责格式化。
 - 尚无业务服务或客户端时，不假装联机/浏览器运行通过；相关能力出现后补充对应入口。
 - 服务链路改变执行 `npm run test:services`，依赖封装改变执行 `npm run test:infra`，运行器改变执行 `npm run test:runner`。
-- 浏览器、WebSocket、会话或世界改变还要执行 `npm run check:client` 和 `npm run test:all`，首次 `npm ci`、`npx playwright install chromium`。浏览器回归随阶段扩充，当前包含在线、顶号、移动、聊天、采集和窄屏；不能用早期仅在线用例替代当前完整玩法回归。
+- 浏览器、WebSocket、会话或世界改变还要执行 `npm run check:client` 和 `npm run test:all`，首次 `npm ci`、`npx playwright install chromium`。浏览器回归随阶段扩充，包含在线、顶号、移动、聊天、物理、窄屏及当前产品玩法；ADR-0035 已批准下线旧采集/NPC/收藏/展台，由限时配对的真实归属/容量/计分回归替代，不保留不可达产品断言，也不能以此删弱账号/基础/失败覆盖或掩盖旧版失败。
 - 新增行为同时增加实际回归。默认测试不能把外部依赖静默替换为假服务并宣称真实联机通过。
 - 编译、单元测试、真实服务链路、真实浏览器与 CI 分开记录，不沿用旧版报告。
 - Push前必须在最终提交的干净HEAD执行 `npm run verify:ci`（默认完整source+playable及额外新DB浏览器），读取本轮报告和 `node scripts/prepush-guard.mjs --check`，不能用candidate/test:all/单job替代。候选阶段可先暂存完整切片后使用 `--candidate`，但不生成可推送记录。

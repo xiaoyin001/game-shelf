@@ -1,4 +1,4 @@
-// 文件说明：验证嵌套世界快照通过现有 protobuf 编解码后保持完整。
+// 文件说明：验证当前世界/配对消息的 protobuf 标量零值与嵌套往返，停用旧字段号不复用。
 package contracts
 
 import (
@@ -7,48 +7,53 @@ import (
 )
 
 func TestProto3ScalarPresenceAndZeroEncoding(t *testing.T) {
-	for _, message := range []proto.Message{&WorldReq{}, &WorldResp{}, &WorldPlayer{}, &WorldQuest{}, &WorldDialog{}, &DialogChoice{}} {
+	for _, message := range []proto.Message{&WorldReq{}, &WorldResp{}, &WorldPlayer{}, &Challenge{}, &ChallengeMember{}, &ChallengeItem{}} {
 		descriptor := proto.MessageReflect(message).Descriptor()
 		t.Run(string(descriptor.Name()), func(t *testing.T) {
 			for i := 0; i < descriptor.Fields().Len(); i++ {
-				field := descriptor.Fields().Get(i)
-				if field.Message() == nil && !field.IsList() && !field.IsMap() && field.HasPresence() {
-					t.Fatal("proto3 scalar incorrectly has pointer presence", field.FullName())
+				f := descriptor.Fields().Get(i)
+				if f.Message() == nil && !f.IsList() && !f.IsMap() && f.HasPresence() {
+					t.Fatal("proto3 pointer presence", f.FullName())
 				}
 			}
 			data, err := proto.Marshal(message)
 			if err != nil || len(data) != 0 {
-				t.Fatal("proto3 defaults were not omitted", data, err)
+				t.Fatal("defaults not omitted", data, err)
 			}
 		})
 	}
 }
-
 func TestWorldProtobufRoundTrip(t *testing.T) {
-	input := &WorldResp{Quest: &WorldQuest{Status: "active", Progress: 1, Goal: 2, Reward: 3},
-		Dialog: &WorldDialog{NPCID: "keeper", Name: "阿苔", Text: "欢迎", Choices: []*DialogChoice{{ID: "accept", Label: "接取"}}}, State: &WorldState{TimeMS: 42, Width: 1200, Height: 800, SceneVersion: "mosslight-physics-1",
-			Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 400, Z: 42.5, Grounded: true, Score: 2}},
-			Nodes:   []*WorldNode{{ID: "n", X: 620, ReadyAtMS: 100}},
-			Chats:   []*WorldChat{{ID: 1, Name: "旅人", Text: "你好"}},
-		}}
+	input := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800, SceneVersion: "mosslight-pair-1",
+		Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 400, Z: 42.5, Grounded: true}},
+		Nodes:   []*WorldNode{{ID: "n", X: 620}}, Chats: []*WorldChat{{ID: 1, Name: "旅人", Text: "你好"}},
+	}, Challenge: &Challenge{ID: "round", Phase: "running", Score: 100, Multiplier: 15, StartMS: 42, EndMS: 180042,
+		Items:   []*ChallengeItem{{ID: "1-a", Kind: "leaf", Place: "hand", OwnerID: "a", Blocked: true}},
+		Members: []*ChallengeMember{{ID: "a", Name: "旅人", Pairs: 1}},
+	}}
 	data, err := proto.Marshal(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var output WorldResp
-	if err := proto.Unmarshal(data, &output); err != nil {
-		t.Fatal(err)
+	if err := proto.Unmarshal(data, &output); err != nil || !proto.Equal(input, &output) {
+		t.Fatal("state mismatch", err, &output)
 	}
-	req := &WorldReq{Action: "choose", NPCID: "keeper", ChoiceID: "complete"}
+	req := &WorldReq{Action: "put", ItemID: "1-a", RoundID: "round"}
 	data, err = proto.Marshal(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var decoded WorldReq
 	if err := proto.Unmarshal(data, &decoded); err != nil || !proto.Equal(req, &decoded) {
-		t.Fatal("NPC request mismatch", err)
+		t.Fatal("intent mismatch", err)
 	}
-	if !proto.Equal(input, &output) {
-		t.Fatalf("round trip mismatch: %v", &output)
+	descriptor := proto.MessageReflect(&WorldReq{}).Descriptor()
+	for _, n := range []int32{8, 9, 10, 11} {
+		for i := 0; i < descriptor.Fields().Len(); i++ {
+			if int32(descriptor.Fields().Get(i).Number()) == n {
+				t.Fatal("retired field reused", n)
+			}
+		}
 	}
 }

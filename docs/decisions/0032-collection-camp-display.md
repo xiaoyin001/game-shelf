@@ -1,5 +1,7 @@
 # ADR-0032：收藏解锁的固定槽位微光展台
 
+> 2026-10-27：玩法入口由 [ADR-0035](0035-timed-pair-challenge.md) 替代；保留本记录、旧存档与历史验收事实。
+
 状态：采用（2026-10-27，先决策后实现；Windows真实服务、20/20浏览器、独立服务回归与全量Go race已通过；阶段提交前尚未执行新HEAD共用preflight与远端）。接续[ADR-0031](0031-persistent-field-book.md)，只替代其存档schema=1及“尚无营地装饰”的阶段边界，原探索和本轮分数语义不变。
 
 后续[ADR-0033](0033-static-batching-and-ui-updates.md)处理正式Linux门禁发现的预算问题，保持本记录的布置/存档语义与所有行为断言；本阶段Windows通过不代表7d32406已通过最终门禁。

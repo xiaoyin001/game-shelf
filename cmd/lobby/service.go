@@ -5,7 +5,6 @@ import (
 	"context"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"log/slog"
-	"sync"
 	"time"
 
 	"game-shelf/internal/config"
@@ -18,14 +17,12 @@ import (
 )
 
 type LobbyService struct {
-	app         config.App
-	log         *slog.Logger
-	redis       *redis.Client
-	world       *world.World
-	etcd        *clientv3.Client
-	ctx         context.Context
-	bookMu      sync.Mutex
-	bookClients map[string]*transport.Client
+	app   config.App
+	log   *slog.Logger
+	redis *redis.Client
+	world *world.World
+	etcd  *clientv3.Client
+	ctx   context.Context
 }
 
 func (s *LobbyService) Handle(ctx context.Context, _ *transport.Conn, msg protocol.Message) (protocol.Message, bool) {

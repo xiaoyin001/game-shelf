@@ -64,8 +64,8 @@ func TestLiveSolidCrystalBlocksAndJumpPasses(t *testing.T) {
 		t.Fatal("no solid crystal contact", d)
 	}
 	send(t, conn, "gather", nil)
-	if findPlayer(t, read(t, conn, "state").State, reply.UserID).Score != 1 {
-		t.Fatal("contact did not allow gathering")
+	if read(t, conn, "error").Error != "unknown_action" {
+		t.Fatal("retired gathering remained accessible")
 	}
 	for range 3 {
 		send(t, conn, "input", map[string]any{"dx": direction})
@@ -73,7 +73,7 @@ func TestLiveSolidCrystalBlocksAndJumpPasses(t *testing.T) {
 	}
 	cooling := findPlayer(t, read(t, conn, "state").State, reply.UserID)
 	if math.Hypot(cooling.X-target.X, cooling.Y-target.Y) < 42-1e-5 {
-		t.Fatal("cooling entity lost its body")
+		t.Fatal("decorative crystal lost its body")
 	}
 	send(t, conn, "jump", nil)
 	crossed := false

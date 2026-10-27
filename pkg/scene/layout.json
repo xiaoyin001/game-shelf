@@ -1,5 +1,15 @@
 {
-  "version": "mosslight-camp-1",
+  "version": "mosslight-pair-1",
+  "workshop": {
+    "x": 700, "y": 350, "range": 90, "pickup_range": 62,
+    "spawn_x": 660, "spawn_y": 320,
+    "spots": [
+      { "x": 740, "y": 300 }, { "x": 800, "y": 300 },
+      { "x": 740, "y": 360 }, { "x": 800, "y": 360 },
+      { "x": 740, "y": 420 }, { "x": 800, "y": 420 },
+      { "x": 740, "y": 480 }, { "x": 800, "y": 480 }
+    ]
+  },
   "width": 1200,
   "height": 800,
   "camp": {

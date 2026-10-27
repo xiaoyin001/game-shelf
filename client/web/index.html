@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- 文件说明：提供联机沙盒的登录、共享地图、聊天与操作界面。 -->
+<!-- 文件说明：提供三分钟搬运配对、账号入口和权威世界聊天。 -->
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#101c24" />
-    <title>苔光原野 · game-shelf</title>
+    <title>苔光原野 · 限时配对</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%239bf0bd' d='M20 2 36 20 20 38 4 20Z'/%3E%3C/svg%3E"
@@ -17,28 +17,28 @@
     <header class="topbar">
       <a class="brand" href="/"
         ><span class="brand-mark">✦</span
-        ><span>GAME SHELF <small>一个正在生长的在线世界</small></span></a
+        ><span>GAME SHELF <small>三分钟，把默契变成高分</small></span></a
       >
       <div class="connection">
         <span id="status-dot"></span><span id="status" role="status">尚未连接</span
-        ><span class="version">原野旧物 / v0.4</span>
+        ><span class="version">配对挑战 / v0.5</span>
       </div>
     </header>
     <main>
       <section class="intro">
         <div>
-          <p class="eyebrow">SHARED WORLD · 001</p>
-          <h1>苔光原野<span> Mosslight Meadow</span></h1>
-          <p class="subtitle">循着线索散步，把原野的故事收藏起来。</p>
+          <p class="eyebrow">MOSSLIGHT · PAIR & CARRY</p>
+          <h1>苔光原野<span>Mosslight Meadow</span></h1>
+          <p class="subtitle">观察、搬运、配对。连起下一对，再挑战一个高分。</p>
         </div>
         <div class="world-info">
-          <span>共享沙盒</span><strong id="online-count">0 人在线</strong>
+          <span>180 秒限时挑战</span><strong id="online-count">0 人在线</strong>
         </div>
       </section>
       <div class="workspace">
         <section class="world-panel" aria-label="共享世界">
           <div class="map-bar">
-            <span><i></i> 原野 · 林间营地</span><span id="renderer-status">正在启动 3D…</span>
+            <span>✦ 原野 · 配对工坊</span><span id="renderer-status">正在启动 3D…</span>
           </div>
           <div class="canvas-wrap">
             <canvas
@@ -46,16 +46,16 @@
               width="1200"
               height="800"
               tabindex="0"
-              aria-label="3D 游戏世界，WASD 移动并自动迈上矮台阶，空格跳跃，右键环绕，滚轮缩放，E 交谈或采集，F 调查私人线索"
+              aria-label="3D 游戏世界，WASD 移动，空格跳跃，右键环绕，滚轮缩放，E 拾取，1至3选择，F投送，G归还"
             ></canvas>
             <div class="map-label">
               MOSSLIGHT 3D <span id="camera-readout">右键环绕 · 滚轮缩放</span>
             </div>
             <div id="entry-panel" class="entry-panel">
               <span class="entry-icon">✧</span>
-              <p class="eyebrow">YOUR NEXT LITTLE ADVENTURE</p>
+              <p class="eyebrow">A LITTLE CHALLENGE</p>
               <h2>原野在等你</h2>
-              <p>注册一个账号，以密码守护你的旅人身份。</p>
+              <p>用原来的账号登录，或注册新的旅人。</p>
               <form id="login-form">
                 <label for="account">账号</label
                 ><input
@@ -66,8 +66,8 @@
                   autocomplete="username"
                   placeholder="例如：林间旅人"
                 />
-                <label for="password">密码</label>
-                <input
+                <label for="password">密码</label
+                ><input
                   id="password"
                   name="password"
                   type="password"
@@ -82,151 +82,107 @@
                   placeholder="6–32 位英文、数字或符号"
                 />
                 <small id="password-hint">6–32 位，仅限英文字母、数字和英文符号，不含空格。</small>
-                <button id="join-button" type="submit" value="login">
-                  登录并进入原野 <span>↗</span>
+                <button id="join-button" type="submit" value="login" disabled>
+                  登录并进入原野 ↗
                 </button>
-                <button id="register-button" type="submit" value="register">注册并进入原野</button>
+                <button id="register-button" type="submit" value="register" disabled>
+                  注册并进入原野
+                </button>
               </form>
-              <p class="entry-note">可信本机测试 · 账号 2–24 字符 · 请勿复用其他网站密码</p>
-            </div>
-            <div
-              id="npc-dialog"
-              class="npc-dialog"
-              role="dialog"
-              aria-labelledby="npc-name"
-              aria-describedby="npc-text"
-              hidden
-            >
-              <p class="eyebrow">CAMPFIRE STORIES · 营地对话</p>
-              <h2 id="npc-name"></h2>
-              <p id="npc-text"></p>
-              <div id="npc-choices"></div>
-              <button id="npc-close" type="button">结束交谈 · Esc</button>
+              <p class="entry-note">可信本机测试 · 请勿复用其他网站密码</p>
             </div>
             <div id="game-hint" class="game-hint" hidden>
-              <span id="interaction-hint">矮台阶自动迈上 · 高障碍按空格跳跃 · E 交谈 / 采集</span>
-              <button id="npc-talk" type="button" hidden>交谈</button>
-              <button id="clue-inspect" type="button" hidden>调查线索 · F</button>
+              <span id="interaction-hint">点击开始挑战</span>
             </div>
           </div>
           <div class="map-footer">
             <span id="coordinates">坐标 —</span
-            ><span
-              >WASD 移动 / 迈步 <em>·</em> 空格跳跃 <em>·</em> 右键环绕 <em>·</em> 滚轮缩放
-              <em>·</em> R 复位 <em>·</em> E 交谈 / 采集 <em>·</em> F 调查</span
+            ><span>WASD 移动 · 空格跳跃 · 右键环绕 · 滚轮缩放 · R 复位</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
         </section>
         <aside class="sidebar">
-          <section class="card journey">
-            <p class="eyebrow">YOUR JOURNEY</p>
-            <div class="score-heading">
-              <div>
-                <h2 id="player-name">尚未出发</h2>
-                <p>本轮采集与委托奖励</p>
+          <section id="challenge" class="card challenge" data-phase="lobby">
+            <p class="eyebrow">PAIR & CARRY · 单人挑战</p>
+            <h2 id="player-name">尚未出发</h2>
+            <div class="score-row">
+              <div><strong id="score">0</strong><small>分</small></div>
+              <div><strong id="timer">180</strong><small>秒</small></div>
+            </div>
+            <p id="round-rules" class="muted">180 秒 · 同日相同关卡</p>
+            <div id="challenge-controls" hidden>
+              <button id="start-solo" type="button" class="primary">开始单人挑战 · 180 秒</button
+              ><button id="quit-round" type="button" class="quiet" hidden>
+                退出本局，返回大厅
+              </button>
+            </div>
+            <label class="sound-switch"
+              ><input id="sound" type="checkbox" checked /> 配对音效</label
+            >
+            <div id="round-panel" hidden>
+              <div class="combo">
+                <strong id="multiplier">×1.0</strong><span id="combo-time">配对开始连击</span>
               </div>
-              <span class="crystal">✦</span>
+              <p id="pair-feedback" role="status" class="feedback"></p>
+              <p class="muted">
+                第 <b id="board-number">1</b> 盘 · 配对 <b id="pairs">0</b> · 清盘
+                <b id="boards-cleared">0</b>
+              </p>
+              <h3>你的手持 · 3 格</h3>
+              <div id="hand" class="slots hand"></div>
+              <div class="actions">
+                <button id="pick-item" type="button">靠近道具取物 · E</button
+                ><button id="put-item" type="button">投送选中物 · F</button
+                ><button id="return-item" type="button">归还原位 · G</button>
+              </div>
+              <h3>共享配对台 · 5 格</h3>
+              <div id="tray" class="slots tray"></div>
+              <details>
+                <summary>查看盘面与遮挡</summary>
+                <div id="board-items" class="board-items"></div>
+              </details>
+              <div id="result" class="result" hidden>
+                <h3>挑战结束</h3>
+                <p id="result-summary"></p>
+                <p class="muted">当前单人切片仅显示本轮成绩，尚不写入排行榜。</p>
+                <button id="again" type="button" class="primary" hidden>再来一局</button>
+              </div>
             </div>
-            <div class="score-value"><strong id="score">0</strong><span>分微光</span></div>
-            <p class="muted">微光分数与营灯委托离开后重置；旧物收藏与寻宝线索随账号保存。</p>
-          </section>
-          <div id="journal-tabs" class="journal-tabs" role="tablist" aria-label="个人旅程" hidden>
-            <button
-              id="book-tab"
-              type="button"
-              role="tab"
-              aria-selected="true"
-              aria-controls="field-book"
-            >
-              收藏线索
-            </button>
-            <button
-              id="camp-tab"
-              type="button"
-              role="tab"
-              aria-selected="false"
-              aria-controls="camp-panel"
-            >
-              微光展台
-            </button>
-          </div>
-          <section
-            id="field-book"
-            class="card field-book"
-            role="tabpanel"
-            aria-labelledby="book-tab"
-            hidden
-          >
-            <div class="section-title">
-              <h2>原野收藏册</h2>
-              <span id="collection-count">0 / 3</span>
-            </div>
-            <p id="trail-progress" role="status"></p>
-            <p id="trail-clue"></p>
-            <details class="direction-help">
-              <summary>需要一点方向？</summary>
-              <p id="trail-direction"></p>
+            <details class="rules">
+              <summary>怎么玩？</summary>
+              <p>
+                走近道具按 E，先取上层，才能取被遮挡的下层。1–3 选择手持；靠近金色配对台，按 F
+                投送。也可以点面板按钮。
+              </p>
+              <p>
+                两个相同自动消除。满台仍可送入能配对的物品，否则保留手持。G
+                将选中物放回原位；台面也可点击归还，归还中断连击。
+              </p>
+              <p>
+                每对 100 分，10 秒内接续，倍率逐次 +0.5，最高 ×3。全盘连同手持和台面清空，另加 500
+                分再补盘；时间始终 180 秒。
+              </p>
             </details>
-            <div id="collections"></div>
-            <p class="muted">线索与收藏已由服务器保存。只属于你的发现，不用争抢。</p>
-          </section>
-          <section
-            id="camp-panel"
-            class="card camp-display"
-            role="tabpanel"
-            aria-labelledby="camp-tab"
-            hidden
-          >
-            <div class="section-title">
-              <h2>营地微光展台</h2>
-              <span>收藏解锁</span>
-            </div>
-            <p class="camp-note">三处固定槽位，摆放旧物唤起的微光投影。只作装饰，不阻挡通行。</p>
-            <label for="camp-owner">查看谁的展台</label>
-            <select id="camp-owner"></select>
-            <p id="camp-summary" role="status"></p>
-            <p id="camp-placed"></p>
-            <p id="camp-location"></p>
-            <div id="camp-controls"></div>
-            <p class="muted">
-              摆件可免费移动或收起，不消耗微光。布置随账号保存；每次只观看一位在线旅人的投影。
-            </p>
-          </section>
-          <section class="card camp-npcs" aria-label="营地人物与委托">
-            <div class="section-title">
-              <h2>营地人物</h2>
-              <span>NPC</span>
-            </div>
-            <ul id="npc-list"></ul>
-            <div class="quest-journal">
-              <h2>点亮营灯</h2>
-              <p id="quest-progress" role="status">与守灯人阿苔交谈，接取采集委托。</p>
-              <small>接取后采集 2 次 → 返回阿苔 → 额外 3 分微光。本轮有效。</small>
-            </div>
           </section>
           <section class="card travelers">
             <div class="section-title">
               <h2>附近的旅人</h2>
               <span id="player-count">0</span>
             </div>
-            <ol id="players" aria-label="在线玩家">
-              <li class="empty">原野安静地等待着第一位旅人。</li>
-            </ol>
+            <ol id="players" aria-label="在线玩家"></ol>
           </section>
           <section class="card chat">
             <div class="section-title">
               <h2>原野频道</h2>
-              <span class="live-label">LIVE</span>
+              <span>LIVE</span>
             </div>
-            <ol id="messages" aria-label="世界聊天" aria-live="polite">
-              <li class="empty">打个招呼吧，所有在线旅人都能看到。</li>
-            </ol>
+            <ol id="messages" aria-label="世界聊天" aria-live="polite"></ol>
             <form id="chat-form">
               <label class="sr-only" for="chat-input">聊天消息</label
               ><input
                 id="chat-input"
                 maxlength="140"
-                placeholder="对原野说点什么…"
+                placeholder="对同场旅人说点什么…"
                 autocomplete="off"
                 disabled
               /><button id="chat-send" type="submit" aria-label="发送聊天" disabled>↑</button>
@@ -235,10 +191,10 @@
         </aside>
       </div>
       <p id="notice" class="notice" role="status">
-        用不同账号进入可体验联机；同账号需正确密码才能替换旧会话。
+        保留旧账号与存档。登录后开始独立挑战，不受大厅其他旅人干扰。
       </p>
       <footer>
-        <span>game-shelf <em>/</em> AI-assisted, decisions recorded.</span
+        <span>game-shelf / AI-assisted, decisions recorded.</span
         ><span>小小的世界，真实的连接。</span>
       </footer>
     </main>

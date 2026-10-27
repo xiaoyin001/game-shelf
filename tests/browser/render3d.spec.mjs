@@ -22,6 +22,8 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     await expect(canvas).toHaveAttribute("data-renderer", "webgl2");
     await expect(canvas).toHaveAttribute("data-stone-instances", "36");
     await expect(canvas).toHaveAttribute("data-stone-batches", "1");
+    await expect(canvas).toHaveAttribute("data-crystal-instances", "15");
+    await expect(canvas).toHaveAttribute("data-crystal-batches", "2");
     await expect(canvas).toHaveAttribute("data-avatar-instances", "4");
     await expect(canvas).toHaveAttribute("data-avatar-batches", "7");
     const gl = await canvas.evaluate((el) => {
@@ -47,7 +49,7 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
       const observer = new MutationObserver((records) => {
         mutations += records.length;
       });
-      for (const id of ["camp-panel", "players", "online-count", "camera-readout"])
+      for (const id of ["challenge", "players", "online-count", "camera-readout"])
         observer.observe(document.getElementById(id), {
           attributes: true,
           childList: true,

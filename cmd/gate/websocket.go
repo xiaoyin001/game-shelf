@@ -20,26 +20,22 @@ import (
 )
 
 type browserCommand struct {
-	Version      int     `json:"version"`
-	Type         string  `json:"type"`
-	Token        string  `json:"token,omitempty"`
-	DX           float64 `json:"dx,omitempty"`
-	DY           float64 `json:"dy,omitempty"`
-	Text         string  `json:"text,omitempty"`
-	NPCID        string  `json:"npc_id,omitempty"`
-	ChoiceID     string  `json:"choice_id,omitempty"`
-	SlotID       string  `json:"slot_id,omitempty"`
-	DecorationID string  `json:"decoration_id,omitempty"`
+	Version int     `json:"version"`
+	Type    string  `json:"type"`
+	Token   string  `json:"token,omitempty"`
+	DX      float64 `json:"dx,omitempty"`
+	DY      float64 `json:"dy,omitempty"`
+	Text    string  `json:"text,omitempty"`
+	ItemID  string  `json:"item_id,omitempty"`
+	RoundID string  `json:"round_id,omitempty"`
 }
 type browserEvent struct {
-	Version int                    `json:"version"`
-	Type    string                 `json:"type"`
-	UserID  string                 `json:"user_id,omitempty"`
-	Error   string                 `json:"error,omitempty"`
-	State   *contracts.WorldState  `json:"state,omitempty"`
-	Quest   *contracts.WorldQuest  `json:"quest,omitempty"`
-	Dialog  *contracts.WorldDialog `json:"dialog,omitempty"`
-	Book    *contracts.FieldBook   `json:"book,omitempty"`
+	Version   int                   `json:"version"`
+	Type      string                `json:"type"`
+	UserID    string                `json:"user_id,omitempty"`
+	Error     string                `json:"error,omitempty"`
+	State     *contracts.WorldState `json:"state,omitempty"`
+	Challenge *contracts.Challenge  `json:"challenge,omitempty"`
 }
 type webSession struct {
 	online session.OnlineSession
@@ -98,7 +94,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 	defer s.leaveBrowser(active, conn)
-	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Quest: resp.Quest, Book: resp.Book}) {
+	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Challenge: resp.Challenge}) {
 		return
 	}
 
@@ -140,11 +136,11 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "gather" && cmd.Type != "jump" && cmd.Type != "interact" && cmd.Type != "choose" && cmd.Type != "explore" && cmd.Type != "decorate" {
+			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" && cmd.Type != "start_solo" && cmd.Type != "pick" && cmd.Type != "put" && cmd.Type != "return" && cmd.Type != "leave_round" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}
-			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, NPCID: cmd.NPCID, ChoiceID: cmd.ChoiceID, SlotID: cmd.SlotID, DecorationID: cmd.DecorationID})
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, ItemID: cmd.ItemID, RoundID: cmd.RoundID})
 			if err != nil {
 				return
 			}
@@ -152,8 +148,8 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error}) {
 					return
 				}
-			} else if reply.Dialog != nil {
-				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "dialog", State: reply.State, Quest: reply.Quest, Dialog: reply.Dialog, Book: reply.Book}) {
+			} else if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" {
+				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge}) {
 					return
 				}
 			}
@@ -167,7 +163,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error})
 				return
 			}
-			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Quest: reply.Quest, Book: reply.Book}) {
+			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge}) {
 				return
 			}
 		}

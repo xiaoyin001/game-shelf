@@ -57,6 +57,23 @@ type Camp struct {
 	Slots []DisplaySlot `json:"slots"`
 }
 
+// Point 是无刚体道具的地面格。
+type Point struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// Workshop 同时约束服务端距离和客户端场地投影，不添加静态阻挡体。
+type Workshop struct {
+	X           float64 `json:"x"`
+	Y           float64 `json:"y"`
+	Range       float64 `json:"range"`
+	PickupRange float64 `json:"pickup_range"`
+	SpawnX      float64 `json:"spawn_x"`
+	SpawnY      float64 `json:"spawn_y"`
+	Spots       []Point `json:"spots"`
+}
+
 // Layout 是客户端绘制与服务器碰撞共用的公开场景版本。
 type Layout struct {
 	Version  string   `json:"version"`
@@ -66,6 +83,7 @@ type Layout struct {
 	Nodes    []Node   `json:"nodes"`
 	NPCs     []NPC    `json:"npcs"`
 	Camp     Camp     `json:"camp"`
+	Workshop Workshop `json:"workshop"`
 }
 
 // Default 每次解码独立副本，调用者不能修改其他世界或公开布局。
