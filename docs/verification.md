@@ -2,6 +2,13 @@
 
 初始报告日期：2026-10-21，后续阶段各自标注日期。本报告对应本次重建分支的最终源码与交付检查，不复用旧仓库运行结果。Git 成长结构见 [阶段索引](history.json)，当次验证事实见 [成长记录](progress.md)。
 
+## 2026-10-27 · 当前交付结论：功能可本机试玩，推送验收未通过
+
+- 最终业务提交 `49e48229826ce0ed181d754acbb1baca6b6a0408` 的干净HEAD默认完整verify:ci，报告 `.local/logs/ci-verify-fbf1cb02f8dd4408b0dbe68eb60cf6ea/report.json` 为 **failed**。source/CGO全量race196.616秒、真实依赖/四服务/全部协议45.645秒通过，但Linux浏览器 **20/21**（5.5m），展台流程触及30秒，报告33.7秒含收尾；额外新DB轮未执行。
+- trace明确的长操作是第二页面账号fill12.067秒和截图2.506秒，末次离开未完成。不能称实例合批已解决预算，不能用Windows21/21或候选单job21/21代替最终提交的正式结果。
+- 本轮project容器/卷/网络与job缓存为0，业务进程/锁无残留。未创建的failure project为0，不冒称这次跑过额外故障注入。真实 `node scripts/prepush-guard.mjs --check` 明确拒绝，未使用绕过。
+- 本次 **未合入master、未Push、未PR/部署**，无新SHA远端结果；功能首版留在 `feat/treasure-collection-camp`。本提交的文档检查只核对记录，不是玩法或推送验收。后续仍需修复并在新干净最终HEAD通过完整门禁。
+
 ## 2026-10-27 · 第32阶段角色实例绘制本地验收
 
 七部位实例绘制已在Windows check/check:client、全量Go race、真实依赖/四服务/协议及21/21浏览器（2.0m）通过；实际身体实例高度、四角色/七批次、原物理与渲染断言保留，真实截图已查看。帧率/画质/阴影/分辨率与CI资源/时限未降低。该阶段提交前尚无新最终HEAD默认完整preflight和远端结果，下方失败/单job结果不转为推送证明；正式结果须提交后绑定同一SHA。见[ADR-0034](decisions/0034-avatar-instancing.md)。
