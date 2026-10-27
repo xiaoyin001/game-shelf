@@ -13,6 +13,7 @@ import (
 	"game-shelf/internal/config"
 	"game-shelf/internal/credentials"
 	"game-shelf/internal/discovery"
+	"game-shelf/internal/fieldbook"
 	"game-shelf/internal/health"
 	"game-shelf/internal/logx"
 	"game-shelf/internal/mongox"
@@ -83,7 +84,7 @@ func runDB() {
 		log.Error("account verifier init failed", "error", err)
 		return
 	}
-	service := &DBService{app: app, log: log, accounts: accounts}
+	service := &DBService{app: app, log: log, accounts: accounts, books: fieldbook.NewStore(mongoClient.Database(app.Mongo.Database))}
 	tcpServer := transport.NewServer(app.Internal.ListenAddr, app.Limit.MaxBodyBytes, app.InternalIdleTimeout(), log, service.Handle)
 	if err := tcpServer.Start(ctx); err != nil {
 		log.Error("internal tcp server init failed", "error", err)

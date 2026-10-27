@@ -23,6 +23,7 @@ type event struct {
 	State   *contracts.WorldState  `json:"state"`
 	Quest   *contracts.WorldQuest  `json:"quest"`
 	Dialog  *contracts.WorldDialog `json:"dialog"`
+	Book    *contracts.FieldBook   `json:"book"`
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

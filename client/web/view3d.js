@@ -14,6 +14,7 @@ export class WorldView {
     this.onFailure = onFailure;
     this.players = new Map();
     this.nodes = new Map();
+    this.clue = null;
     this.yaw = 0;
     this.pitch = 0.65;
     this.distance = 560;
@@ -430,6 +431,42 @@ export class WorldView {
     return { group, crystal, material, ring };
   }
 
+  // 线索是无碰撞的私人提示；切换账号/步骤时及时释放本提示的GPU资源。
+  setTrail(trail) {
+    if (this.clue?.key === (trail ? trail.id + ":" + trail.step : "")) return;
+    if (this.clue) {
+      this.scene.remove(this.clue.group);
+      this.clue.group.traverse((object) => {
+        if (object.isMesh) object.geometry.dispose();
+        if (object.material) {
+          object.material.map?.dispose();
+          object.material.dispose();
+        }
+      });
+      this.clue = null;
+    }
+    if (!trail) return;
+    const group = new THREE.Group();
+    group.name = "private-clue:" + trail.id;
+    group.position.set(trail.x, trail.z, trail.y);
+    const marker = this.addMesh(
+      new THREE.OctahedronGeometry(9),
+      new THREE.MeshBasicMaterial({ color: 0xffdc93 }),
+      0,
+      17,
+      0,
+      group,
+    );
+    marker.castShadow = false;
+    const label = this.label("叶纹线索 · F 调查", "#ffe4a6");
+    label.position.y = 42;
+    group.add(label);
+    group.visible = false;
+    this.scene.add(group);
+    this.clue = { group, marker, key: trail.id + ":" + trail.step };
+    this.activityUntil = performance.now() + 750;
+  }
+
   // 只比较角色空间状态，不因每次10Hz轮询的新对象而把静止场景误判成活动。
   frameDelay(now, state) {
     const players = state?.players || [];
@@ -509,6 +546,13 @@ export class WorldView {
       entry.crystal.scale.set(1, 1.45, 1);
     }
     const me = this.players.get(selfID);
+    if (this.clue) {
+      this.clue.group.visible =
+        !!me && me.group.position.distanceTo(this.clue.group.position) <= 180;
+      this.clue.marker.rotation.y = now / 1400;
+    }
+    this.canvas.dataset.clueVisible = String(!!this.clue?.group.visible);
+    this.canvas.dataset.clueId = this.clue?.key || "";
     if (me) {
       const follow = me.group.position.clone();
       follow.y += 16;

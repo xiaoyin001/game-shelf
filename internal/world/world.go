@@ -2,8 +2,11 @@
 package world
 
 import (
+	"context"
 	"game-shelf/pkg/contracts"
+	"game-shelf/pkg/fieldbook"
 	"game-shelf/pkg/scene"
+	"hash/fnv"
 	"math"
 	"sort"
 	"strings"
@@ -26,6 +29,7 @@ type player struct {
 	lastMove time.Time
 	lastChat time.Time
 	quest    contracts.WorldQuest
+	journal  *contracts.Journal
 	vz       float64
 }
 
@@ -38,11 +42,19 @@ type World struct {
 	nodes       []contracts.WorldNode
 	layout      scene.Layout
 	lastPhysics time.Time
+	books       ProgressStore
+	userOps     [64]chan struct{}
 }
 
 // New 创建没有在线玩家的世界。
-func New() *World {
-	w := &World{players: make(map[string]*player), layout: scene.Default()}
+func New() *World { return NewPersistent(nil) }
+
+// NewPersistent 只由生产lobby注入真正存储；无存储的世界不能确认持久探索。
+func NewPersistent(books ProgressStore) *World {
+	w := &World{players: make(map[string]*player), layout: scene.Default(), books: books}
+	for i := range w.userOps {
+		w.userOps[i] = make(chan struct{}, 1)
+	}
 	for _, n := range w.layout.Nodes {
 		w.nodes = append(w.nodes, contracts.WorldNode{ID: n.ID, X: n.X, Y: n.Y})
 	}
@@ -51,6 +63,30 @@ func New() *World {
 
 // Apply 使用服务器时间校验会话并复制当前快照。
 func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldResp {
+	return w.ApplyContext(context.Background(), req, now)
+}
+
+// ApplyContext 串行化同账号状态，I/O限时且不持有全局世界锁。
+func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now time.Time) *contracts.WorldResp {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(req.UserID))
+	slot := w.userOps[h.Sum32()%uint32(len(w.userOps))]
+	select {
+	case slot <- struct{}{}:
+		defer func() { <-slot }()
+	case <-ctx.Done():
+		return failure("progress_unavailable")
+	}
+	initial := &contracts.Journal{}
+	if req.Action == "enter" && w.books != nil && req.UserID != "" && req.SessionID != "" {
+		var err error
+		initial, err = w.books.Load(ctx, req.UserID)
+		if err != nil || fieldbook.Validate(initial) != nil {
+			return failure("progress_unavailable")
+		}
+	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	for id, p := range w.players {
@@ -78,7 +114,7 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if !ok {
 			return failure("world_full")
 		}
-		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y, Grounded: true}, session: req.SessionID, lastSeen: now, lastMove: now}
+		w.players[req.UserID] = &player{state: contracts.WorldPlayer{ID: req.UserID, Name: name, X: x, Y: y, Grounded: true}, session: req.SessionID, lastSeen: now, lastMove: now, journal: fieldbook.Clone(initial)}
 		return w.response(w.players[req.UserID], now, nil)
 	}
 	p := w.players[req.UserID]
@@ -103,9 +139,18 @@ func (w *World) Apply(req *contracts.WorldReq, now time.Time) *contracts.WorldRe
 		if err := w.gather(p, now); err != "" {
 			return failure(err)
 		}
+	case "explore":
+		if err := w.explore(ctx, p); err != "" {
+			return failure(err)
+		}
 	case "interact", "choose":
 		var err string
 		dialog, err = w.interact(p, req)
+		if err == "" && req.Action == "choose" && req.ChoiceID == "trail" {
+			if err = w.acceptTrail(ctx, p); err == "" {
+				dialog, _ = w.interact(p, req)
+			}
+		}
 		if err != "" {
 			return failure(err)
 		}

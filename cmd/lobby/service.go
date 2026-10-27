@@ -3,7 +3,9 @@ package main
 
 import (
 	"context"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"log/slog"
+	"sync"
 	"time"
 
 	"game-shelf/internal/config"
@@ -16,10 +18,14 @@ import (
 )
 
 type LobbyService struct {
-	app   config.App
-	log   *slog.Logger
-	redis *redis.Client
-	world *world.World
+	app         config.App
+	log         *slog.Logger
+	redis       *redis.Client
+	world       *world.World
+	etcd        *clientv3.Client
+	ctx         context.Context
+	bookMu      sync.Mutex
+	bookClients map[string]*transport.Client
 }
 
 func (s *LobbyService) Handle(ctx context.Context, _ *transport.Conn, msg protocol.Message) (protocol.Message, bool) {
@@ -31,7 +37,7 @@ func (s *LobbyService) Handle(ctx context.Context, _ *transport.Conn, msg protoc
 		if err := protocol.UnmarshalBody(msg, &req); err != nil {
 			return errorReply(msg.Seq, "invalid_world_req"), true
 		}
-		reply, err := protocol.MarshalMessage(contracts.LBGT_WorldResp, msg.Seq, s.world.Apply(&req, time.Now()))
+		reply, err := protocol.MarshalMessage(contracts.LBGT_WorldResp, msg.Seq, s.world.ApplyContext(ctx, &req, time.Now()))
 		return reply, err == nil
 	case contracts.GTLB_LobbyListReq:
 		var req contracts.LobbyListReq

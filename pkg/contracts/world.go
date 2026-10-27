@@ -32,6 +32,7 @@ type WorldResp struct {
 	State  *WorldState  `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	Quest  *WorldQuest  `protobuf:"bytes,3,opt,name=quest,proto3" json:"quest,omitempty"`
 	Dialog *WorldDialog `protobuf:"bytes,4,opt,name=dialog,proto3" json:"dialog,omitempty"`
+	Book   *FieldBook   `protobuf:"bytes,5,opt,name=book,proto3" json:"book,omitempty"`
 }
 
 func (m *WorldResp) Reset()         { *m = WorldResp{} }

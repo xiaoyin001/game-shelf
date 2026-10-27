@@ -4,6 +4,7 @@ package world
 import (
 	"fmt"
 	"game-shelf/pkg/contracts"
+	"game-shelf/pkg/fieldbook"
 	"game-shelf/pkg/scene"
 	"math"
 	"time"
@@ -17,7 +18,7 @@ const (
 func (w *World) response(p *player, now time.Time, dialog *contracts.WorldDialog) *contracts.WorldResp {
 	quest := p.quest
 	quest.Goal, quest.Reward = questGoal, questReward
-	return &contracts.WorldResp{State: w.snapshot(now), Quest: &quest, Dialog: dialog}
+	return &contracts.WorldResp{State: w.snapshot(now), Quest: &quest, Dialog: dialog, Book: fieldbook.View(fieldbook.Clone(p.journal))}
 }
 
 func (w *World) interact(p *player, req *contracts.WorldReq) (*contracts.WorldDialog, string) {
@@ -45,6 +46,17 @@ func (w *World) interact(p *player, req *contracts.WorldReq) (*contracts.WorldDi
 	add := func(id, label string) {
 		dialog.Choices = append(dialog.Choices, &contracts.DialogChoice{ID: id, Label: label})
 	}
+	if choice == "trail" {
+		add("trail", "寻找原野旧物 · 领取 / 回顾线索")
+		if trail := fieldbook.Current(fieldbook.Clone(p.journal)); trail != nil {
+			dialog.Text = trail.Title + "：" + trail.Clue
+		} else if fieldbook.Next(fieldbook.Clone(p.journal)) == "" {
+			dialog.Text = "三件旧物都已收入收藏册。谢谢你记住原野的故事，随时可以翻开收藏册重读。"
+		} else {
+			dialog.Text = "原野的旧物里藏着故事。领取线索后，靠近叶纹标记按F调查，进度会随账号保存，不用争抢，也不必一天完成。"
+		}
+		return dialog, ""
+	}
 	if npc.ID == "ranger" {
 		switch choice {
 		case "":
@@ -58,6 +70,7 @@ func (w *World) interact(p *player, req *contracts.WorldReq) (*contracts.WorldDi
 		}
 		add("camp", "营地里有什么？")
 		add("crystals", "哪里能找到晶簇？")
+		add("trail", "寻找原野旧物 · 领取 / 回顾线索")
 		return dialog, ""
 	}
 	// 状态转换与采集/加分同持一把锁，重复或并发提交不能再次奖励。
@@ -97,5 +110,6 @@ func (w *World) interact(p *player, req *contracts.WorldReq) (*contracts.WorldDi
 		dialog.Text = "最近的晶簇在 620 / 400；靠近后按 E 采集。采过后等 10 秒再亮，或探索其他晶簇。委托只统计接取后成功的采集，回到我身边才能领奖。"
 	}
 	add("advice", "告诉我采集方法")
+	add("trail", "寻找原野旧物 · 领取 / 回顾线索")
 	return dialog, ""
 }

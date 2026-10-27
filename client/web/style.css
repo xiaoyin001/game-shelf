@@ -347,7 +347,8 @@ input:focus {
   gap: 8px;
 }
 #npc-choices button,
-#npc-talk {
+#npc-talk,
+#clue-inspect {
   border: 1px solid #adf2cb66;
   border-radius: 7px;
   padding: 9px 12px;
@@ -376,6 +377,32 @@ input:focus {
 #npc-list small {
   display: block;
   color: var(--muted);
+}
+.field-book p {
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+#trail-progress {
+  color: var(--mint);
+}
+#trail-clue {
+  color: var(--gold);
+}
+.field-book details {
+  font-size: 12px;
+  line-height: 1.8;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.field-book summary {
+  cursor: pointer;
+}
+.field-book details p {
+  color: var(--muted);
+}
+#clue-inspect {
+  margin-left: 8px;
 }
 .quest-journal {
   border-top: 1px solid var(--line);
@@ -654,7 +681,8 @@ button:focus-visible {
     grid-template-columns: 1fr 1fr;
   }
   .chat,
-  .camp-npcs {
+  .camp-npcs,
+  .field-book {
     grid-column: 1/-1;
   }
   .version,

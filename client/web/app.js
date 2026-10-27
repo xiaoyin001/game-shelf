@@ -7,6 +7,8 @@ let rendererFailure = "";
 let dialogNPC = "";
 let dialogDismissed = false;
 let nearestNPC = null;
+let fieldBook = null;
+let bookStamp = "";
 const keys = new Set();
 let socket = null,
   state = null,
@@ -31,6 +33,9 @@ const errorMessages = {
   npc_out_of_range: "请再走近一点，才能与这位人物交谈。",
   invalid_npc_choice: "这个对话选项不可用，请重新交谈。",
   quest_not_ready: "先接取委托，再成功采集两次晶簇，回来领取奖励。",
+  progress_unavailable: "收藏存档暂时无法确认，请稍后重试或重新登录；不会用空档覆盖进度。",
+  no_active_trail: "先与阿苔或林哨交谈，领取下一条旧物线索。",
+  clue_out_of_range: "走近当前线索并站稳再调查；高处的旧物需要跳上去。",
   session_replaced_or_expired: "会话已结束，请重新进入。",
   world_full: "原野暂时已满，请稍后再试。",
   jump_not_grounded: "落地或站稳后才能再次跳跃。",
@@ -56,6 +61,7 @@ function disconnected(text) {
   nearestNPC = null;
   $("npc-talk").hidden = true;
   updateQuest(null);
+  updateBook(null);
   clearTimeout(joinTimer);
   $("entry-panel").hidden = false;
   $("game-hint").hidden = true;
@@ -186,8 +192,9 @@ $("login-form").addEventListener("submit", async (event) => {
         $("account").blur();
         $("password").blur();
         status("已连接 · 原野 01", true);
-        notice("靠近守灯人阿苔接取委托；E 交谈 / 采集，Enter 与旅人聊天。");
+        notice("找阿苔或林哨领取旧物线索；F 调查，收藏随账号保存。E 仍为交谈 / 采集。");
       }
+      if (event.book) updateBook(event.book);
       if (event.state) {
         if (event.state.scene_version !== view.layout.version) {
           fail3D("场景与服务器版本不一致，请刷新页面。");
@@ -250,6 +257,10 @@ document.addEventListener("keydown", (event) => {
     if (nearestNPC) talkToNPC();
     else send("gather");
   }
+  if (key === "f" && !event.repeat) {
+    event.preventDefault();
+    send("explore");
+  }
   if (event.code === "Space") {
     event.preventDefault();
     if (!event.repeat) send("jump");
@@ -293,6 +304,65 @@ function updateQuest(quest) {
         : "与守灯人阿苔交谈，接取采集委托。";
   if (journal.textContent !== text) journal.textContent = text;
 }
+function updateBook(book) {
+  const stamp = JSON.stringify(book);
+  if (stamp === bookStamp) return;
+  const previous = fieldBook?.collections?.filter((entry) => entry.found).length || 0;
+  fieldBook = book;
+  bookStamp = stamp;
+  view?.setTrail(book?.trail || null);
+  $("field-book").hidden = !book;
+  $("clue-inspect").hidden = true;
+  if (!book) {
+    $("collections").replaceChildren();
+    return;
+  }
+  const found = book.collections.filter((entry) => entry.found).length;
+  $("collection-count").textContent = found + " / " + book.collections.length;
+  const trail = book.trail;
+  const progress = $("trail-progress");
+  progress.dataset.id = trail?.id || "";
+  progress.dataset.step = trail?.step || 0;
+  progress.dataset.x = trail?.x ?? "";
+  progress.dataset.y = trail?.y ?? "";
+  progress.dataset.z = trail?.z ?? "";
+  progress.textContent = trail
+    ? trail.title + " · 线索 " + trail.step + " / " + trail.total
+    : found === book.collections.length
+      ? "三件旧物已收齐，可以随时重读原野的故事。"
+      : "找阿苔或林哨，选择「寻找原野旧物」领取下一条线索。";
+  $("trail-clue").textContent = trail?.clue || "慢慢探索，没有每日次数，也没有失败惩罚。";
+  $("trail-direction").textContent = trail
+    ? "目标附近：" + trail.x + " / " + trail.y + " · 脚底高度 " + trail.z + "；靠近叶纹标记后按 F。"
+    : "领取线索后可查看方向提示。";
+  $("collections").replaceChildren(
+    ...book.collections.map((entry) => {
+      const item = document.createElement("details");
+      const summary = document.createElement("summary");
+      const story = document.createElement("p");
+      item.dataset.id = entry.id;
+      item.dataset.found = entry.found;
+      summary.textContent = (entry.found ? "✓ " : "◇ ") + entry.name;
+      story.textContent = entry.found
+        ? entry.story
+        : "尚未找到。跟随营地人物提供的线索，发现它的故事。";
+      item.append(summary, story);
+      return item;
+    }),
+  );
+  if (found > previous)
+    notice(
+      "新收藏已保存：" +
+        book.collections.findLast((entry) => entry.found).name +
+        "。可以在收藏册里读它的故事。",
+    );
+}
+$("clue-inspect").addEventListener("click", () => {
+  if (!connected || dialogNPC) return;
+  keys.clear();
+  send("explore");
+  canvas.focus({ preventScroll: true });
+});
 function updateInteraction(me) {
   const distance = (npc) => Math.hypot(me.x - npc.x, me.y - npc.y, me.z);
   nearestNPC =
@@ -310,6 +380,10 @@ function updateInteraction(me) {
       ? "E 采集微光"
       : "晶簇重生中 · " + Math.ceil((node.ready_at_ms - state.time_ms) / 1000) + " 秒"
     : "矮台阶自动迈上 · 高障碍按空格跳跃 · E 交谈 / 采集";
+  const trail = fieldBook?.trail;
+  const canInspect =
+    trail && me.grounded && Math.abs(me.z - trail.z) <= 10 && distance(trail) <= 34;
+  $("clue-inspect").hidden = !canInspect || !!dialogNPC;
   $("interaction-hint").textContent = dialogNPC
     ? "正在交谈 · Esc 结束"
     : nearestNPC
@@ -320,7 +394,9 @@ function updateInteraction(me) {
         "」交谈 · " +
         Math.round(distance(nearestNPC)) +
         " 步"
-      : resourceHint;
+      : canInspect
+        ? "F 调查「" + trail.title + "」的线索"
+        : resourceHint;
 }
 function talkToNPC() {
   if (!connected || !nearestNPC) return;

@@ -1,4 +1,4 @@
-// 文件说明：db 只接受有口令的注册/验证，旧无密码 upsert 入口已撤销。
+// 文件说明：db负责口令验证与账号探索存档，旧无密码身份入口保持撤销。
 package main
 
 import (
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"game-shelf/internal/config"
 	"game-shelf/internal/credentials"
+	"game-shelf/internal/fieldbook"
 	"game-shelf/internal/protocol"
 	"game-shelf/internal/transport"
 	"game-shelf/pkg/contracts"
@@ -17,12 +18,17 @@ type DBService struct {
 	app      config.App
 	log      *slog.Logger
 	accounts *credentials.Store
+	books    *fieldbook.Store
 }
 
 func (s *DBService) Handle(ctx context.Context, _ *transport.Conn, msg protocol.Message) (protocol.Message, bool) {
 	switch msg.ProtoID {
 	case contracts.LGDB_PingReq:
 		return pingReply(contracts.DBLG_PingResp, msg.Seq), true
+	case contracts.LBDB_PingReq:
+		return pingReply(contracts.DBLB_PingResp, msg.Seq), true
+	case contracts.LBDB_LoadBookReq, contracts.LBDB_SaveBookReq:
+		return s.handleBook(ctx, msg)
 	case contracts.LGDB_RegisterAccountReq, contracts.LGDB_VerifyAccountReq:
 		var req contracts.AccountRequest
 		if protocol.UnmarshalBody(msg, &req) != nil {

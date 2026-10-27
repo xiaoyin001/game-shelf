@@ -21,7 +21,7 @@
       >
       <div class="connection">
         <span id="status-dot"></span><span id="status" role="status">尚未连接</span
-        ><span class="version">3D 原型 / v0.3</span>
+        ><span class="version">原野旧物 / v0.4</span>
       </div>
     </header>
     <main>
@@ -29,7 +29,7 @@
         <div>
           <p class="eyebrow">SHARED WORLD · 001</p>
           <h1>苔光原野<span> Mosslight Meadow</span></h1>
-          <p class="subtitle">与旅人相遇，听营地的故事，一起点亮微光。</p>
+          <p class="subtitle">循着线索散步，把原野的故事收藏起来。</p>
         </div>
         <div class="world-info">
           <span>共享沙盒</span><strong id="online-count">0 人在线</strong>
@@ -106,6 +106,7 @@
             <div id="game-hint" class="game-hint" hidden>
               <span id="interaction-hint">矮台阶自动迈上 · 高障碍按空格跳跃 · E 交谈 / 采集</span>
               <button id="npc-talk" type="button" hidden>交谈</button>
+              <button id="clue-inspect" type="button" hidden>调查线索 · F</button>
             </div>
           </div>
           <div class="map-footer">
@@ -127,7 +128,21 @@
               <span class="crystal">✦</span>
             </div>
             <div class="score-value"><strong id="score">0</strong><span>分微光</span></div>
-            <p class="muted">临时沙盒：离开或重启后，本轮进度重置。</p>
+            <p class="muted">微光分数与营灯委托离开后重置；旧物收藏与寻宝线索随账号保存。</p>
+          </section>
+          <section id="field-book" class="card field-book" aria-label="个人收藏与寻宝线索" hidden>
+            <div class="section-title">
+              <h2>原野收藏册</h2>
+              <span id="collection-count">0 / 3</span>
+            </div>
+            <p id="trail-progress" role="status"></p>
+            <p id="trail-clue"></p>
+            <details class="direction-help">
+              <summary>需要一点方向？</summary>
+              <p id="trail-direction"></p>
+            </details>
+            <div id="collections"></div>
+            <p class="muted">线索与收藏已由服务器保存。只属于你的发现，不用争抢。</p>
           </section>
           <section class="card camp-npcs" aria-label="营地人物与委托">
             <div class="section-title">

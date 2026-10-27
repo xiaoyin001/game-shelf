@@ -62,4 +62,6 @@
 
 - [ADR-0030：普通快进 Push 的持续授权与跨会话仓库规则](0030-standing-push-consent.md)
 
+- [ADR-0031：两步寻宝与账号级持久收藏册](0031-persistent-field-book.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

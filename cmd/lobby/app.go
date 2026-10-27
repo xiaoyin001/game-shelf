@@ -77,8 +77,11 @@ func runLobby() {
 		app:   app,
 		log:   log,
 		redis: redisClient,
-		world: world.New(),
+		etcd:  etcdClient,
+		ctx:   ctx,
 	}
+	service.world = world.NewPersistent(service)
+	defer service.closeBookClients()
 	tcpServer := transport.NewServer(app.Internal.ListenAddr, app.Limit.MaxBodyBytes, app.InternalIdleTimeout(), log, service.Handle)
 	if err := tcpServer.Start(ctx); err != nil {
 		log.Error("internal tcp server init failed", "error", err)
