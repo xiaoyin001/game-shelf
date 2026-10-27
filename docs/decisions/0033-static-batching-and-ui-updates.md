@@ -2,6 +2,8 @@
 
 状态：采用（2026-10-27，正式门禁失败后先调查、再决策；Windows与固定SDK双CPU Linux候选单playable均21/21，最慢29.6秒，仍不能放行默认27秒余量/两轮门禁）。接续[ADR-0032](0032-collection-camp-display.md)，不改变玩法、物理、存档、图形质量、帧率目标或验收上限。
 
+后续[ADR-0034](0034-avatar-instancing.md)在本记录基础上继续批处理角色部位，以争取完整两轮预算；本记录的候选21/21但29.6秒边界作为历史保留，不改成已放行。
+
 ## 背景
 7d32406在Windows真实服务/20例和race通过，但最终commit默认完整preflight失败：source/race成功，playable协议成功、浏览器15/20（7.0m），新增寻宝/展台和原NPC/跳跃/碰撞/presence超30秒。本轮project与缓存回收为0，未生成推送证据，未Push。
 

@@ -56,6 +56,7 @@ export class WorldView {
     sun.shadow.normalBias = 0.7;
     this.scene.add(sun, sun.target);
     this.makeLandscape();
+    this.makeAvatarBatches();
     this.npcs = layout.npcs.map((npc) => {
       const entry = this.makePlayer(
         { ...npc, z: 0, name: npc.role + " · " + npc.name + " [E]" },
@@ -365,57 +366,89 @@ export class WorldView {
     return sprite;
   }
 
+  makeAvatarBatches() {
+    this.avatarBatches = {};
+    this.avatarProbe = new THREE.Matrix4();
+    // 容量对应当前服务器的100位玩家与固定NPC，实际绘制数每帧单独设置。
+    const capacity = 100 + this.layout.npcs.length;
+    for (const kind of ["body", "head", "eye", "cap", "limb", "bag", "ring"]) {
+      const geometry = kind === "ring" ? new THREE.RingGeometry(21, 23, 32) : this.geometries[kind];
+      const material =
+        kind === "ring"
+          ? new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              side: THREE.DoubleSide,
+              transparent: true,
+              opacity: 0.8,
+            })
+          : color(0xffffff);
+      const count = capacity * (kind === "limb" ? 4 : kind === "eye" ? 2 : 1);
+      const mesh = new THREE.InstancedMesh(geometry, material, count);
+      mesh.count = 0;
+      mesh.castShadow = mesh.receiveShadow = kind !== "ring";
+      // 动态角色不能按上一帧的静态包围球裁掉；实际实例仍受GPU视锥/深度裁剪。
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+      this.avatarBatches[kind] = mesh;
+    }
+  }
+
   makePlayer(player, own, npc = false) {
     const group = new THREE.Group();
     group.position.set(player.x, player.z, player.y);
     group.name = (npc ? "npc:" : "traveller:") + player.id;
-    const coat = color(
-        npc ? (player.id === "keeper" ? 0xd9b468 : 0x65b9b5) : own ? 0x9fd4b5 : 0x9faed3,
-      ),
-      skin = color(0xf0d3b0),
-      boots = color(0x465351),
-      hat = color(npc ? 0x81643e : own ? 0x587951 : 0x656d99),
-      bag = color(0x826b4d);
-    this.addMesh(this.geometries.body, coat, 0, 25, 0, group);
-    this.addMesh(this.geometries.head, skin, 0, 45, 0, group);
-    this.addMesh(this.geometries.cap, hat, 0, 57, 0, group);
-    this.addMesh(this.geometries.bag, bag, 0, 26, -11, group);
-    this.addMesh(this.geometries.eye, boots, -3, 46, 7, group);
-    this.addMesh(this.geometries.eye, boots, 3, 46, 7, group);
-    const legs = [
-      this.addMesh(this.geometries.limb, boots, -6, 8, 0, group),
-      this.addMesh(this.geometries.limb, boots, 6, 8, 0, group),
-    ];
-    this.addMesh(this.geometries.limb, coat, -17, 26, 0, group);
-    this.addMesh(this.geometries.limb, coat, 17, 26, 0, group);
+    const coat = npc ? (player.id === "keeper" ? 0xd9b468 : 0x65b9b5) : own ? 0x9fd4b5 : 0x9faed3;
+    const hat = npc ? 0x81643e : own ? 0x587951 : 0x656d99;
+    const parts = [];
+    const piece = (kind, tint, x, y, z) => {
+      const anchor = new THREE.Object3D();
+      anchor.position.set(x, y, z);
+      anchor.userData.kind = kind;
+      anchor.userData.tint = new THREE.Color(tint);
+      group.add(anchor);
+      parts.push(anchor);
+      return anchor;
+    };
+    piece("body", coat, 0, 25, 0);
+    piece("head", 0xf0d3b0, 0, 45, 0);
+    piece("cap", hat, 0, 57, 0);
+    piece("bag", 0x826b4d, 0, 26, -11);
+    piece("eye", 0x465351, -3, 46, 7);
+    piece("eye", 0x465351, 3, 46, 7);
+    const legs = [piece("limb", 0x465351, -6, 8, 0), piece("limb", 0x465351, 6, 8, 0)];
+    piece("limb", coat, -17, 26, 0);
+    piece("limb", coat, 17, 26, 0);
     if (own || npc) {
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(21, 23, 32),
-        new THREE.MeshBasicMaterial({
-          color: npc ? 0xffd77c : 0xc8f1bd,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.8,
-        }),
-      );
+      const ring = piece("ring", npc ? 0xffd77c : 0xc8f1bd, 0, 0.6, 0);
       ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.6;
-      group.add(ring);
     }
     const label = this.label(
       player.name + (own ? " · 你" : ""),
       npc ? "#ffe4a6" : own ? "#d6ffdc" : "#e3e8ff",
     );
     label.position.y = 82;
-    // 名牌独立于角色朝向，避免转身时文字翻转；只使用公共名字。
     this.scene.add(group, label);
-    return {
-      group,
-      label,
-      legs,
-      materials: [coat, skin, boots, hat, bag],
-      target: new THREE.Vector3(player.x, player.z, player.y),
-    };
+    return { group, label, legs, parts, target: new THREE.Vector3(player.x, player.z, player.y) };
+  }
+
+  drawAvatars() {
+    const counts = Object.fromEntries(Object.keys(this.avatarBatches).map((kind) => [kind, 0]));
+    for (const entry of [...this.npcs, ...this.players.values()]) {
+      entry.group.updateMatrixWorld(true);
+      for (const part of entry.parts) {
+        const kind = part.userData.kind,
+          index = counts[kind]++;
+        const mesh = this.avatarBatches[kind];
+        mesh.setMatrixAt(index, part.matrixWorld);
+        mesh.setColorAt(index, part.userData.tint);
+        if (kind === "body") entry.bodyIndex = index;
+      }
+    }
+    for (const [kind, mesh] of Object.entries(this.avatarBatches)) {
+      mesh.count = counts[kind];
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
   }
 
   makeNode(node) {
@@ -623,13 +656,6 @@ export class WorldView {
         this.scene.remove(entry.group, entry.label);
         entry.label.material.map.dispose();
         entry.label.material.dispose();
-        for (const m of entry.materials) m.dispose();
-        entry.group.traverse((o) => {
-          if (o.isMesh && !Object.values(this.geometries).includes(o.geometry)) {
-            o.geometry.dispose();
-            o.material.dispose();
-          }
-        });
         this.players.delete(id);
         this.shadowDirty = true;
       }
@@ -649,6 +675,7 @@ export class WorldView {
       entry.crystal.position.y = 27 + (ready ? Math.sin(now / 650 + node.x) * 2 : 0);
       entry.crystal.scale.set(1, 1.45, 1);
     }
+    this.drawAvatars();
     const me = this.players.get(selfID);
     if (this.clue) {
       this.clue.group.visible =
@@ -686,7 +713,13 @@ export class WorldView {
     }
     this.renderer.render(this.scene, this.camera);
     this.canvas.dataset.renderCount = String(++this.renderedFrames);
-    this.setCanvasData("selfHeight", me ? me.group.position.y.toFixed(2) : "");
+    if (me) this.avatarBatches.body.getMatrixAt(me.bodyIndex, this.avatarProbe);
+    this.setCanvasData("selfHeight", me ? (this.avatarProbe.elements[13] - 25).toFixed(2) : "");
+    this.setCanvasData("avatarInstances", this.avatarBatches.body.count);
+    this.setCanvasData(
+      "avatarBatches",
+      Object.values(this.avatarBatches).filter((mesh) => mesh.count > 0).length,
+    );
     this.setCanvasData(
       "npcCount",
       this.npcs.filter((entry) => entry.group.parent === this.scene).length,
