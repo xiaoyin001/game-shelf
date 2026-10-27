@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"game-shelf/internal/challenge"
 	"game-shelf/internal/scores"
 	"game-shelf/pkg/contracts"
@@ -160,6 +161,12 @@ func TestLiveScoreStoreIdempotenceDailyPartiesAndBest(t *testing.T) {
 	}
 	// 当前真实collection无此用例写入，低层夹具不冒充公开对局。
 }
+
+// 信号只用于测试调度，调用点必须已收到服务器running私有局；生产没有测试进度入口。
+func privateRoundReady(t *testing.T) {
+	t.Helper()
+	fmt.Printf("GAME_SHELF_PRIVATE_READY:%s\n", t.Name())
+}
 func waitSaved(t *testing.T, c *websocket.Conn, id string) {
 	t.Helper()
 	for range 50 {
@@ -193,6 +200,7 @@ func TestLivePracticeDoesNotPersist180Seconds(t *testing.T) {
 	started := time.Now()
 	room := startCoop(t, a, b)
 	r := challengeState(t, a, func(s *contracts.Challenge) bool { return s.Mode == "duo" })
+	privateRoundReady(t)
 	liveTeamPair(t, a, b, la.UserID, lb.UserID, r)
 	send(t, b, "leave_world", map[string]any{"room_id": room.ID})
 	read(t, b, "left")

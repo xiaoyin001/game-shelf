@@ -1,32 +1,46 @@
-// 文件说明：对当前已实现的真实服务和浏览器能力运行组合回归，统一回收自建进程。
-import { spawn } from "node:child_process";
+// 文件说明：短协议先完成，三个真实私有长回合与单worker浏览器重叠；全部通过后才统一回收自建进程。
 import { startStack } from "./local-stack.mjs";
 import { root, run } from "./infra.mjs";
-import { serviceTestArgs } from "./service-tests.mjs";
-const stop = await startStack();
+import { serviceTestArgs, longServiceTests } from "./service-tests.mjs";
+import { managedTask } from "./managed-task.mjs";
+const controller = new AbortController();
+const abort = () => controller.abort();
+for (const sig of ["SIGINT", "SIGTERM"]) process.once(sig, abort);
+let stop, long, browser;
 try {
-  if (!process.argv.includes("--browser-only"))
-    run("go", serviceTestArgs(true), {
+  stop = await startStack();
+  if (!process.argv.includes("--browser-only")) {
+    run("go", serviceTestArgs(true, "short"), {
       GAME_SHELF_INFRA: "1",
       GAME_SHELF_INTEGRATION: "1",
     });
-  await new Promise((done, fail) => {
-    const args = [
+    long = managedTask("go", serviceTestArgs(false, "long"), {
+      cwd: root,
+      env: { ...process.env, GAME_SHELF_INTEGRATION: "1" },
+      markers: longServiceTests,
+      signal: controller.signal,
+    });
+    await long.ready;
+  }
+  browser = managedTask(
+    process.execPath,
+    [
       "node_modules/@playwright/test/cli.js",
       "test",
       ...process.argv.slice(2).filter((v) => v !== "--browser-only"),
-    ];
-    const child = spawn(process.execPath, args, {
+    ],
+    {
       cwd: root,
-      stdio: "inherit",
-      windowsHide: true,
       env: { ...process.env, GAME_SHELF_TEST_STACK: "external" },
-    });
-    child.once("error", fail);
-    child.once("exit", (code) =>
-      code === 0 ? done() : fail(new Error("Playwright exited " + code)),
-    );
-  });
+      signal: controller.signal,
+    },
+  );
+  await Promise.all([long?.done, browser.done]);
 } finally {
-  await stop();
+  try {
+    await Promise.all([long?.stop(), browser?.stop()]);
+  } finally {
+    if (stop) await stop();
+    for (const sig of ["SIGINT", "SIGTERM"]) process.removeListener(sig, abort);
+  }
 }

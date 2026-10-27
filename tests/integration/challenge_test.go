@@ -81,6 +81,7 @@ func TestLiveChallengeComplete180Seconds(t *testing.T) {
 	started := time.Now()
 	send(t, conn, "start_solo", nil)
 	r := challengeState(t, conn, func(s *contracts.Challenge) bool { return s.Phase == "running" })
+	privateRoundReady(t)
 	firstSnapshotDelay := time.Since(started)
 	current := r
 	for pair := int32(1); pair <= 8; pair++ {

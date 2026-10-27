@@ -359,3 +359,12 @@
 - 额外双浏览器完整181.338秒：真实表单建房/双方准备、方向搬运/键盘投送、100分、到0秒/操作禁用/双方saved、实际双人榜与本人最佳100分、重新双方准备开始新局、密码重登仍保留最佳，页面错误0；saved-result/earned-ranking截图已查看。该观察不计入25例或延长默认30秒，默音不作实际扬声器听感证明。
 - 证据：`.local/logs/scores-final.out.log`、任务904b5a59为passed；额外 `.local/logs/scores-long-browser.out.log`、副本0a6df579内 `.local/coop-full-browser/result.json`。工具Go1.25.0/Node22.23.3、2CPU/4GiB/无swap、SDK UID0/已有prepared镜像与模块缓存；正式资源/冷工具/普通UID回收/故障注入未由该阶段证明。额外浏览器只与无浏览器的协议等待并行、绑另两CPU，不与默认浏览器组并发；所有本轮pair-owner容器0。
 - 阶段提交时：目标首版三个产品切片已实现，尚未有新干净最终HEAD默认verify:ci/同SHA云端结果，未合master/Push/PR/部署；下一步按原门禁正式验收。未覆盖持久outbox/跨进程局恢复、容量/性能横评、扬声器听感与公网安全。
+
+### 37 · 保留总预算并重叠私有长回合验收（2026-10-27，本地修复完成）
+
+- b421bc7干净HEAD已默认verify:ci，报告0951ba09：source/CGO race143.185秒通过，完整首轮558.769秒含真实协议194.374秒、25/25（3.7m）及故障清理通过；额外新DB/四服务轮8/25后总执行期限到达，整次failed。没有有效推送证据，未Push。不是业务断言失败也不能放行，旧阶段通过不覆盖此失败。
+- 先写[ADR-0038](decisions/0038-overlap-private-round-validation.md)：不加总预算/CPU、不中断180秒、不删第二轮或原断言、不无差别并行大厅测试。先完整短协议/依赖，再三个长例在收到真实服务器running私有局后输出测试信号，三项齐全才启动原单worker浏览器；两组必须都成功。browser-only/第二轮只跑原完整浏览器，独立test:services仍全部协议。
+- 新增小型自建测试进程生命周期：非零退出/缺信号/就绪30秒超时/中断均失败并有界回收。POSIX独立进程组、Windows仅已持有PID的taskkill /T，捕获父/子，不按端口或名字清理；没有新增文件回收/Docker身份机制或生产测试后门。真实子进程测试覆盖分段/重复/无关信号、缺信号/退出/超时/双等待/失败/中断及父子定向回收。
+- Windows check/check:client/workflow通过，运行器31通过、SDK专属1跳过；Linux独立副本 `.local/pair-check-e9a975d2645249f8a166e6315bdb1a18` 的check/check:client/test:all/test:services/全量Go race均通过，运行器30通过/2项环境专属跳过。全部25/25浏览器（3.7m、最慢17.5秒），长层180.532秒/三个真实回合原保存/重登/练习不写断言全部通过，与浏览器真实重叠；另一全量协议轮194.307秒通过。仍2CPU/4GiB/无swap、30秒/零重试/单worker和27秒/原总预算，不作统计性能或冷工具横评。
+- 证据 `.local/logs/overlap-full.out.log`，任务e9a975d2为passed，四个本轮容器0；旧试玩仍正常停机、数据卷保留。本轮沿用prepared镜像/缓存、SDK UID0，不冒称最终默认门禁/普通UID回收证明。
+- 阶段提交时仍待修复后新干净HEAD完整verify:ci和同SHA云端结果，未合master/Push/PR/部署。功能/存储边界沿用阶段36；最终交付不能拿本阶段或第一轮代替完整两轮正式证明。

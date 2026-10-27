@@ -2,6 +2,13 @@
 
 初始报告日期：2026-10-21，后续阶段各自标注日期。本报告对应本次重建分支的最终源码与交付检查，不复用旧仓库运行结果。Git 成长结构见 [阶段索引](history.json)，当次验证事实见 [成长记录](progress.md)。
 
+## 2026-10-27 · 第37阶段：正式总预算拒绝与私有长回合重叠修复
+
+- b421bc7默认干净HEAD报告 `.local/logs/ci-verify-0951ba0973f44510853dd162591da158/report.json` 为failed：source/全量CGO race143.185秒通过，完整playable首轮558.769秒、真实协议194.374秒、25/25（3.7m）及故障清理通过，额外新DB轮8/25后总执行期限到达。未生成有效推送记录，未Push，不能以首轮或阶段25/25放行。
+- [ADR-0038](decisions/0038-overlap-private-round-validation.md)只调整调度：全部短协议先行，三个真实长例进入权威私有局并输出全部明确信号后，原单worker浏览器与其重叠，两组均需通过；独立test:services仍全部执行。新的受管自建进程组/树对错误/缺就绪/超时/中断有界回收；不改生产规则/资源/测试集合/重试/30秒/27秒/总预算或删除额外轮。
+- 修复后阶段Windows check/check:client/workflow及运行器31通过/1 SDK专属跳过；Linux独立e9a975d2副本 check/check:client/test:all/test:services/全量Go race通过，运行器30通过/2项专属跳过；实际父子进程回收分别在Windows和Linux执行。25/25（3.7m、最慢17.5秒），三真实长回合180.532秒内全部原断言通过；独立完整协议194.307秒，不缩短回合时间。
+- 日志 `.local/logs/overlap-full.out.log`、任务e9a975d2为passed；实际2CPU/4GiB/无swap、SDK UID0/已有prepared镜像与缓存，本轮4容器0。不是最终HEAD默认完整门禁、冷工具、普通UID属主或远端结果；阶段提交时仍未Push/PR/部署，新HEAD须重新完整验收。
+
 ## 2026-10-27 · 第36阶段：首版产品闭环已隔离验证，阶段提交时正式门禁待执行
 
 - [ADR-0037](decisions/0037-authoritative-leaderboards.md)实现权威资格结算、db不可变幂等成绩、单人每日榜/双人固定组合每日榜、个人单人/双人最佳。只有真实saved确认入库；练习/提前退出不写，重连窗口未确认先等待，之后正常离房不取消已确认资格。

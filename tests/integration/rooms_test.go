@@ -140,6 +140,7 @@ func TestLiveCoopComplete180Seconds(t *testing.T) {
 	started := time.Now()
 	room := startCoop(t, a, b)
 	r := challengeState(t, a, func(s *contracts.Challenge) bool { return s.Mode == "duo" })
+	privateRoundReady(t)
 	liveTeamPair(t, a, b, la.UserID, lb.UserID, r)
 	nextPing := time.Now()
 	var ended event
