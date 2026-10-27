@@ -10,6 +10,7 @@ export class CampPanel {
     this.state = null;
     this.ownersStamp = "";
     this.open = false;
+    this.uiStamp = "";
     for (const id of ["book-tab", "camp-tab"]) {
       $(id).addEventListener("click", () => {
         this.open = id === "camp-tab";
@@ -86,23 +87,26 @@ export class CampPanel {
         }),
       );
     }
-    $("camp-owner").value = this.owner;
+    if ($("camp-owner").value !== this.owner) $("camp-owner").value = this.owner;
     this.refresh();
   }
 
   refresh() {
     const offline = !this.book || !this.selfID;
+    const display = this.state?.camps?.find((camp) => camp.owner_id === this.owner);
+    const own = this.owner === this.selfID;
+    const me = this.state?.players?.find((player) => player.id === this.selfID);
+    const camp = this.view.layout.camp;
+    const inRange = !!me?.grounded && Math.hypot(me.x - camp.x, me.y - camp.y, me.z) <= camp.range;
+    const stamp = JSON.stringify([offline, this.selfID, this.owner, this.open, inRange, display]);
+    if (stamp === this.uiStamp) return;
+    this.uiStamp = stamp;
     $("journal-tabs").hidden = offline;
     $("field-book").hidden = offline || this.open;
     $("camp-panel").hidden = offline || !this.open;
     $("book-tab").setAttribute("aria-selected", String(!this.open));
     $("camp-tab").setAttribute("aria-selected", String(this.open));
-    const display = this.state?.camps?.find((camp) => camp.owner_id === this.owner);
     this.view.setCamp(display || null);
-    const own = this.owner === this.selfID;
-    const me = this.state?.players?.find((player) => player.id === this.selfID);
-    const camp = this.view.layout.camp;
-    const inRange = me?.grounded && Math.hypot(me.x - camp.x, me.y - camp.y, me.z) <= camp.range;
     for (const { select, button } of this.controls) {
       select.disabled = button.disabled = !own || !inRange;
     }

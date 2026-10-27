@@ -138,6 +138,11 @@ export class WorldView {
     return { dx: (dx * c + dy * s) / length, dy: (-dx * s + dy * c) / length };
   }
 
+  setCanvasData(key, value) {
+    const text = String(value);
+    if (this.canvas.dataset[key] !== text) this.canvas.dataset[key] = text;
+  }
+
   addMesh(geometry, material, x, y, z, parent = this.scene) {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -222,20 +227,47 @@ export class WorldView {
       mesh.computeBoundingSphere();
       this.scene.add(mesh);
     }
-    const stone = color(0x859184),
-      wood = color(0x755744);
+    const wood = color(0x755744);
     const camp = this.layout.entities.find((e) => e.kind === "campfire");
     const shelter = this.layout.entities.find((e) => e.kind === "tent");
+    // 同一几何/材质的静态石块合批，实例矩阵保持原坐标、半径和扁平比例。
+    const rocks = this.layout.entities
+      .filter((e) => e.kind === "rock")
+      .map((e) => ({
+        x: e.x,
+        y: 3,
+        z: e.y,
+        radius: e.radius,
+        flat: 0.5,
+      }));
     for (let i = 0; i < 10; i++) {
       const a = (i / 10) * Math.PI * 2;
-      this.addMesh(
-        new THREE.DodecahedronGeometry(7, 0),
-        stone,
-        camp.x + Math.cos(a) * 31,
-        4,
-        camp.y + Math.sin(a) * 31,
-      );
+      rocks.push({
+        x: camp.x + Math.cos(a) * 31,
+        y: 4,
+        z: camp.y + Math.sin(a) * 31,
+        radius: 7,
+        flat: 1,
+      });
     }
+    const stones = new THREE.InstancedMesh(
+      new THREE.DodecahedronGeometry(1, 0),
+      color(0x859184),
+      rocks.length,
+    );
+    rocks.forEach((rock, i) => {
+      dummy.position.set(rock.x, rock.y, rock.z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(rock.radius, rock.radius * rock.flat, rock.radius);
+      dummy.updateMatrix();
+      stones.setMatrixAt(i, dummy.matrix);
+    });
+    stones.castShadow = true;
+    stones.receiveShadow = true;
+    stones.computeBoundingSphere();
+    this.scene.add(stones);
+    this.canvas.dataset.stoneInstances = String(stones.count);
+    this.canvas.dataset.stoneBatches = String(stones.isInstancedMesh ? 1 : 0);
     for (let i = 0; i < 3; i++) {
       const log = this.addMesh(
         new THREE.CylinderGeometry(4, 5, 38, 6),
@@ -266,16 +298,6 @@ export class WorldView {
     );
     tent.rotation.y = Math.PI / 4;
     this.addMesh(new THREE.BoxGeometry(15, 34, 2), color(0x3c493d), shelter.x, 17, shelter.y + 35);
-    for (const entity of this.layout.entities.filter((e) => e.kind === "rock")) {
-      const rock = this.addMesh(
-        new THREE.DodecahedronGeometry(entity.radius, 0),
-        stone,
-        entity.x,
-        3,
-        entity.y,
-      );
-      rock.scale.y = 0.5;
-    }
     this.geometries = {
       body: new THREE.CylinderGeometry(12, 15, 25, 7),
       head: new THREE.SphereGeometry(8, 10, 7),
@@ -635,11 +657,14 @@ export class WorldView {
     }
     const projections =
       this.campProjection?.group.children.filter((item) => item.userData.decorationID) || [];
-    this.canvas.dataset.campOwner = this.campProjection?.owner || "";
-    this.canvas.dataset.campCount = String(projections.length);
-    this.canvas.dataset.campKinds = projections.map((item) => item.userData.decorationID).join(",");
-    this.canvas.dataset.clueVisible = String(!!this.clue?.group.visible);
-    this.canvas.dataset.clueId = this.clue?.key || "";
+    this.setCanvasData("campOwner", this.campProjection?.owner || "");
+    this.setCanvasData("campCount", projections.length);
+    this.setCanvasData(
+      "campKinds",
+      projections.map((item) => item.userData.decorationID).join(","),
+    );
+    this.setCanvasData("clueVisible", !!this.clue?.group.visible);
+    this.setCanvasData("clueId", this.clue?.key || "");
     if (me) {
       const follow = me.group.position.clone();
       follow.y += 16;
@@ -661,12 +686,13 @@ export class WorldView {
     }
     this.renderer.render(this.scene, this.camera);
     this.canvas.dataset.renderCount = String(++this.renderedFrames);
-    this.canvas.dataset.selfHeight = me ? me.group.position.y.toFixed(2) : "";
-    this.canvas.dataset.npcCount = String(
+    this.setCanvasData("selfHeight", me ? me.group.position.y.toFixed(2) : "");
+    this.setCanvasData(
+      "npcCount",
       this.npcs.filter((entry) => entry.group.parent === this.scene).length,
     );
-    this.canvas.dataset.cameraYaw = this.yaw.toFixed(4);
-    this.canvas.dataset.cameraDistance = String(Math.round(this.distance));
+    this.setCanvasData("cameraYaw", this.yaw.toFixed(4));
+    this.setCanvasData("cameraDistance", Math.round(this.distance));
     return {
       heading: Math.round(((((this.yaw * 180) / Math.PI) % 360) + 360) % 360),
       distance: Math.round(this.distance),

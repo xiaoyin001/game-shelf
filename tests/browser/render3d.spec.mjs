@@ -20,6 +20,8 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     await join(pb, nb);
     const canvas = pa.locator("#world");
     await expect(canvas).toHaveAttribute("data-renderer", "webgl2");
+    await expect(canvas).toHaveAttribute("data-stone-instances", "36");
+    await expect(canvas).toHaveAttribute("data-stone-batches", "1");
     const gl = await canvas.evaluate((el) => {
       const ctx = el.getContext("webgl2");
       return {
@@ -39,13 +41,27 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     const idle = await canvas.evaluate(async (element) => {
       const start = performance.now(),
         count = Number(element.dataset.renderCount);
+      let mutations = 0;
+      const observer = new MutationObserver((records) => {
+        mutations += records.length;
+      });
+      for (const id of ["camp-panel", "players", "online-count", "camera-readout"])
+        observer.observe(document.getElementById(id), {
+          attributes: true,
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
       await new Promise((resolve) => setTimeout(resolve, 500));
+      observer.disconnect();
       return {
         elapsed: performance.now() - start,
         frames: Number(element.dataset.renderCount) - count,
+        mutations,
       };
     });
     expect(idle.frames).toBeGreaterThan(0);
+    expect(idle.mutations).toBe(0);
     expect(idle.frames).toBeLessThanOrEqual(Math.ceil((idle.elapsed * 12) / 1000) + 1);
     await canvas.evaluate((element) => {
       // 只读记录短暂的活动模式，不能因跨进程采样延迟漏掉已经绘制的镜头动画。

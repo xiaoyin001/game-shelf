@@ -11,6 +11,15 @@ let dialogDismissed = false;
 let nearestNPC = null;
 let fieldBook = null;
 let bookStamp = "";
+let playersStamp = "",
+  selfStamp = "";
+function setText(id, value) {
+  const text = String(value);
+  if ($(id).textContent !== text) $(id).textContent = text;
+}
+function setHidden(id, hidden) {
+  if ($(id).hidden !== hidden) $(id).hidden = hidden;
+}
 const keys = new Set();
 let socket = null,
   state = null,
@@ -77,6 +86,7 @@ function disconnected(text) {
   $("register-button").disabled = !view || view.failed;
   state = null;
   selfID = "";
+  playersStamp = selfStamp = "";
   $("online-count").textContent = "0 人在线";
   $("player-count").textContent = "0";
   $("players").replaceChildren();
@@ -379,7 +389,7 @@ function updateInteraction(me) {
     const npc = view.layout.npcs.find((n) => n.id === dialogNPC);
     if (!npc || distance(npc) > npc.range) closeDialog();
   }
-  $("npc-talk").hidden = !nearestNPC || !!dialogNPC;
+  setHidden("npc-talk", !nearestNPC || !!dialogNPC);
   const node = (state.nodes || []).find((n) => Math.hypot(me.x - n.x, me.y - n.y, me.z) <= 72);
   const resourceHint = node
     ? node.ready_at_ms <= state.time_ms
@@ -389,8 +399,8 @@ function updateInteraction(me) {
   const trail = fieldBook?.trail;
   const canInspect =
     trail && me.grounded && Math.abs(me.z - trail.z) <= 10 && distance(trail) <= 34;
-  $("clue-inspect").hidden = !canInspect || !!dialogNPC;
-  $("interaction-hint").textContent = dialogNPC
+  setHidden("clue-inspect", !canInspect || !!dialogNPC);
+  const hint = dialogNPC
     ? "正在交谈 · Esc 结束"
     : nearestNPC
       ? "E 与" +
@@ -403,6 +413,7 @@ function updateInteraction(me) {
       : canInspect
         ? "F 调查「" + trail.title + "」的线索"
         : resourceHint;
+  setText("interaction-hint", hint);
 }
 function talkToNPC() {
   if (!connected || !nearestNPC) return;
@@ -448,39 +459,47 @@ function updateUI() {
   campPanel?.updateState(state, selfID);
   const players = state.players || [],
     me = players.find((p) => p.id === selfID);
-  $("online-count").textContent = players.length + " 人在线";
-  $("player-count").textContent = players.length;
-  $("players").replaceChildren(
-    ...players.map((player) => {
-      const li = document.createElement("li"),
-        name = document.createElement("span"),
-        score = document.createElement("span");
-      name.textContent = player.name + (player.id === selfID ? " · 你" : "");
-      score.textContent = "✦ " + player.score;
-      score.className = "player-score";
-      li.dataset.x = player.x;
-      li.dataset.y = player.y;
-      li.dataset.z = player.z;
-      li.dataset.grounded = player.grounded;
-      li.title = "坐标 " + Math.round(player.x) + " / " + Math.round(player.y);
-      li.append(name, score);
-      return li;
-    }),
-  );
-  if (me) {
+  setText("online-count", players.length + " 人在线");
+  setText("player-count", players.length);
+  const nextPlayers = JSON.stringify(players);
+  if (nextPlayers !== playersStamp) {
+    playersStamp = nextPlayers;
+    $("players").replaceChildren(
+      ...players.map((player) => {
+        const li = document.createElement("li"),
+          name = document.createElement("span"),
+          score = document.createElement("span");
+        name.textContent = player.name + (player.id === selfID ? " · 你" : "");
+        score.textContent = "✦ " + player.score;
+        score.className = "player-score";
+        li.dataset.x = player.x;
+        li.dataset.y = player.y;
+        li.dataset.z = player.z;
+        li.dataset.grounded = player.grounded;
+        li.title = "坐标 " + Math.round(player.x) + " / " + Math.round(player.y);
+        li.append(name, score);
+        return li;
+      }),
+    );
+  }
+  const nextSelf = JSON.stringify(me);
+  if (me && nextSelf !== selfStamp) {
+    selfStamp = nextSelf;
     const previous = Number($("score").textContent);
-    $("score").textContent = me.score;
-    $("player-name").textContent = me.name;
-    $("coordinates").textContent =
-      "坐标 " + Math.round(me.x) + " / " + Math.round(me.y) + " · 高度 " + Math.round(me.z);
+    setText("score", me.score);
+    setText("player-name", me.name);
+    setText(
+      "coordinates",
+      "坐标 " + Math.round(me.x) + " / " + Math.round(me.y) + " · 高度 " + Math.round(me.z),
+    );
     $("coordinates").dataset.x = me.x;
     $("coordinates").dataset.y = me.y;
     $("coordinates").dataset.z = me.z;
     $("coordinates").dataset.grounded = me.grounded;
     if (me.score > previous)
       notice("获得 " + (me.score - previous) + " 分微光 ✦ 采集与委托奖励由服务器确认。");
-    updateInteraction(me);
   }
+  if (me) updateInteraction(me);
   const chats = state.chats || [],
     latest = chats.at(-1)?.id || 0;
   if (latest !== chatID) {
@@ -542,8 +561,8 @@ function render(now) {
     lastRender = now;
     if (view && !view.failed) {
       const camera = view.render(now, state, selfID);
-      canvas.dataset.renderMode = delay === 1000 / 30 ? "active" : "idle";
-      $("camera-readout").textContent = "视角 " + camera.heading + "° · 距离 " + camera.distance;
+      view.setCanvasData("renderMode", delay === 1000 / 30 ? "active" : "idle");
+      setText("camera-readout", "视角 " + camera.heading + "° · 距离 " + camera.distance);
     }
   } catch (error) {
     fail3D("3D 渲染失败：" + error.message);

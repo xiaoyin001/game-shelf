@@ -66,4 +66,6 @@
 
 - [ADR-0032：收藏解锁的固定槽位微光展台](0032-collection-camp-display.md)
 
+- [ADR-0033：静态石块批处理与变化驱动的界面更新](0033-static-batching-and-ui-updates.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

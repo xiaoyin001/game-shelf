@@ -69,11 +69,7 @@ async function rejoin(page) {
   await expect(page.locator("#status")).toContainText("已连接");
 }
 
-test("两步寻宝可续接，收藏与展台在重登后保留并可联机参观", async ({ page, browser }, info) => {
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  const ownerName = unique("book");
-  await join(page, ownerName);
+async function beginBell(page) {
   await expect(page.locator("#collection-count")).toHaveText("0 / 3");
   await walk(page, "s", "y", 440);
   await page.keyboard.press("e");
@@ -86,19 +82,50 @@ test("两步寻宝可续接，收藏与展台在重登后保留并可联机参�
   await approachClue(page);
   await page.keyboard.press("f");
   await expect(page.locator("#trail-progress")).toHaveAttribute("data-step", "2");
-  await rejoin(page);
-  await expect(page.locator("#trail-progress")).toHaveAttribute("data-step", "2");
-  await expect(page.locator("#trail-clue")).toContainText("圆石");
-  await walk(page, "s", "y", 450);
+}
+async function findBell(page) {
   await walk(page, "d", "x", 610);
   await approachClue(page);
   await page.getByRole("button", { name: "调查线索 · F" }).click();
   await expect(page.locator("#collection-count")).toHaveText("1 / 3");
+  await expect(page.locator('#collections details[data-id="bell"]')).toHaveAttribute(
+    "data-found",
+    "true",
+  );
+}
+
+test("两步寻宝中途退出可续接，旧物与故事在密码重登后仍保留", async ({ page }, info) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await join(page, unique("book"));
+  await beginBell(page);
+  await rejoin(page);
+  await expect(page.locator("#trail-progress")).toHaveAttribute("data-step", "2");
+  await expect(page.locator("#trail-clue")).toContainText("圆石");
+  await walk(page, "s", "y", 450);
+  await findBell(page);
   const bell = page.locator('#collections details[data-id="bell"]');
-  await expect(bell).toHaveAttribute("data-found", "true");
   await bell.locator("summary").click();
   await expect(bell.locator("p")).toContainText("第一位守灯人");
   await page.screenshot({ path: info.outputPath("field-book-found.png"), fullPage: false });
+  await rejoin(page);
+  await expect(page.locator("#collection-count")).toHaveText("1 / 3");
+  await expect(page.locator("#score")).toHaveText("0");
+  await expect(page.locator("#world")).toHaveAttribute("data-clue-id", "");
+  expect(errors).toEqual([]);
+});
+
+test("真实寻宝解锁展台，布置收起可持久保存并供另一旅人只读参观", async ({
+  page,
+  browser,
+}, info) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const ownerName = unique("camp");
+  await join(page, ownerName);
+  await beginBell(page);
+  await walk(page, "w", "y", 460, false);
+  await findBell(page);
   await walk(page, "s", "y", 510);
   await walk(page, "d", "x", 700);
   await page.getByRole("tab", { name: "微光展台", exact: true }).click();
