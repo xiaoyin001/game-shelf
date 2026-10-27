@@ -16,13 +16,15 @@ import (
 )
 
 type event struct {
-	Version   int                      `json:"version"`
-	Type      string                   `json:"type"`
-	UserID    string                   `json:"user_id"`
-	Error     string                   `json:"error"`
-	State     *contracts.WorldState    `json:"state"`
-	Challenge *contracts.Challenge     `json:"challenge"`
-	Room      *contracts.ChallengeRoom `json:"room"`
+	Version    int                      `json:"version"`
+	Type       string                   `json:"type"`
+	UserID     string                   `json:"user_id"`
+	Error      string                   `json:"error"`
+	State      *contracts.WorldState    `json:"state"`
+	Challenge  *contracts.Challenge     `json:"challenge"`
+	Room       *contracts.ChallengeRoom `json:"room"`
+	Settlement *contracts.Settlement    `json:"settlement"`
+	Board      *contracts.Leaderboard   `json:"board"`
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

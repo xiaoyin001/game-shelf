@@ -346,3 +346,16 @@
 - 最终Windows `npm run check` / `check:client` / workflow通过；Linux副本 `.local/pair-check-7717a0feba294f4985d332569ea0823a` 的 `check` / `check:client` / `test:all` / `test:services` / `go test -race -count=1 ./...` 全通过。23/23浏览器（4.1m，最慢21.3秒；双人20.3/5.6/11.4秒），仍30秒/零重试/单worker。两轮均实际跑完整单人和双人：单人180.0021/180.0031秒、8对2400分清盘补盘；双人180.3008/180.3007秒、双方100分结算，再回等待准备。race为全量包检查，不混称真实四服务也带race。
 - 证据 `.local/logs/coop-verified.out.log`、任务状态7717a0fe为passed；实际双人3D/100分/队友贡献/空台面截图已查看，经真实折叠帮助与滚动取视窗图，不改viewport或画质。工具Go1.25.0/Node22.23.3、2CPU绑0/1、4GiB/无swap、SDK UID0、已有prepared镜像及模块/编译缓存；不是冷工具/普通UID回收/默认preflight。全部本轮pair-owner容器已回收，原四服务PID与mosslight-camp-1未动、旧数据保留。
 - 边界：持久成绩、单人每日榜/双人组合榜/个人最佳尚未实现，eligible不是已入榜。当前阶段不含新双人长浏览器结算/实际扬声器听感、跨进程恢复、容量/性能横评。最终干净HEAD默认verify:ci仍未通过，原试玩端口未解除；未合入master/Push/PR/部署，无新SHA云端结果。下阶段另做服务端成绩持久化和榜单，不放可点击占位。
+
+### 36 · 权威持久成绩、每日榜与个人最佳（2026-10-27，本地完成）
+
+- 先写[ADR-0037](decisions/0037-authoritative-leaderboards.md)，仅正常time_up且资格确认后由World冻结真实回合，lobby后台提交、db唯一Mongo访问。新challenge_results/schema1/唯一RoundID、majority+journal；相同规范记录幂等，冲突或未知版本拒绝覆盖。只新增集合/索引，不迁移或清理players/field_books/accounts。
+- 日榜按开始UTC日/模式/规则分开，单人每账号、双人固定无序组合取最高分，同分按最早完成/稳定组合键排序，前20；本人两个全日最佳另查，双人为团队分非贡献。查询需当前会话，800ms限频，显式展开/刷新才查库，失败/丢包不显示假空榜或旧最佳。
+- 世界锁不跨I/O；待存pending/saving/failed/saved，2秒调用截止、失败5秒重试，只有真确认才报saved。离房/重开不丢待存；队列满100拒绝新开局，既有100房仍可结算、上界200。截止仍在重连窗口先等资格，练习/中止不写；已确认完赛后离房不追溯取消。待存队列仍在lobby内存，确认前异常重启可能丢失，已确认记录持久，不宣称持久outbox。
+- owner本次明确允许停止旧试玩。核实看护2438752与其四子进程路径/父PID后，通过原停止标记正常回收；仅stop本仓库game-shelf三依赖，保留容器/数据卷和原账号存档。端口13项随后释放；未按端口杀进程或操作其他项目。
+- 实际Go覆盖准确截止/资格冻结/重连确认、提前退出/练习拒绝、待存深复制/在途去重/失败重试/背压/离房重开、当前会话查询/限频/新protobuf往返。真实Mongo在本用例随机新库验证12并发幂等、冲突/未知schema拒绝、跨日/模式/规则、无序组合最高分、同分、前20与两个最佳、新句柄恢复；只回收本用例自建库，不冒称真实业务重启。
+- 首轮完整隔离通过25/25（3.8m、最慢18.3秒）、test:services和全量race，但Go默认两个并行测试名额使第三个180秒例等待，协议包374秒。比较删测试/缩时/加CPU或预算后，只给Go明确-parallel3，保持三个完整等待、原2CPU与浏览器单worker，两个服务入口共用参数并新增实际命令回归；新完整轮重新运行，不拿旧计时充数。
+- 最终Windows check/check:client/workflow通过；运行器26通过、SDK专属1项跳过。Linux最新副本 `.local/pair-check-904b5a5930e44054a8d05958b034943e` 的 check/check:client/test:all/test:services/全量Go race全通过：25/25浏览器（3.6m、最慢18.5秒），运行器25通过/2项环境专属跳过；两轮协议193–195秒内完成三个真实180秒回合。单人180.2395/180.1417秒、2400分清盘补盘、确认保存/密码重登最佳；双人180.4061/180.3056秒、100分两端saved/组合最佳/重开准备；练习180.1060/180.1047秒、100分但真实Mongo无记录。服务轮和包race分开，不冒称真实四服务也带race。
+- 额外双浏览器完整181.338秒：真实表单建房/双方准备、方向搬运/键盘投送、100分、到0秒/操作禁用/双方saved、实际双人榜与本人最佳100分、重新双方准备开始新局、密码重登仍保留最佳，页面错误0；saved-result/earned-ranking截图已查看。该观察不计入25例或延长默认30秒，默音不作实际扬声器听感证明。
+- 证据：`.local/logs/scores-final.out.log`、任务904b5a59为passed；额外 `.local/logs/scores-long-browser.out.log`、副本0a6df579内 `.local/coop-full-browser/result.json`。工具Go1.25.0/Node22.23.3、2CPU/4GiB/无swap、SDK UID0/已有prepared镜像与模块缓存；正式资源/冷工具/普通UID回收/故障注入未由该阶段证明。额外浏览器只与无浏览器的协议等待并行、绑另两CPU，不与默认浏览器组并发；所有本轮pair-owner容器0。
+- 阶段提交时：目标首版三个产品切片已实现，尚未有新干净最终HEAD默认verify:ci/同SHA云端结果，未合master/Push/PR/部署；下一步按原门禁正式验收。未覆盖持久outbox/跨进程局恢复、容量/性能横评、扬声器听感与公网安全。

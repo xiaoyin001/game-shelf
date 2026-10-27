@@ -18,6 +18,7 @@ import (
 	"game-shelf/internal/logx"
 	"game-shelf/internal/mongox"
 	appruntime "game-shelf/internal/runtime"
+	"game-shelf/internal/scores"
 	"game-shelf/internal/transport"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -84,7 +85,14 @@ func runDB() {
 		log.Error("account verifier init failed", "error", err)
 		return
 	}
-	service := &DBService{app: app, log: log, accounts: accounts, books: fieldbook.NewStore(mongoClient.Database(app.Mongo.Database))}
+	indexCtx, indexCancel := context.WithTimeout(ctx, 5*time.Second)
+	scoreStore, err := scores.NewStore(indexCtx, mongoClient.Database(app.Mongo.Database))
+	indexCancel()
+	if err != nil {
+		log.Error("score indexes unavailable", "error", err)
+		return
+	}
+	service := &DBService{app: app, log: log, accounts: accounts, books: fieldbook.NewStore(mongoClient.Database(app.Mongo.Database)), scores: scoreStore}
 	tcpServer := transport.NewServer(app.Internal.ListenAddr, app.Limit.MaxBodyBytes, app.InternalIdleTimeout(), log, service.Handle)
 	if err := tcpServer.Start(ctx); err != nil {
 		log.Error("internal tcp server init failed", "error", err)

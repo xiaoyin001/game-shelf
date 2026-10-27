@@ -23,13 +23,15 @@ type roomMember struct {
 	pose   contracts.WorldPlayer
 }
 type room struct {
-	id       string
-	code     string
-	mode     string
-	host     string
-	members  []*roomMember
-	round    *challenge.Round
-	practice string
+	id        string
+	code      string
+	mode      string
+	host      string
+	members   []*roomMember
+	round     *challenge.Round
+	practice  string
+	qualified bool
+	result    *resultJob
 }
 
 func (r *room) phase() string {
@@ -47,6 +49,9 @@ func (r *room) member(id string) *roomMember {
 	return nil
 }
 func (r *room) eligibility() string {
+	if r.qualified {
+		return "eligible"
+	}
 	if r.practice != "" {
 		return "practice"
 	}
@@ -165,6 +170,8 @@ func (w *World) cleanMembers(r *room) {
 func (w *World) disconnect(p *player, now time.Time) {
 	if r := w.rooms[p.roomID]; r != nil {
 		if r.mode == "solo" {
+			r.round.Advance(now)
+			w.finalize(r)
 			r.round.Abandon()
 			w.removeRoom(r)
 		} else if m := r.member(p.state.ID); m != nil && !m.quit {
@@ -197,6 +204,7 @@ func (w *World) tick(now time.Time) {
 		}
 		if r.round != nil {
 			r.round.Advance(now)
+			w.finalize(r)
 		}
 		if r.phase() == "waiting" {
 			w.cleanMembers(r)
@@ -239,6 +247,7 @@ func (w *World) restoreRoom(p *player, now time.Time) bool {
 	m.online = true
 	m.until = time.Time{}
 	m.pose = p.state
+	w.finalize(r)
 	return true
 }
 func (w *World) placeForRoom(p *player, r *room, slot int, now time.Time) {
@@ -262,6 +271,9 @@ func (w *World) placeForRoom(p *player, r *room, slot int, now time.Time) {
 func (w *World) newRoom(p *player, mode string, now time.Time) string {
 	if p.roomID != "" {
 		return "already_in_room"
+	}
+	if mode == "solo" && len(w.results) >= 100 {
+		return "results_busy"
 	}
 	if len(w.rooms) >= 100 {
 		return "rooms_full"
@@ -323,6 +335,9 @@ func (w *World) roomAction(p *player, req *contracts.WorldReq, now time.Time) st
 	r := w.rooms[p.roomID]
 	switch req.Action {
 	case "start_solo":
+		if len(w.results) >= 100 {
+			return "results_busy"
+		}
 		if r != nil {
 			if r.mode != "solo" {
 				return "already_in_room"
@@ -400,6 +415,9 @@ func (w *World) roomAction(p *player, req *contracts.WorldReq, now time.Time) st
 				return "both_ready_required"
 			}
 		}
+		if len(w.results) >= 100 {
+			return "results_busy"
+		}
 		// 同锁内先移出旧作用域，避免准备区的站位改变固定开局出生点。
 		for _, member := range r.members {
 			w.players[member.id].roomID = ""
@@ -424,6 +442,8 @@ func (w *World) roomAction(p *player, req *contracts.WorldReq, now time.Time) st
 		}
 		r.round = nil
 		r.practice = ""
+		r.qualified = false
+		r.result = nil
 		w.cleanMembers(r)
 		w.resetReady(r)
 		w.clearRoomChat(r.id)

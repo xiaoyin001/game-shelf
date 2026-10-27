@@ -173,7 +173,7 @@
               <div id="result" class="result" hidden>
                 <h3>挑战结束</h3>
                 <p id="result-summary"></p>
-                <p id="result-note" class="muted">当前阶段仅显示本轮成绩，尚不写入排行榜。</p>
+                <p id="result-note" class="muted">成绩等待服务器确认。</p>
                 <button id="again" type="button" class="primary" hidden>再来一局</button>
               </div>
             </div>
@@ -191,6 +191,35 @@
                 每对 100 分，10 秒内接续，倍率逐次 +0.5，最高 ×3。全盘连同手持和台面清空，另加 500
                 分再补盘；时间始终 180 秒。
               </p>
+            </details>
+          </section>
+          <section class="card rankings-card">
+            <details id="rankings">
+              <summary>排行榜与个人最佳</summary>
+              <p class="muted">
+                只计正常完赛且已保存成绩；单人/双人分开，同日同规则比较。双人每固定组合仅最高分。
+              </p>
+              <form id="ranking-form">
+                <label for="rankings-mode">模式</label>
+                <select id="rankings-mode" disabled>
+                  <option value="solo">单人每日榜</option>
+                  <option value="duo">双人组合榜</option>
+                </select>
+                <label for="rankings-day">UTC日期</label>
+                <input
+                  id="rankings-day"
+                  type="date"
+                  min="2000-01-01"
+                  max="2100-12-31"
+                  required
+                  disabled
+                />
+                <button id="rankings-submit" type="submit" disabled>刷新成绩</button>
+              </form>
+              <p id="ranking-state" role="status">登录后查看排行榜</p>
+              <ol id="ranking-list" aria-label="前20名成绩"></ol>
+              <p id="best-solo">个人单人最佳：尚未查询</p>
+              <p id="best-duo">个人双人最佳：尚未查询</p>
             </details>
           </section>
           <section class="card travelers">

@@ -158,6 +158,12 @@ func TestLiveCoopComplete180Seconds(t *testing.T) {
 	if ended.Challenge == nil || ended.Challenge.Score != 100 || ended.Challenge.Pairs != 1 || ended.Challenge.EndMS-r.StartMS != 180000 || ended.Room.Eligibility != "eligible" || time.Since(started) < 180*time.Second {
 		t.Fatal("not complete authoritative coop round", ended)
 	}
+	waitSaved(t, a, r.ID)
+	waitSaved(t, b, r.ID)
+	board := queryScores(t, b, "duo", r.Day)
+	if board.BestDuo == nil || board.BestDuo.RoundID != r.ID || board.BestDuo.Score != 100 || len(board.BestDuo.Members) != 2 {
+		t.Fatal("duo not persisted", board)
+	}
 	send(t, a, "rematch", map[string]any{"room_id": room.ID})
 	waiting := roomEvent(t, a, func(e event) bool { return e.Room.Phase == "waiting" })
 	if waiting.Challenge != nil || waiting.Room.Members[0].Ready || waiting.Room.Members[1].Ready {

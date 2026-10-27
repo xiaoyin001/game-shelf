@@ -2,10 +2,11 @@
 import { spawn } from "node:child_process";
 import { startStack } from "./local-stack.mjs";
 import { root, run } from "./infra.mjs";
+import { serviceTestArgs } from "./service-tests.mjs";
 const stop = await startStack();
 try {
   if (!process.argv.includes("--browser-only"))
-    run("go", ["test", "-count=1", "-v", "./tests/infrastructure", "./tests/integration"], {
+    run("go", serviceTestArgs(true), {
       GAME_SHELF_INFRA: "1",
       GAME_SHELF_INTEGRATION: "1",
     });

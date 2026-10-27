@@ -93,6 +93,18 @@ func runLobby() {
 			}
 		}
 	}()
+	go func() {
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				service.submitResult(ctx)
+			}
+		}
+	}()
 	tcpServer := transport.NewServer(app.Internal.ListenAddr, app.Limit.MaxBodyBytes, app.InternalIdleTimeout(), log, service.Handle)
 	if err := tcpServer.Start(ctx); err != nil {
 		log.Error("internal tcp server init failed", "error", err)

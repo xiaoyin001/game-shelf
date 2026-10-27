@@ -90,7 +90,7 @@ export class ChallengePanel {
       round_id: this.round.id,
     });
   }
-  update(round, state, id, room = null) {
+  update(round, state, id, room = null, settlement = null) {
     this.room = room;
     this.rooms.update(room, round, id);
     this.round = round;
@@ -122,12 +122,19 @@ export class ChallengePanel {
         ? "练习局，不提交正式双人榜。"
         : room?.eligibility === "reconnecting"
           ? "等待原成员在重连窗口内恢复，成绩尚未确认。"
-          : "当前阶段仅显示本轮成绩，持久榜单尚未开放。",
+          : {
+              saved: "成绩已保存，可在排行榜查询；重登后仍保留。",
+              pending: "成绩等待保存，尚未入榜；服务器正在提交。",
+              saving: "成绩正在保存，确认前请勿重启服务。",
+              failed: "成绩暂未保存，服务器会自动重试；此时重启服务可能丢失待存结果。",
+              abandoned: "本局中止，不提交排行榜。",
+            }[settlement?.status] || "成绩尚未确认。",
     );
     prop("round-panel", "hidden", !round);
     prop("result", "hidden", !finished);
     prop("again", "hidden", !finished);
     data("challenge", "phase", round?.phase || room?.phase || "lobby");
+    data("challenge", "saveStatus", settlement?.status || "");
     data("challenge", "roomId", room?.id || "");
     data("challenge", "eligibility", room?.eligibility || "");
     data("challenge", "roundId", round?.id || "");

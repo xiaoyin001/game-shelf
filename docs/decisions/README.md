@@ -74,4 +74,6 @@
 
 - [ADR-0036：双人房间、准备与原成员重连](0036-cooperative-rooms.md)
 
+- [ADR-0037：权威结算、幂等成绩与独立每日榜](0037-authoritative-leaderboards.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

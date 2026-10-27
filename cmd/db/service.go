@@ -8,6 +8,7 @@ import (
 	"game-shelf/internal/credentials"
 	"game-shelf/internal/fieldbook"
 	"game-shelf/internal/protocol"
+	"game-shelf/internal/scores"
 	"game-shelf/internal/transport"
 	"game-shelf/pkg/contracts"
 	"log/slog"
@@ -19,6 +20,7 @@ type DBService struct {
 	log      *slog.Logger
 	accounts *credentials.Store
 	books    *fieldbook.Store
+	scores   *scores.Store
 }
 
 func (s *DBService) Handle(ctx context.Context, _ *transport.Conn, msg protocol.Message) (protocol.Message, bool) {
@@ -27,6 +29,8 @@ func (s *DBService) Handle(ctx context.Context, _ *transport.Conn, msg protocol.
 		return pingReply(contracts.DBLG_PingResp, msg.Seq), true
 	case contracts.LBDB_PingReq:
 		return pingReply(contracts.DBLB_PingResp, msg.Seq), true
+	case contracts.LBDB_SaveScoreReq, contracts.LBDB_QueryScoresReq:
+		return s.handleScores(ctx, msg)
 	case contracts.LBDB_LoadBookReq, contracts.LBDB_SaveBookReq:
 		return s.handleBook(ctx, msg)
 	case contracts.LGDB_RegisterAccountReq, contracts.LGDB_VerifyAccountReq:

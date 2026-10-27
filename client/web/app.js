@@ -1,10 +1,13 @@
 // 文件说明：管理账号、联机和真实键盘意图；分数、坐标与时钟只读权威快照。
 import { WorldView } from "./view3d.js";
 import { ChallengePanel } from "./challenge.js";
+import { RankingsPanel } from "./rankings.js";
 const $ = (id) => document.getElementById(id);
 const canvas = $("world");
 let view = null,
   panel = null,
+  rankings = null,
+  settlement = null,
   rendererFailure = "";
 let socket = null,
   state = null,
@@ -47,6 +50,8 @@ const errorMessages = {
   both_ready_required: "需要两名成员在线且都已准备。",
   round_not_finished: "本局尚未结束。",
   reconnect_pending: "请先等原成员重连确认或窗口结束。",
+  results_busy: "待保存成绩较多，请等成绩服务恢复后再开局。",
+  board_too_fast: "榜单刷新过快，请稍后再试。",
   stale_round: "局面已更新，请重新操作。",
   round_finished: "时间已到，本局已结算。",
   item_blocked: "先取走它上面的道具。",
@@ -96,6 +101,8 @@ function disconnected(text) {
   $("coordinates").textContent = "坐标 —";
   $("player-name").textContent = "尚未出发";
   $("join-button").textContent = "登录并进入原野 ↗";
+  settlement = null;
+  rankings?.connect(false);
   panel?.update(null, null, "");
   view?.setChallenge(null);
   status(rendererFailure ? "3D 不可用" : "连接已断开", false);
@@ -193,6 +200,7 @@ $("login-form").addEventListener("submit", async (event) => {
       }
       if (event.type === "error") {
         notice(errorMessages[event.error] || "请求未完成：" + event.error);
+        if (event.error === "board_too_fast") rankings?.fail(errorMessages[event.error]);
         return;
       }
       if (event.type === "left") {
@@ -202,6 +210,7 @@ $("login-form").addEventListener("submit", async (event) => {
       if (event.type === "ready") {
         selfID = event.user_id;
         connected = true;
+        rankings?.connect(true, event.state?.time_ms || Date.now());
         joining = false;
         chatID = 0;
         clearTimeout(joinTimer);
@@ -225,6 +234,8 @@ $("login-form").addEventListener("submit", async (event) => {
         state = event.state;
         round = event.challenge || null;
         room = event.room || null;
+        settlement = event.settlement || null;
+        rankings?.update(event.board);
         updateUI();
       }
     });
@@ -342,7 +353,7 @@ function updateUI() {
     Object.assign($("coordinates").dataset, { x: me.x, y: me.y, z: me.z, grounded: me.grounded });
   }
   view.setChallenge(round);
-  panel.update(round, state, selfID, room);
+  panel.update(round, state, selfID, room, settlement);
   const chats = state.chats || [],
     latest = chats.at(-1)?.id || 0;
   if (latest !== chatID) {
@@ -380,6 +391,8 @@ try {
   await view.prepare();
   $("join-button").disabled = false;
   $("register-button").disabled = false;
+  rankings = new RankingsPanel(send);
+  rankings.connect(false);
   panel = new ChallengePanel((type, data) => {
     keys.clear();
     send(type, data);

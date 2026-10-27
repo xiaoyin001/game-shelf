@@ -20,13 +20,14 @@ const (
 )
 
 type player struct {
-	state    contracts.WorldPlayer
-	session  string
-	lastSeen time.Time
-	lastMove time.Time
-	lastChat time.Time
-	vz       float64
-	roomID   string
+	state     contracts.WorldPlayer
+	session   string
+	lastSeen  time.Time
+	lastMove  time.Time
+	lastChat  time.Time
+	lastBoard time.Time
+	vz        float64
+	roomID    string
 }
 
 func (p *player) scope() string { return p.roomID }
@@ -48,11 +49,12 @@ type World struct {
 	rooms       map[string]*room
 	codes       map[string]string
 	memberships map[string]string
+	results     map[string]*resultJob
 }
 
 // New 不读取或覆盖旧 field_books，保留账号和原有 Mongo 数据。
 func New() *World {
-	w := &World{players: make(map[string]*player), layout: scene.Default(), rooms: make(map[string]*room), codes: make(map[string]string), memberships: make(map[string]string)}
+	w := &World{players: make(map[string]*player), layout: scene.Default(), rooms: make(map[string]*room), codes: make(map[string]string), memberships: make(map[string]string), results: make(map[string]*resultJob)}
 	for _, n := range w.layout.Nodes {
 		w.nodes = append(w.nodes, contracts.WorldNode{ID: n.ID, X: n.X, Y: n.Y})
 	}
@@ -105,6 +107,11 @@ func (w *World) ApplyContext(ctx context.Context, req *contracts.WorldReq, now t
 	p.lastSeen = now
 	switch req.Action {
 	case "poll":
+	case "leaderboard":
+		if !p.lastBoard.IsZero() && now.Sub(p.lastBoard) < 800*time.Millisecond {
+			return failure("board_too_fast")
+		}
+		p.lastBoard = now
 	case "input":
 		if err := w.move(p, req.DX, req.DY, now); err != "" {
 			return failure(err)
@@ -213,6 +220,7 @@ func (w *World) response(p *player, now time.Time) *contracts.WorldResp {
 	resp := &contracts.WorldResp{State: state}
 	if r := w.rooms[p.roomID]; r != nil {
 		resp.Room = r.snapshot(now)
+		resp.Settlement = r.settlement()
 		if r.round != nil {
 			resp.Challenge = r.round.Snapshot()
 		}

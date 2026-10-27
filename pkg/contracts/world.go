@@ -24,6 +24,8 @@ type WorldReq struct {
 	RoomCode string `protobuf:"bytes,14,opt,name=room_code,proto3" json:"room_code"`
 	Ready    bool   `protobuf:"varint,15,opt,name=ready,proto3" json:"ready"`
 	RoomID   string `protobuf:"bytes,16,opt,name=room_id,proto3" json:"room_id"`
+	Mode     string `protobuf:"bytes,17,opt,name=mode,proto3" json:"mode"`
+	Day      string `protobuf:"bytes,18,opt,name=day,proto3" json:"day"`
 }
 
 func (m *WorldReq) Reset()         { *m = WorldReq{} }
@@ -35,8 +37,10 @@ type WorldResp struct {
 	Error string      `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	State *WorldState `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	// 旧 Quest/Dialog/Book 字段号 3–5 停用，不复用。
-	Challenge *Challenge     `protobuf:"bytes,6,opt,name=challenge,proto3" json:"challenge,omitempty"`
-	Room      *ChallengeRoom `protobuf:"bytes,7,opt,name=room,proto3" json:"room,omitempty"`
+	Challenge  *Challenge     `protobuf:"bytes,6,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	Room       *ChallengeRoom `protobuf:"bytes,7,opt,name=room,proto3" json:"room,omitempty"`
+	Settlement *Settlement    `protobuf:"bytes,8,opt,name=settlement,proto3" json:"settlement,omitempty"`
+	Board      *Leaderboard   `protobuf:"bytes,9,opt,name=board,proto3" json:"board,omitempty"`
 }
 
 func (m *WorldResp) Reset()         { *m = WorldResp{} }

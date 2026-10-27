@@ -34,7 +34,20 @@ func (s *LobbyService) Handle(ctx context.Context, _ *transport.Conn, msg protoc
 		if err := protocol.UnmarshalBody(msg, &req); err != nil {
 			return errorReply(msg.Seq, "invalid_world_req"), true
 		}
-		reply, err := protocol.MarshalMessage(contracts.LBGT_WorldResp, msg.Seq, s.world.ApplyContext(ctx, &req, time.Now()))
+		result := s.world.ApplyContext(ctx, &req, time.Now())
+		if result.Error == "" && req.Action == "leaderboard" {
+			day := req.Day
+			if day == "" {
+				day = time.Now().UTC().Format("2006-01-02")
+			}
+			data, queryErr := s.scoreCall(ctx, &contracts.ScoresRequest{UserID: req.UserID, Mode: req.Mode, Day: day}, false)
+			if queryErr != nil {
+				result.Board = &contracts.Leaderboard{Mode: req.Mode, Day: day, Error: "scores_unavailable"}
+			} else {
+				result.Board = data.Board
+			}
+		}
+		reply, err := protocol.MarshalMessage(contracts.LBGT_WorldResp, msg.Seq, result)
 		return reply, err == nil
 	case contracts.GTLB_LobbyListReq:
 		var req contracts.LobbyListReq

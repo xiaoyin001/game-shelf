@@ -75,7 +75,8 @@ func TestLiveChallengeIsolationAndUntrustedScore(t *testing.T) {
 func TestLiveChallengeComplete180Seconds(t *testing.T) {
 	live(t)
 	t.Parallel()
-	account := login(t, name())
+	accountName := name()
+	account := login(t, accountName)
 	conn := auth(t, account)
 	started := time.Now()
 	send(t, conn, "start_solo", nil)
@@ -137,10 +138,20 @@ func TestLiveChallengeComplete180Seconds(t *testing.T) {
 	if read(t, conn, "error").Error != "round_finished" {
 		t.Fatal("late pickup accepted")
 	}
+	waitSaved(t, conn, r.ID)
+	board := queryScores(t, conn, "solo", r.Day)
+	if board.BestSolo == nil || board.BestSolo.RoundID != r.ID || board.BestSolo.Score != finalScore {
+		t.Fatal("finished solo not persisted", board)
+	}
 	send(t, conn, "start_solo", nil)
 	fresh := challengeState(t, conn, func(s *contracts.Challenge) bool { return s.ID != r.ID })
 	if fresh.Score != 0 || fresh.EndMS-fresh.StartMS != 180000 {
 		t.Fatal("rematch did not reset")
+	}
+	conn = auth(t, login(t, accountName))
+	board = queryScores(t, conn, "solo", r.Day)
+	if board.BestSolo == nil || board.BestSolo.RoundID != r.ID {
+		t.Fatal("password relogin lost best", board)
 	}
 	t.Logf("real fixed round: elapsed=%s first_snapshot_delay=%s score=%d end_ms=%d; rematch=%s", time.Since(started), firstSnapshotDelay, finished.Score, finished.EndMS, fresh.ID)
 }

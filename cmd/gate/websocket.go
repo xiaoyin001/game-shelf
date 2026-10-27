@@ -31,15 +31,19 @@ type browserCommand struct {
 	RoomCode string  `json:"room_code,omitempty"`
 	Ready    bool    `json:"ready,omitempty"`
 	RoomID   string  `json:"room_id,omitempty"`
+	Mode     string  `json:"mode,omitempty"`
+	Day      string  `json:"day,omitempty"`
 }
 type browserEvent struct {
-	Version   int                      `json:"version"`
-	Type      string                   `json:"type"`
-	UserID    string                   `json:"user_id,omitempty"`
-	Error     string                   `json:"error,omitempty"`
-	State     *contracts.WorldState    `json:"state,omitempty"`
-	Challenge *contracts.Challenge     `json:"challenge,omitempty"`
-	Room      *contracts.ChallengeRoom `json:"room,omitempty"`
+	Version    int                      `json:"version"`
+	Type       string                   `json:"type"`
+	UserID     string                   `json:"user_id,omitempty"`
+	Error      string                   `json:"error,omitempty"`
+	State      *contracts.WorldState    `json:"state,omitempty"`
+	Challenge  *contracts.Challenge     `json:"challenge,omitempty"`
+	Room       *contracts.ChallengeRoom `json:"room,omitempty"`
+	Settlement *contracts.Settlement    `json:"settlement,omitempty"`
+	Board      *contracts.Leaderboard   `json:"board,omitempty"`
 }
 type webSession struct {
 	online session.OnlineSession
@@ -98,7 +102,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 	defer s.leaveBrowser(active, conn)
-	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Challenge: resp.Challenge, Room: resp.Room}) {
+	if !s.writeBrowser(runCtx, conn, browserEvent{Type: "ready", UserID: active.online.UserID, State: resp.State, Challenge: resp.Challenge, Room: resp.Room, Settlement: resp.Settlement}) {
 		return
 	}
 
@@ -140,11 +144,11 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 			if cmd.Type == "ping" {
 				continue
 			}
-			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" && cmd.Type != "start_solo" && cmd.Type != "pick" && cmd.Type != "put" && cmd.Type != "return" && cmd.Type != "leave_round" && cmd.Type != "create_room" && cmd.Type != "join_room" && cmd.Type != "set_ready" && cmd.Type != "start_duo" && cmd.Type != "rematch" && cmd.Type != "leave_world" {
+			if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" && cmd.Type != "start_solo" && cmd.Type != "pick" && cmd.Type != "put" && cmd.Type != "return" && cmd.Type != "leave_round" && cmd.Type != "create_room" && cmd.Type != "join_room" && cmd.Type != "set_ready" && cmd.Type != "start_duo" && cmd.Type != "rematch" && cmd.Type != "leave_world" && cmd.Type != "leaderboard" {
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: "unknown_action"})
 				continue
 			}
-			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, ItemID: cmd.ItemID, RoundID: cmd.RoundID, RoomCode: cmd.RoomCode, Ready: cmd.Ready, RoomID: cmd.RoomID})
+			reply, err := s.callBrowserWorld(runCtx, active, &contracts.WorldReq{Action: cmd.Type, DX: cmd.DX, DY: cmd.DY, Text: cmd.Text, ItemID: cmd.ItemID, RoundID: cmd.RoundID, RoomCode: cmd.RoomCode, Ready: cmd.Ready, RoomID: cmd.RoomID, Mode: cmd.Mode, Day: cmd.Day})
 			if err != nil {
 				return
 			}
@@ -156,7 +160,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "left"})
 				return
 			} else if cmd.Type != "input" && cmd.Type != "chat" && cmd.Type != "jump" {
-				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge, Room: reply.Room}) {
+				if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge, Room: reply.Room, Settlement: reply.Settlement, Board: reply.Board}) {
 					return
 				}
 			}
@@ -170,7 +174,7 @@ func (s *GateService) serveWebSocket(ctx context.Context, w http.ResponseWriter,
 				s.writeBrowser(runCtx, conn, browserEvent{Type: "error", Error: reply.Error})
 				return
 			}
-			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge, Room: reply.Room}) {
+			if !s.writeBrowser(runCtx, conn, browserEvent{Type: "state", State: reply.State, Challenge: reply.Challenge, Room: reply.Room, Settlement: reply.Settlement}) {
 				return
 			}
 		}

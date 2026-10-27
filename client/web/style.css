@@ -557,6 +557,35 @@ footer {
 .join-room-form button {
   flex-shrink: 0;
 }
+.rankings-card select,
+.rankings-card input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.rankings-card form {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.rankings-card p,
+#ranking-list li {
+  overflow-wrap: anywhere;
+}
+#ranking-list {
+  padding: 0;
+  list-style: none;
+}
+#ranking-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0;
+}
+#ranking-list strong {
+  flex-shrink: 0;
+  color: var(--gold);
+}
 .room-panel {
   margin-top: 12px;
   border: 1px solid var(--line);
