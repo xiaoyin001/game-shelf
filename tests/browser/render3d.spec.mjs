@@ -49,24 +49,49 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
       const observer = new MutationObserver((records) => {
         mutations += records.length;
       });
-      for (const id of ["challenge", "players", "online-count", "camera-readout"])
+      for (const id of [
+        "challenge",
+        "players",
+        "online-count",
+        "camera-readout",
+        "terrain-status",
+        "table-guide",
+      ])
         observer.observe(document.getElementById(id), {
           attributes: true,
           childList: true,
           characterData: true,
           subtree: true,
         });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      observer.disconnect();
-      return {
-        elapsed: performance.now() - start,
-        frames: Number(element.dataset.renderCount) - count,
-        mutations,
-      };
+      // 单次连续观察真实闲帧进度；GPU背压下500ms不保证已提交新帧，零进度不能放行。
+      return new Promise((resolve) => {
+        const finish = (timedOut) => {
+          mutations += observer.takeRecords().length;
+          observer.disconnect();
+          progress.disconnect();
+          clearTimeout(minimum);
+          clearTimeout(deadline);
+          resolve({
+            elapsed: performance.now() - start,
+            frames: Number(element.dataset.renderCount) - count,
+            mutations,
+            timedOut,
+          });
+        };
+        const check = () => {
+          if (performance.now() - start >= 500 && Number(element.dataset.renderCount) > count)
+            finish(false);
+        };
+        const progress = new MutationObserver(check);
+        progress.observe(element, { attributes: true, attributeFilter: ["data-render-count"] });
+        const minimum = setTimeout(check, 500),
+          deadline = setTimeout(() => finish(true), 2000);
+      });
     });
     expect(Number(await canvas.getAttribute("data-gpu-queue-peak"))).toBeGreaterThan(0);
     expect(Number(await canvas.getAttribute("data-gpu-queue-peak"))).toBeLessThanOrEqual(2);
     expect(Number(await canvas.getAttribute("data-gpu-in-flight"))).toBeLessThanOrEqual(2);
+    expect(idle.timedOut).toBe(false);
     expect(idle.frames).toBeGreaterThan(0);
     expect(idle.mutations).toBe(0);
     expect(idle.frames).toBeLessThanOrEqual(Math.ceil((idle.elapsed * 12) / 1000) + 1);

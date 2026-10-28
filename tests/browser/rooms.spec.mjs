@@ -45,7 +45,13 @@ test("双人房间码与双方准备后合作，队友手持和团队分数一�
         .sort((a, b) => Math.hypot(a.x - 660, a.y - 320) - Math.hypot(b.x - 660, b.y - 320))[0],
       mate = items.find((i) => i.z > 0 && i.kind === first.kind && i.itemId !== first.itemId);
     const deadline = await a.locator("#timer").getAttribute("data-end-ms");
-    await pick(a, first);
+    // 两人同时走各自真实路线取物，不让队友无意义等第一人全部返台。
+    await Promise.all([pick(a, first), pick(b, mate)]);
+    await expect(a.locator('#teammate-hand span[data-item-id="' + mate.itemId + '"]')).toHaveCount(
+      1,
+    );
+    await expect(a.locator("#world")).toHaveAttribute("data-held-items", "2");
+    await expect(b.locator("#world")).toHaveAttribute("data-held-items", "2");
     await expect(b.locator('#teammate-hand span[data-item-id="' + first.itemId + '"]')).toHaveCount(
       1,
     );
@@ -53,7 +59,6 @@ test("双人房间码与双方准备后合作，队友手持和团队分数一�
     await expect(b.locator('#tray button[data-item-id="' + first.itemId + '"]')).toHaveCount(1);
     // 向东让开同伴的返台路线，仍需绕过真实静态实体及队友身体。
     await walk(a, 840, 350);
-    await pick(b, mate);
     await expect(a.locator('#teammate-hand span[data-item-id="' + mate.itemId + '"]')).toHaveCount(
       1,
     );

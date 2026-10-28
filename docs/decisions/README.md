@@ -82,4 +82,6 @@
 
 - [ADR-0040：全图分散道具、固定配对台与浅水减速](0040-scattered-map-and-water.md)
 
+- [ADR-0041：真实闲帧观察与并行合作搬运](0041-frame-observation-and-parallel-carry.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。
