@@ -16,7 +16,7 @@ import (
 
 const (
 	Duration     = 180 * time.Second
-	Rules        = "pair-1"
+	Rules        = "pair-2"
 	HandCapacity = 3
 	TrayCapacity = 5
 )
@@ -71,13 +71,24 @@ func (r *Round) ReleaseHeld(id string) {
 func (r *Round) populate() {
 	seed := sha256.Sum256([]byte(fmt.Sprintf("%s/%s/%s/%d", r.state.Rules, r.state.Day, r.state.Mode, r.state.Board)))
 	rng := mathrand.New(mathrand.NewChaCha8(seed))
-	spots := rng.Perm(len(r.area.Spots))
+	var zones [8][]scene.Point
+	for _, p := range r.area.Spots {
+		zones[p.Zone] = append(zones[p.Zone], p)
+	}
+	var chosen [8]scene.Point
+	for zone, pool := range zones {
+		p := pool[rng.IntN(len(pool))]
+		p.X += float64(rng.IntN(2*scene.ScatterJitter+1) - scene.ScatterJitter)
+		p.Y += float64(rng.IntN(2*scene.ScatterJitter+1) - scene.ScatterJitter)
+		chosen[zone] = p
+	}
+	spots := rng.Perm(len(chosen))
 	r.state.Items = nil
 	for group := 0; group < 4; group++ {
 		top := rng.IntN(len(kinds))
 		bottom := (top + 1 + rng.IntN(len(kinds)-1)) % len(kinds)
 		for side := 0; side < 2; side++ {
-			p := r.area.Spots[spots[group*2+side]]
+			p := chosen[spots[group*2+side]]
 			upper := fmt.Sprintf("%d-%d-%d-top", r.state.Board, group, side)
 			lower := fmt.Sprintf("%d-%d-%d-base", r.state.Board, group, side)
 			r.state.Items = append(r.state.Items,

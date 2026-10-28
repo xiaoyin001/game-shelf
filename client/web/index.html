@@ -96,8 +96,8 @@
             </div>
           </div>
           <div class="map-footer">
-            <span id="coordinates">坐标 —</span
-            ><span>WASD 移动 · 空格跳跃 · 右键环绕 · 滚轮缩放 · R 复位</span
+            <span id="coordinates">坐标 —</span><span id="terrain-status" role="status"></span
+            ><span class="movement-help">WASD 移动 · 空格跳跃 · 右键环绕 · 滚轮缩放 · R 复位</span
             ><button id="leave-button" type="button" hidden>离开世界</button>
           </div>
         </section>
@@ -110,6 +110,7 @@
               <div><strong id="timer">180</strong><small>秒</small></div>
             </div>
             <p id="round-rules" class="muted">180 秒 · 同日相同关卡</p>
+            <p id="table-guide" class="muted">道具分散全图 · 配对台固定在 (700, 350)</p>
             <div id="challenge-controls" hidden>
               <div id="mode-entry">
                 <button id="start-solo" type="button" class="primary">开始单人挑战 · 180 秒</button>
@@ -180,8 +181,9 @@
             <details class="rules">
               <summary>怎么玩？</summary>
               <p>
-                走近道具按 E，先取上层，才能取被遮挡的下层。1–3 选择手持；靠近金色配对台，按 F
-                投送。也可以点面板按钮。
+                道具按每日种子分散全图，展开盘面可看坐标。走近按 E，先取上层，才能取下层。 1–3
+                选择手持；返回固定金色配对台 (700, 350)，按 F 投送。也可以点面板按钮。
+                水池里步行速度为陆地的55%，可绕行或跳跃；离水恢复。
               </p>
               <p>
                 两个相同自动消除。满台仍可送入能配对的物品，否则保留手持。G
@@ -198,6 +200,7 @@
               <summary>排行榜与个人最佳</summary>
               <p class="muted">
                 只计正常完赛且已保存成绩；单人/双人分开，同日同规则比较。双人每固定组合仅最高分。
+                当前为pair-2分散地图规则；pair-1旧成绩保留但不混榜。
               </p>
               <form id="ranking-form">
                 <label for="rankings-mode">模式</label>

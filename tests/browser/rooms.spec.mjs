@@ -40,7 +40,9 @@ test("双人房间码与双方准备后合作，队友手持和团队分数一�
   const { a, b, ca, cb, errors } = await pair(browser);
   try {
     const items = await ground(a),
-      first = items.find((i) => i.x === 740 && i.y === 300 && i.z > 0),
+      first = items
+        .filter((i) => i.z > 0)
+        .sort((a, b) => Math.hypot(a.x - 660, a.y - 320) - Math.hypot(b.x - 660, b.y - 320))[0],
       mate = items.find((i) => i.z > 0 && i.kind === first.kind && i.itemId !== first.itemId);
     const deadline = await a.locator("#timer").getAttribute("data-end-ms");
     await pick(a, first);
@@ -49,7 +51,7 @@ test("双人房间码与双方准备后合作，队友手持和团队分数一�
     );
     await put(a, first, true, { x: 720, y: 350 });
     await expect(b.locator('#tray button[data-item-id="' + first.itemId + '"]')).toHaveCount(1);
-    // 向东让开同伴的返台路线，不穿过NPC或队友身体。
+    // 向东让开同伴的返台路线，仍需绕过真实静态实体及队友身体。
     await walk(a, 840, 350);
     await pick(b, mate);
     await expect(a.locator('#teammate-hand span[data-item-id="' + mate.itemId + '"]')).toHaveCount(

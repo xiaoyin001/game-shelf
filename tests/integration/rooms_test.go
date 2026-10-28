@@ -4,7 +4,6 @@ package integration
 import (
 	"game-shelf/pkg/contracts"
 	"github.com/coder/websocket"
-	"math"
 	"testing"
 	"time"
 )
@@ -44,24 +43,13 @@ func startCoop(t *testing.T, a, b *websocket.Conn) *contracts.ChallengeRoom {
 // 两端持续消费快照，避免闲置连接的积压让移动意图突发越过限频。
 func walkCoop(t *testing.T, actor, observer *websocket.Conn, id string, x, y float64) {
 	t.Helper()
-	for range 100 {
-		p := findPlayer(t, read(t, actor, "state").State, id)
-		read(t, observer, "state")
-		dx, dy := x-p.X, y-p.Y
-		length := math.Hypot(dx, dy)
-		if length < 18 {
-			send(t, actor, "input", nil)
-			return
-		}
-		send(t, actor, "input", map[string]any{"dx": dx / length, "dy": dy / length})
-	}
-	t.Fatal("cooperative waypoint not reached", x, y)
+	walkGround(t, actor, observer, id, x, y)
 }
 func liveTeamPair(t *testing.T, a, b *websocket.Conn, aid, bid string, r *contracts.Challenge) {
 	t.Helper()
 	var first, mate *contracts.ChallengeItem
 	for _, i := range r.Items {
-		if i.Z > 0 && i.X == 740 && i.Y == 300 {
+		if i.Z > 0 && !i.Blocked {
 			first = i
 			break
 		}
@@ -85,7 +73,7 @@ func liveTeamPair(t *testing.T, a, b *websocket.Conn, aid, bid string, r *contra
 		}
 		return false
 	})
-	walkCoop(t, a, b, aid, 780, 230)
+	walkCoop(t, a, b, aid, 840, 350)
 	walkCoop(t, b, a, bid, mate.X, mate.Y)
 	send(t, b, "pick", map[string]any{"round_id": r.ID, "item_id": mate.ID})
 	challengeState(t, b, func(s *contracts.Challenge) bool { return held(s, mate.ID) })

@@ -200,6 +200,7 @@ func (w *World) response(p *player, now time.Time) *contracts.WorldResp {
 	for _, other := range w.players {
 		if other.scope() == p.scope() {
 			v := other.state
+			v.Wading = w.wading(other)
 			state.Players = append(state.Players, &v)
 		}
 	}

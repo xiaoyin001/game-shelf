@@ -3,6 +3,8 @@ package integration
 
 import (
 	"game-shelf/pkg/contracts"
+	"game-shelf/pkg/scene"
+	"game-shelf/tests/navigation"
 	"github.com/coder/websocket"
 	"math"
 	"testing"
@@ -11,20 +13,77 @@ import (
 
 func walkWaypoint(t *testing.T, conn *websocket.Conn, id string, x, y float64) *contracts.WorldPlayer {
 	t.Helper()
-	var last *contracts.WorldPlayer
+	p := findPlayer(t, freshWorld(t, conn, time.Now().UnixMilli()), id)
 	for range 100 {
-		p := findPlayer(t, read(t, conn, "state").State, id)
-		last = p
 		dx, dy := x-p.X, y-p.Y
 		length := math.Hypot(dx, dy)
 		if length < 18 {
 			send(t, conn, "input", nil)
 			return p
 		}
+		marker := time.Now().UnixMilli()
 		send(t, conn, "input", map[string]any{"dx": dx / length, "dy": dy / length})
+		p = findPlayer(t, freshWorld(t, conn, marker), id)
 	}
-	t.Fatalf("cannot walk to (%v,%v), last %+v", x, y, last)
+	t.Fatal("physical waypoint not reached", p, x, y)
 	return nil
+}
+
+// freshWorld 持续消费真实旧快照，不能用积压坐标连续突发补发移动。
+func freshWorld(t *testing.T, c *websocket.Conn, since int64) *contracts.WorldState {
+	t.Helper()
+	for range 300 {
+		s := read(t, c, "state").State
+		if s.TimeMS >= since {
+			return s
+		}
+	}
+	t.Fatal("fresh authoritative snapshot missing")
+	return nil
+}
+
+// walkGround 按公开真实布局绕障，所有位置都由真实WebSocket方向输入推进。
+func walkGround(t *testing.T, conn, observer *websocket.Conn, id string, x, y float64) *contracts.WorldPlayer {
+	t.Helper()
+	marker := time.Now().UnixMilli()
+	state := freshWorld(t, conn, marker)
+	if observer != nil {
+		freshWorld(t, observer, marker)
+	}
+	p := findPlayer(t, state, id)
+	bodies := []scene.Point{}
+	for _, b := range state.Players {
+		if b.ID != id {
+			bodies = append(bodies, scene.Point{X: b.X, Y: b.Y})
+		}
+	}
+	path := navigation.Route(scene.Default(), scene.Point{X: p.X, Y: p.Y}, scene.Point{X: x, Y: y}, bodies)
+	if len(path) == 0 {
+		t.Fatal("no public ground route", p, x, y)
+	}
+	for _, next := range path {
+		reached := false
+		for range 100 {
+			dx, dy := next.X-p.X, next.Y-p.Y
+			length := math.Hypot(dx, dy)
+			if length < 3 {
+				reached = true
+				break
+			}
+			scale := math.Max(18, length)
+			marker = time.Now().UnixMilli()
+			send(t, conn, "input", map[string]any{"dx": dx / scale, "dy": dy / scale})
+			p = findPlayer(t, freshWorld(t, conn, marker), id)
+			if observer != nil {
+				freshWorld(t, observer, marker)
+			}
+		}
+		if !reached {
+			t.Fatal("real ground route stuck", p, next, x, y)
+		}
+	}
+	send(t, conn, "input", nil)
+	return p
 }
 func challengeState(t *testing.T, c *websocket.Conn, valid func(*contracts.Challenge) bool) *contracts.Challenge {
 	t.Helper()
@@ -61,7 +120,7 @@ func TestLiveChallengeIsolationAndUntrustedScore(t *testing.T) {
 	if read(t, a, "error").Error != "item_out_of_range" {
 		t.Fatal("remote pick accepted")
 	}
-	for _, field := range []string{"score", "duration", "end_ms", "combo", "owner_id"} {
+	for _, field := range []string{"score", "duration", "end_ms", "combo", "owner_id", "wading", "speed"} {
 		conn := auth(t, login(t, name()))
 		send(t, conn, "put", map[string]any{field: 999})
 		closed(t, conn)
@@ -104,11 +163,11 @@ func TestLiveChallengeComplete180Seconds(t *testing.T) {
 			t.Fatal("no open pair in real board")
 		}
 		for _, i := range []*contracts.ChallengeItem{first, second} {
-			walkWaypoint(t, conn, account.UserID, i.X, i.Y)
+			walkGround(t, conn, nil, account.UserID, i.X, i.Y)
 			send(t, conn, "pick", map[string]any{"round_id": r.ID, "item_id": i.ID})
 			challengeState(t, conn, func(s *contracts.Challenge) bool { return held(s, i.ID) })
 		}
-		walkWaypoint(t, conn, account.UserID, 700, 350)
+		walkGround(t, conn, nil, account.UserID, 700, 350)
 		for _, i := range []*contracts.ChallengeItem{first, second} {
 			send(t, conn, "put", map[string]any{"round_id": r.ID, "item_id": i.ID})
 			read(t, conn, "state")

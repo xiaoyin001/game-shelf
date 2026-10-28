@@ -99,6 +99,7 @@ function disconnected(text) {
   $("player-count").textContent = "0";
   $("players").replaceChildren();
   $("coordinates").textContent = "坐标 —";
+  $("terrain-status").textContent = "";
   $("player-name").textContent = "尚未出发";
   $("join-button").textContent = "登录并进入原野 ↗";
   settlement = null;
@@ -337,7 +338,14 @@ function updateUI() {
       ...players.map((p) => {
         const li = document.createElement("li");
         li.textContent = p.name + (p.id === selfID ? " · 你" : "");
-        Object.assign(li.dataset, { x: p.x, y: p.y, z: p.z, grounded: p.grounded });
+        Object.assign(li.dataset, {
+          id: p.id,
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          grounded: p.grounded,
+          wading: p.wading,
+        });
         return li;
       }),
     );
@@ -350,7 +358,20 @@ function updateUI() {
       "coordinates",
       "坐标 " + Math.round(me.x) + " / " + Math.round(me.y) + " · 高度 " + Math.round(me.z),
     );
-    Object.assign($("coordinates").dataset, { x: me.x, y: me.y, z: me.z, grounded: me.grounded });
+    Object.assign($("coordinates").dataset, {
+      x: me.x,
+      y: me.y,
+      z: me.z,
+      grounded: me.grounded,
+      wading: me.wading,
+      timeMs: state.time_ms,
+    });
+    setText(
+      "terrain-status",
+      me.wading
+        ? "浅水减速 · 步行 " + Math.round(view.layout.water.speed_factor * 100) + "%"
+        : "陆地 / 空中 · 正常移速",
+    );
   }
   view.setChallenge(round);
   panel.update(round, state, selfID, room, settlement);

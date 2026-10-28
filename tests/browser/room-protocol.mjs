@@ -1,6 +1,7 @@
 // 文件说明：用真实注册和公开WebSocket准备已存在对局；不伪造坐标、时钟或成绩，不改生产客户端状态。
 import { expect } from "@playwright/test";
 import { password } from "./helpers.mjs";
+import { route } from "./navigation.mjs";
 export async function protocolPeer(page, account) {
   await page.goto("/scene.json");
   const response = await page.request.post("/register", {
@@ -30,6 +31,7 @@ export async function protocolPeer(page, account) {
           if (e.state) peer.last = e;
           if (e.type === "ready") {
             peer.ready = true;
+            peer.id = e.user_id;
             resolve();
           }
         };
@@ -59,15 +61,36 @@ export async function existingCoop(a, b, an, bn) {
   await command(a, "start_duo", { room_id: room.id });
   await expect.poll(async () => (await snapshot(b))?.challenge?.phase).toBe("running");
   const r = (await snapshot(b)).challenge;
-  const item = r.items.find((i) => i.x === 740 && i.y === 360 && i.z > 0);
-  // 只发与按键一致的方向和真实等待；最终位置、容量、物品归属仍由服务器裁定。
-  await b.evaluate(async () => {
-    for (let i = 0; i < 4; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 110));
-      window.protocolPeer.send("input", { dx: 1 });
+  const item = r.items
+    .filter((i) => i.z > 0)
+    .sort((a, b) => Math.hypot(a.x - 660, a.y - 320) - Math.hypot(b.x - 660, b.y - 320))[0];
+  const layout = await (await b.request.get("/scene.json")).json(),
+    id = await b.evaluate(() => window.protocolPeer.id),
+    state = (await snapshot(b)).state,
+    me = state.players.find((p) => p.id === id);
+  for (const target of route(
+    layout,
+    me,
+    item,
+    state.players.filter((p) => p.id !== id),
+  )) {
+    let reached = false;
+    for (let i = 0; i < 150; i++) {
+      const p = (await snapshot(b)).state.players.find((p) => p.id === id),
+        dx = target.x - p.x,
+        dy = target.y - p.y,
+        length = Math.hypot(dx, dy);
+      if (length < 3) {
+        reached = true;
+        break;
+      }
+      // 真实方向与真实时间，模拟合法模拟量输入，不注入最终坐标。
+      await command(b, "input", { dx: dx / Math.max(18, length), dy: dy / Math.max(18, length) });
+      await b.waitForTimeout(110);
     }
-    window.protocolPeer.send("input", { dx: 0, dy: 0 });
-  });
+    expect(reached).toBe(true);
+  }
+  await command(b, "input", { dx: 0, dy: 0 });
   await command(b, "pick", { round_id: r.id, item_id: item.id });
   await expect
     .poll(async () => (await snapshot(b)).challenge.items.find((i) => i.id === item.id)?.place)

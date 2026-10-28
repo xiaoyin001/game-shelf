@@ -20,6 +20,15 @@ test("真实3D取物投送成对，计分、微光与时间均由服务器确认
   const startMS = Number(await page.locator("#timer").getAttribute("data-start-ms")),
     endMS = Number(await page.locator("#timer").getAttribute("data-end-ms"));
   expect(endMS - startMS).toBe(180000);
+  const tops = items.filter((i) => i.z > 0);
+  expect(Math.max(...tops.map((i) => i.x)) - Math.min(...tops.map((i) => i.x))).toBeGreaterThan(
+    700,
+  );
+  expect(Math.max(...tops.map((i) => i.y)) - Math.min(...tops.map((i) => i.y))).toBeGreaterThan(
+    300,
+  );
+  expect(tops.every((i) => Math.hypot(i.x - 700, i.y - 350) > 130)).toBe(true);
+  await expect(page.locator("#table-guide")).toContainText("(700, 350)");
   await pick(page, a, true);
   await pick(page, b);
   await put(page, a, true);
@@ -107,10 +116,22 @@ test("同日单人同盘但互不抢物，两个独立浏览器可占相同位�
     await Promise.all([ca.close(), cb.close()]);
   }
 });
-test("旧对话收藏与展台不再是玩法入口，保留真实背景实体", async ({ page }) => {
+test("旧对话收藏展台与无用NPC均移除，原位置没有隐藏阻挡", async ({ page }) => {
   await join(page, unique("retired"));
   await expect(page.locator("#npc-talk,#field-book,#camp-panel,#npc-dialog")).toHaveCount(0);
-  await expect(page.locator("#world")).toHaveAttribute("data-npc-count", "2");
+  await expect(page.locator("#world")).toHaveAttribute("data-npc-count", "0");
+  const layout = await (await page.request.get("/scene.json")).json();
+  expect(layout.npcs).toEqual([]);
+  expect(layout.entities.filter((e) => e.kind === "npc")).toEqual([]);
+  for (const p of [
+    { x: 540, y: 500 },
+    { x: 700, y: 230 },
+  ]) {
+    await walk(page, p.x, p.y);
+    expect(
+      Math.hypot((await coordinate(page, "x")) - p.x, (await coordinate(page, "y")) - p.y),
+    ).toBeLessThan(50);
+  }
   await expect(page.locator("#start-solo")).toBeVisible();
   await expect(page.locator("#world")).toHaveAttribute("data-renderer", "webgl2");
 });

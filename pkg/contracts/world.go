@@ -72,6 +72,7 @@ type WorldPlayer struct {
 	// 原采集分数字段号 5 停用；配对分数只在局快照中。
 	Z        float64 `protobuf:"fixed64,6,opt,name=z,proto3" json:"z"`
 	Grounded bool    `protobuf:"varint,7,opt,name=grounded,proto3" json:"grounded"`
+	Wading   bool    `protobuf:"varint,8,opt,name=wading,proto3" json:"wading"`
 }
 
 func (m *WorldPlayer) Reset()         { *m = WorldPlayer{} }

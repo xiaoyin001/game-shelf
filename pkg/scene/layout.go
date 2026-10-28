@@ -4,6 +4,7 @@ package scene
 import (
 	"embed"
 	"encoding/json"
+	"math"
 )
 
 // Files 只包含可公开的场景布局，不包含账号或运行配置。
@@ -24,14 +25,14 @@ type Entity struct {
 	Scale  float64 `json:"scale"`
 }
 
-// Node 定义可采集资源的固定位置，与同 ID 的实体保持一致。
+// Node 定义背景晶簇固定位置，与同 ID 的碰撞实体保持一致。
 type Node struct {
 	ID string  `json:"id"`
 	X  float64 `json:"x"`
 	Y  float64 `json:"y"`
 }
 
-// NPC 与同 ID 实体共用坐标，Range 为包含高度的交互距离。
+// NPC 保留公开布局解码兼容；当前列表为空，不再生成背景角色或身体。
 type NPC struct {
 	ID    string  `json:"id"`
 	Name  string  `json:"name"`
@@ -57,10 +58,32 @@ type Camp struct {
 	Slots []DisplaySlot `json:"slots"`
 }
 
-// Point 是无刚体道具的地面格。
+// ScatterJitter 为安全锚点的每轴最大抖动（场景单位），碰撞留白包含该偏移。
+const ScatterJitter = 12
+
+// Point 是道具安全锚点，Zone 为0–7的分散区域，每盘各选一处。
 type Point struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Zone int     `json:"zone"`
+}
+
+// Water 与可见水面共用椭圆；SpeedFactor 是地面涉水速度与普通速度的比值。
+type Water struct {
+	X           float64 `json:"x"`
+	Y           float64 `json:"y"`
+	RadiusX     float64 `json:"radius_x"`
+	RadiusY     float64 `json:"radius_y"`
+	SpeedFactor float64 `json:"speed_factor"`
+}
+
+// Contains 包含水面边界；空水域不减速，非有限坐标不会被当作水面。
+func (w Water) Contains(x, y float64) bool {
+	if w.RadiusX <= 0 || w.RadiusY <= 0 {
+		return false
+	}
+	dx, dy := (x-w.X)/w.RadiusX, (y-w.Y)/w.RadiusY
+	return !math.IsInf(dx, 0) && !math.IsInf(dy, 0) && dx*dx+dy*dy <= 1
 }
 
 // Workshop 同时约束服务端距离和客户端场地投影，不添加静态阻挡体。
@@ -84,6 +107,7 @@ type Layout struct {
 	NPCs     []NPC    `json:"npcs"`
 	Camp     Camp     `json:"camp"`
 	Workshop Workshop `json:"workshop"`
+	Water    Water    `json:"water"`
 }
 
 // Default 每次解码独立副本，调用者不能修改其他世界或公开布局。

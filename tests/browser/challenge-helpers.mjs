@@ -1,8 +1,22 @@
 // 文件说明：复用真实键盘和只读权威道具观察，不写入坐标或伪造局面。
 import { expect } from "@playwright/test";
+import { route } from "./navigation.mjs";
+const layouts = new WeakMap();
 export const coordinate = async (page, axis) =>
   Number(await page.locator("#coordinates").getAttribute("data-" + axis));
 export async function walk(page, x, y) {
+  if (!layouts.has(page)) layouts.set(page, await (await page.request.get("/scene.json")).json());
+  const start = { x: await coordinate(page, "x"), y: await coordinate(page, "y") };
+  const bodies = await page
+    .locator("#players li")
+    .evaluateAll((es) =>
+      es
+        .filter((e) => !e.textContent.endsWith(" · 你"))
+        .map((e) => ({ x: Number(e.dataset.x), y: Number(e.dataset.y) })),
+    );
+  for (const p of route(layouts.get(page), start, { x, y }, bodies)) await waypoint(page, p.x, p.y);
+}
+async function waypoint(page, x, y) {
   await page.locator("#world").focus();
   for (const [axis, target, positive, negative] of [
     ["x", x, "d", "a"],
@@ -33,11 +47,7 @@ export async function ground(page) {
   );
 }
 export async function pick(page, item, keyboard = false) {
-  const x = await coordinate(page, "x"),
-    y = await coordinate(page, "y");
-  const length = Math.hypot(item.x - x, item.y - y);
-  const ratio = length > 40 ? (length - 40) / length : 0;
-  await walk(page, x + (item.x - x) * ratio, y + (item.y - y) * ratio);
+  await walk(page, item.x, item.y);
   // 只点击对应真实道具；数据属性来自公开权威快照，不是坐标写入后门。
   await page.locator(".rules").evaluate((e) => {
     e.open = false;

@@ -178,6 +178,22 @@ export class ChallengePanel {
     prop("pick-item", "disabled", !this.nearest || this.hand.length >= 3);
     prop("put-item", "disabled", !active || !this.hand.length || !this.atTable);
     prop("return-item", "disabled", !active || !this.hand.length);
+    const tableDistance = this.me ? Math.round(Math.hypot(this.me.x - a.x, this.me.y - a.y)) : 0;
+    const tableDirection = this.me
+      ? (a.y < this.me.y - 30 ? "北" : a.y > this.me.y + 30 ? "南" : "") +
+        (a.x < this.me.x - 30 ? "西" : a.x > this.me.x + 30 ? "东" : "")
+      : "";
+    text(
+      "table-guide",
+      active
+        ? "固定配对台 (" +
+            a.x +
+            ", " +
+            a.y +
+            ") · " +
+            (this.atTable ? "已到达" : tableDirection + "方 " + tableDistance + " 单位")
+        : "道具分散全图 · 水池步行减速至55%",
+    );
     text(
       "interaction-hint",
       !active
@@ -186,7 +202,9 @@ export class ChallengePanel {
           ? "E 拾取 " + label(this.nearest)
           : this.atTable
             ? "配对台 · 1–3 选择，F 投送 · G 归还会断连击"
-            : "向右侧道具靠近 · E 取物 · 三件手持已满请返台",
+            : this.hand.length >= 3
+              ? "手持已满 · 返回固定配对台"
+              : "探索全图找同类道具 · E 取物 · F 返台投送",
     );
     text("pick-item", this.nearest ? "拾取 " + label(this.nearest) + " · E" : "靠近道具取物 · E");
     this.drawInventory();
@@ -263,14 +281,21 @@ export class ChallengePanel {
       this.hand.length < 3 &&
       this.me?.grounded &&
       dist(i) <= this.view.layout.workshop.pickup_range;
-    const stamp = JSON.stringify(items.map((i) => [i.id, i.blocked, available(i)]));
+    const stamp = JSON.stringify(items.map((i) => [i.id, i.x, i.y, i.blocked, available(i)]));
     if (stamp === this.boardStamp) return;
     this.boardStamp = stamp;
     $("board-items").replaceChildren(
       ...items.map((i) => {
         const b = document.createElement("button");
         b.type = "button";
-        b.textContent = label(i) + (i.blocked ? " · 遮挡" : i.z ? " · 上层" : " · 下层");
+        b.textContent =
+          label(i) +
+          (i.blocked ? " · 遮挡" : i.z ? " · 上层" : " · 下层") +
+          " (" +
+          Math.round(i.x) +
+          ", " +
+          Math.round(i.y) +
+          ")";
         b.disabled = !available(i);
         Object.assign(b.dataset, {
           itemId: i.id,

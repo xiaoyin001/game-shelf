@@ -80,4 +80,6 @@
 
 - [ADR-0039：WebGL2帧完成背压](0039-gpu-frame-backpressure.md)
 
+- [ADR-0040：全图分散道具、固定配对台与浅水减速](0040-scattered-map-and-water.md)
+
 状态“采用”不代表所有产品目标完成。实际结果见 [成长记录](../progress.md)。

@@ -181,6 +181,11 @@ func (w *World) walk(p *player, x, y float64) bool {
 	return true
 }
 
+// wading 只在脚底落地时成立，跳起或站上实体不受水面减速。
+func (w *World) wading(p *player) bool {
+	return p.state.Grounded && p.state.Z <= epsilon && w.layout.Water.Contains(p.state.X, p.state.Y)
+}
+
 func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	if math.IsNaN(dx) || math.IsNaN(dy) || math.IsInf(dx, 0) || math.IsInf(dy, 0) {
 		return "invalid_direction"
@@ -200,8 +205,13 @@ func (w *World) move(p *player, dx, dy float64, now time.Time) string {
 	mx, my := dx*speed*dt, dy*speed*dt
 	steps := int(math.Ceil(math.Hypot(mx, my) / 3))
 	for i := 0; i < steps; i++ {
-		x := math.Max(playerRadius, math.Min(width-playerRadius, p.state.X+mx/float64(steps)))
-		y := math.Max(playerRadius, math.Min(height-playerRadius, p.state.Y+my/float64(steps)))
+		// 小步逐次判定入水/离水，长输入包不能整包沿用岸上速度。
+		factor := 1.0
+		if w.wading(p) {
+			factor = w.layout.Water.SpeedFactor
+		}
+		x := math.Max(playerRadius, math.Min(width-playerRadius, p.state.X+mx*factor/float64(steps)))
+		y := math.Max(playerRadius, math.Min(height-playerRadius, p.state.Y+my*factor/float64(steps)))
 		if w.walk(p, x, y) {
 			continue
 		}

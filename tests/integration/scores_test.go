@@ -121,15 +121,25 @@ func TestLiveScoreStoreIdempotenceDailyPartiesAndBest(t *testing.T) {
 	if !errors.Is(restored.Save(ctx, unknown), scores.ErrConflict) {
 		t.Fatal("unknown schema overwritten")
 	}
-	doc["_id"] = scoreID()
-	doc["schema"] = 1
-	doc["rules"] = "pair-future"
-	if _, err = db.Collection("challenge_results").InsertOne(ctx, doc); err != nil {
-		t.Fatal(err)
-	}
-	board, err = restored.Query(ctx, a, "solo", "2026-01-17")
-	if err != nil || len(board.Entries) != 2 {
-		t.Fatal("cross-rule leak", err)
+	// 旧规则与未来规则即使分数更高，也不能污染新日榜或个人最佳；读取不能改写旧原文。
+	for _, rule := range []string{"pair-1", "pair-future"} {
+		legacy := scoreSample("solo", n, 1000, 5, a)
+		legacy.Rules = rule
+		raw, _ := bson.Marshal(legacy)
+		var old bson.M
+		_ = bson.Unmarshal(raw, &old)
+		old["_id"], old["schema"], old["party"] = legacy.RoundID, 1, a
+		if _, err = db.Collection("challenge_results").InsertOne(ctx, old); err != nil {
+			t.Fatal(err)
+		}
+		board, err = restored.Query(ctx, a, "solo", "2026-01-17")
+		if err != nil || len(board.Entries) != 2 || board.Rules != "pair-2" || board.BestSolo.RoundID != tomorrow.RoundID || board.Entries[1].RoundID != high.RoundID {
+			t.Fatal("cross-rule daily/best leak", rule, board, err)
+		}
+		var after contracts.ScoreRecord
+		if err = db.Collection("challenge_results").FindOne(ctx, bson.M{"_id": legacy.RoundID}).Decode(&after); err != nil || !proto.Equal(legacy, &after) {
+			t.Fatal("old record mutated", err)
+		}
 	}
 	// 前20有界且按实际完成时间稳定排序，0分正常完赛也能保存。
 	for i := 0; i < 25; i++ {

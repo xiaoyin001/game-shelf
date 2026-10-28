@@ -1,6 +1,6 @@
 # ADR-0019：近距离 NPC 对话与本轮采集委托
 
-> 2026-10-27：玩法入口由 [ADR-0035](0035-timed-pair-challenge.md) 替代；保留本记录、旧存档与历史验收事实。
+> 2026-10-27：玩法入口由 [ADR-0035](0035-timed-pair-challenge.md) 替代；2026-10-28再按[ADR-0040](0040-scattered-map-and-water.md)移除背景NPC和身体。保留本记录、旧存档与历史验收事实。
 
 状态：采用（2026-10-22，本地 Linux 真实四服务、17/17浏览器、独立服务回归和全量 Go race 通过；未 Push）。扩展 [ADR-0008](0008-shared-gathering.md) 的本轮采集目标，沿用 [ADR-0017](0017-authoritative-jump-collision.md) 的共享场景、权威物理与临时数据边界。
 

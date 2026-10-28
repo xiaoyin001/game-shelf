@@ -61,16 +61,6 @@ export class WorldView {
     this.makeCrystals();
     this.makeAvatarBatches();
     this.makePairing();
-    this.npcs = layout.npcs.map((npc) => {
-      const entry = this.makePlayer(
-        { ...npc, z: 0, name: npc.role + " · " + npc.name },
-        false,
-        true,
-      );
-      entry.group.rotation.y = npc.id === "keeper" ? Math.PI : 0;
-      entry.label.position.set(npc.x, 88, npc.y);
-      return entry;
-    });
     this.makeControls();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas.parentElement);
@@ -199,22 +189,23 @@ export class WorldView {
     );
     land.castShadow = false;
     this.makePath();
+    const lake = this.layout.water;
     const water = this.addMesh(
-      new THREE.CylinderGeometry(92, 100, 2, 18),
+      new THREE.CylinderGeometry(lake.radius_x, lake.radius_x + 8, 2, 18),
       new THREE.MeshPhongMaterial({ color: 0x386b70, shininess: 90 }),
-      930,
+      lake.x,
       0,
-      465,
+      lake.y,
     );
-    water.scale.z = 0.65;
+    water.scale.z = lake.radius_y / lake.radius_x;
     const shore = this.addMesh(
-      new THREE.CylinderGeometry(107, 115, 1, 18),
+      new THREE.CylinderGeometry(lake.radius_x + 15, lake.radius_x + 23, 1, 18),
       color(0x6b7860),
-      930,
+      lake.x,
       -0.3,
-      465,
+      lake.y,
     );
-    shore.scale.z = 0.65;
+    shore.scale.z = lake.radius_y / lake.radius_x;
     const trees = this.layout.entities.filter((e) => e.kind === "tree");
     const dummy = new THREE.Object3D();
     const trunk = new THREE.InstancedMesh(
@@ -392,8 +383,8 @@ export class WorldView {
   makeAvatarBatches() {
     this.avatarBatches = {};
     this.avatarProbe = new THREE.Matrix4();
-    // 容量对应当前服务器的100位玩家与固定NPC，实际绘制数每帧单独设置。
-    const capacity = 100 + this.layout.npcs.length;
+    // 容量对应当前服务器的100位玩家，实际绘制数每帧单独设置。
+    const capacity = 100;
     for (const kind of ["body", "head", "eye", "cap", "limb", "bag", "ring"]) {
       const geometry = kind === "ring" ? new THREE.RingGeometry(21, 23, 32) : this.geometries[kind];
       const material =
@@ -417,12 +408,12 @@ export class WorldView {
     }
   }
 
-  makePlayer(player, own, npc = false) {
+  makePlayer(player, own) {
     const group = new THREE.Group();
     group.position.set(player.x, player.z, player.y);
-    group.name = (npc ? "npc:" : "traveller:") + player.id;
-    const coat = npc ? (player.id === "keeper" ? 0xd9b468 : 0x65b9b5) : own ? 0x9fd4b5 : 0x9faed3;
-    const hat = npc ? 0x81643e : own ? 0x587951 : 0x656d99;
+    group.name = "traveller:" + player.id;
+    const coat = own ? 0x9fd4b5 : 0x9faed3;
+    const hat = own ? 0x587951 : 0x656d99;
     const parts = [];
     const piece = (kind, tint, x, y, z) => {
       const anchor = new THREE.Object3D();
@@ -442,14 +433,11 @@ export class WorldView {
     const legs = [piece("limb", 0x465351, -6, 8, 0), piece("limb", 0x465351, 6, 8, 0)];
     piece("limb", coat, -17, 26, 0);
     piece("limb", coat, 17, 26, 0);
-    if (own || npc) {
-      const ring = piece("ring", npc ? 0xffd77c : 0xc8f1bd, 0, 0.6, 0);
+    if (own) {
+      const ring = piece("ring", 0xc8f1bd, 0, 0.6, 0);
       ring.rotation.x = -Math.PI / 2;
     }
-    const label = this.label(
-      player.name + (own ? " · 你" : ""),
-      npc ? "#ffe4a6" : own ? "#d6ffdc" : "#e3e8ff",
-    );
+    const label = this.label(player.name + (own ? " · 你" : ""), own ? "#d6ffdc" : "#e3e8ff");
     label.position.y = 82;
     this.scene.add(group, label);
     return { group, label, legs, parts, target: new THREE.Vector3(player.x, player.z, player.y) };
@@ -457,7 +445,7 @@ export class WorldView {
 
   drawAvatars() {
     const counts = Object.fromEntries(Object.keys(this.avatarBatches).map((kind) => [kind, 0]));
-    for (const entry of [...this.npcs, ...this.players.values()]) {
+    for (const entry of this.players.values()) {
       entry.group.updateMatrixWorld(true);
       for (const part of entry.parts) {
         const kind = part.userData.kind,
@@ -581,7 +569,7 @@ export class WorldView {
     const label = this.label("配对台 · F 投送", "#ffe4a6");
     label.position.set(a.x, 56, a.y);
     this.scene.add(label);
-    const spots = new THREE.InstancedMesh(
+    this.groundSpots = new THREE.InstancedMesh(
       new THREE.RingGeometry(15, 17, 20),
       new THREE.MeshBasicMaterial({
         color: 0xb9dfc3,
@@ -589,16 +577,11 @@ export class WorldView {
         transparent: true,
         opacity: 0.5,
       }),
-      a.spots.length,
+      8,
     );
-    const dummy = new THREE.Object3D();
-    dummy.rotation.x = -Math.PI / 2;
-    a.spots.forEach((p, i) => {
-      dummy.position.set(p.x, 0.3, p.y);
-      dummy.updateMatrix();
-      spots.setMatrixAt(i, dummy.matrix);
-    });
-    this.scene.add(spots);
+    this.groundSpots.count = 0;
+    this.groundSpots.frustumCulled = false;
+    this.scene.add(this.groundSpots);
     this.pairFlash = this.addMesh(
       new THREE.TorusGeometry(28, 2, 5, 30),
       new THREE.MeshBasicMaterial({ color: 0xffe2a2, transparent: true }),
@@ -642,6 +625,20 @@ export class WorldView {
     const stamp = JSON.stringify(round?.items || []);
     if (this.pairStamp !== stamp) {
       this.pairStamp = stamp;
+      // 只标记当前真实地面堆，不把安全候选池渲染成固定棋盘。
+      const origins = new Map(
+        (round?.items || []).filter((i) => i.place === "ground").map((i) => [i.x + "/" + i.y, i]),
+      );
+      this.groundSpots.count = origins.size;
+      this.itemDummy.rotation.set(-Math.PI / 2, 0, 0);
+      this.itemDummy.scale.setScalar(1);
+      let index = 0;
+      for (const p of origins.values()) {
+        this.itemDummy.position.set(p.x, 0.3, p.y);
+        this.itemDummy.updateMatrix();
+        this.groundSpots.setMatrixAt(index++, this.itemDummy.matrix);
+      }
+      this.groundSpots.instanceMatrix.needsUpdate = true;
       this.shadowDirty = true;
       this.activityUntil = performance.now() + 750;
     }
@@ -822,7 +819,7 @@ export class WorldView {
     );
     this.setCanvasData(
       "npcCount",
-      this.npcs.filter((entry) => entry.group.parent === this.scene).length,
+      this.scene.children.filter((entry) => entry.name.startsWith("npc:")).length,
     );
     this.setCanvasData("cameraYaw", this.yaw.toFixed(4));
     this.setCanvasData("cameraDistance", Math.round(this.distance));

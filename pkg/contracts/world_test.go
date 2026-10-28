@@ -24,8 +24,8 @@ func TestProto3ScalarPresenceAndZeroEncoding(t *testing.T) {
 	}
 }
 func TestWorldProtobufRoundTrip(t *testing.T) {
-	input := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800, SceneVersion: "mosslight-pair-1",
-		Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 400, Z: 42.5, Grounded: true}},
+	input := &WorldResp{State: &WorldState{TimeMS: 42, Width: 1200, Height: 800, SceneVersion: "mosslight-scatter-2",
+		Players: []*WorldPlayer{{ID: "a", Name: "旅人", X: 560.5, Y: 465, Z: 0, Grounded: true, Wading: true}},
 		Nodes:   []*WorldNode{{ID: "n", X: 620}}, Chats: []*WorldChat{{ID: 1, Name: "旅人", Text: "你好"}},
 	}, Challenge: &Challenge{ID: "round", Phase: "running", Score: 100, Multiplier: 15, StartMS: 42, EndMS: 180042,
 		Items:   []*ChallengeItem{{ID: "1-a", Kind: "leaf", Place: "hand", OwnerID: "a", Blocked: true}},

@@ -24,7 +24,7 @@ test("真正 3D、本地资源、镜头相对移动与双人快照", async ({ br
     await expect(canvas).toHaveAttribute("data-stone-batches", "1");
     await expect(canvas).toHaveAttribute("data-crystal-instances", "15");
     await expect(canvas).toHaveAttribute("data-crystal-batches", "2");
-    await expect(canvas).toHaveAttribute("data-avatar-instances", "4");
+    await expect(canvas).toHaveAttribute("data-avatar-instances", "2");
     await expect(canvas).toHaveAttribute("data-avatar-batches", "7");
     const gl = await canvas.evaluate((el) => {
       const ctx = el.getContext("webgl2");
